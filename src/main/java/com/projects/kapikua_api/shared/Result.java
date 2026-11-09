@@ -2,17 +2,27 @@ package com.projects.kapikua_api.shared;
 
 import java.util.function.Function;
 
+/**
+ * Resultado de una operación que puede fallar por una regla de negocio.
+ * Las reglas de negocio no lanzan excepciones: devuelven {@code Err}.
+ */
+public sealed interface Result<T, E extends ErrorDominio> {
 
+    record Ok<T, E extends ErrorDominio>(T valor) implements Result<T, E> {}
 
+    record Err<T, E extends ErrorDominio>(E error) implements Result<T, E> {
+        public Err {
+            if (error == null) throw new IllegalArgumentException("El error no puede ser nulo");
+        }
+    }
 
+    static <T, E extends ErrorDominio> Result<T, E> ok(T valor) { return new Ok<>(valor); }
 
-public sealed interface Result<T, E> {
+    static <E extends ErrorDominio> Result<Void, E> ok() { return new Ok<>(null); }
 
-    record Ok<T, E>(T valor) implements Result<T, E> {}
-    record Err<T, E>(E error) implements Result<T, E> {}
+    static <T, E extends ErrorDominio> Result<T, E> err(E error) { return new Err<>(error); }
 
-    static <T, E> Result<T, E> ok(T valor)  { return new Ok<>(valor); }
-    static <T, E> Result<T, E> err(E error) { return new Err<>(error); }
+    default boolean esOk() { return this instanceof Ok; }
 
     default <U> Result<U, E> map(Function<? super T, ? extends U> f) {
         return switch (this) {

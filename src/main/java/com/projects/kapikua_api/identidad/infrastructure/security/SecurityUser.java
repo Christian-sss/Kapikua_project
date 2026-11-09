@@ -1,41 +1,47 @@
 package com.projects.kapikua_api.identidad.infrastructure.security;
 
 import com.projects.kapikua_api.identidad.domain.model.Usuario;
-import org.jspecify.annotations.Nullable;
+import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class SecurityUser implements UserDetails {
+/**
+ * Usuario autenticado de la petición. Los controladores de otros contextos lo reciben con
+ * {@code @AuthenticationPrincipal SecurityUser} y solo deberían usar {@link #usuarioId()}.
+ */
+public class SecurityUser {
 
-    private final Usuario usuario;
+    private final UsuarioId usuarioId;
+    private final String nombres;
+    private final String rol;
 
     public SecurityUser(Usuario usuario) {
-        this.usuario = usuario;
+        this.usuarioId = usuario.usuarioId();
+        this.nombres = usuario.getNombres();
+        this.rol = usuario.getRol().name();
     }
 
-    @Override
+    public UsuarioId usuarioId() {
+        return usuarioId;
+    }
+
+    public String nombres() {
+        return nombres;
+    }
+
+    public String rol() {
+        return rol;
+    }
+
     public Collection<? extends GrantedAuthority> getAuthorities() {
-
-        List<GrantedAuthority> list = new ArrayList<>();
-
-        list.add(new SimpleGrantedAuthority("ROLE_" + usuario.getRolUsuario().name()));
-
-        return list;
-
+        return List.of(new SimpleGrantedAuthority("ROLE_" + rol));
     }
 
     @Override
-    public @Nullable String getPassword() {
-        return us;
-    }
-
-    @Override
-    public String getUsername() {
-        return "";
+    public String toString() {
+        return "SecurityUser[usuarioId=" + usuarioId + ", rol=" + rol + "]";
     }
 }

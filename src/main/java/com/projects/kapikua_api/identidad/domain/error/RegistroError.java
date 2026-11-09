@@ -1,14 +1,54 @@
 package com.projects.kapikua_api.identidad.domain.error;
 
-public sealed interface RegistroError {
+import com.projects.kapikua_api.shared.ErrorDominio;
 
-    record MenorDeEdad() implements RegistroError {
+/** Errores de negocio del registro (CU-01). */
+public sealed interface RegistroError extends ErrorDominio {
+
+    record DatoInvalido(String campo) implements RegistroError {
+        public String codigo()  { return "ID-01"; }
+        public String mensaje() { return "El dato ingresado no es válido: " + campo + "."; }
+    }
+
+    record ContrasenaDebil() implements RegistroError {
+        public String codigo()  { return "ID-02"; }
+        public String mensaje() { return "La contraseña debe tener al menos 8 caracteres e incluir letras y números."; }
+    }
+
+    record TerminosNoAceptados() implements RegistroError {
+        public String codigo()  { return "ID-03"; }
+        public String mensaje() { return "Debes aceptar los términos del servicio y la política de tratamiento de datos."; }
     }
 
     record DniDuplicado() implements RegistroError {
+        public String codigo()  { return "ID-04"; }
+        public String mensaje() { return "El DNI ya está registrado."; }
+    }
+
+    record CorreoDuplicado() implements RegistroError {
+        public String codigo()  { return "ID-05"; }
+        public String mensaje() { return "El correo ya está registrado."; }
     }
 
     record CelularDuplicado() implements RegistroError {
+        public String codigo()  { return "ID-06"; }
+        public String mensaje() { return "El número de celular ya está registrado."; }
     }
 
+    /** RENIEC no confirma la identidad o los datos no coinciden (RN-06). */
+    record DniNoValidado() implements RegistroError {
+        public String codigo()  { return "ID-07"; }
+        public String mensaje() { return "No pudimos validar tu identidad con RENIEC. Revisa tu DNI y tu fecha de nacimiento."; }
+    }
+
+    record MenorDeEdad() implements RegistroError {
+        public String codigo()  { return "ID-08"; }
+        public String mensaje() { return "Debes ser mayor de 18 años para registrarte."; }
+    }
+
+    /** Mensaje general a propósito: no se revela el motivo (CU-01, 6a). */
+    record EnListasRestrictivas() implements RegistroError {
+        public String codigo()  { return "ID-09"; }
+        public String mensaje() { return "No es posible completar el registro. Comunícate con atención al cliente."; }
+    }
 }
