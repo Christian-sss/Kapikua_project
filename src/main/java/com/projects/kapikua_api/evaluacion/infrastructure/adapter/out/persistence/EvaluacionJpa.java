@@ -18,12 +18,10 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-/** evaluacion.evaluacion: solo inserción (trigger trg_evaluacion_inmutable, RN-19). */
 @Entity
 @Immutable
 @Table(schema = "evaluacion", name = "evaluacion")
 class EvaluacionJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -75,7 +73,6 @@ class EvaluacionJpa {
     @Column(length = 255)
     String motivo;
 
-    /** FactorEvaluado[] como JSONB: nombre, valor, puntaje y peso de cada factor del score. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     String factores;

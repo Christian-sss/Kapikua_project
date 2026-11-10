@@ -16,10 +16,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** Cada escritura es una sola sentencia condicional: no hace falta una transacción explícita. */
 @Service
 public class ReclamosService implements ReclamosUseCase {
-
     private final ReclamoRepositoryPort reclamos;
     private final ContextosCumplimiento contextos;
     private final Clock clock;

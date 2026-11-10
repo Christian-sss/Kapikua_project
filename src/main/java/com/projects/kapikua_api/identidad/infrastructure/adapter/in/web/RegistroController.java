@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-/** CU-01: adaptador de entrada web (Thymeleaf). */
 @Controller
 @RequestMapping("/registro")
 class RegistroController {
-
     private static final String VISTA = "identidad/registro";
 
     private final RegistrarUsuarioUseCase registrarUsuario;
@@ -40,7 +38,6 @@ class RegistroController {
             return VISTA;
         }
         return switch (registrarUsuario.registrar(form.aComando())) {
-            // Sin atributos flash: la app no usa HttpSession. El aviso va como parámetro.
             case Result.Ok<UsuarioId, RegistroError> ok -> "redirect:/login?registrado";
             case Result.Err<UsuarioId, RegistroError> err -> {
                 model.addAttribute("error", err.error().mensaje());

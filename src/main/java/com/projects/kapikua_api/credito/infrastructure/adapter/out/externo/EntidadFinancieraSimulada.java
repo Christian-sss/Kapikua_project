@@ -12,17 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * PROVISIONAL: Financiera Ayni Sur simulada (RES-08). Reglas para probar cada caso:
- * <ul>
- *   <li>DNI del cliente que termina en 3: la entidad DENIEGA por su política interna (CU-08, 9a).</li>
- *   <li>Cualquier otro: CONFIRMA las condiciones que Kapikua sugirió, con TCEA = TEA (sin comisiones al cliente).</li>
- * </ul>
- * Los códigos llevan una parte aleatoria para no repetirse entre reinicios (son únicos en la base).
- */
 @Component
 class EntidadFinancieraSimulada implements EntidadFinanciera {
-
     private static final Logger log = LoggerFactory.getLogger(EntidadFinancieraSimulada.class);
 
     @Override

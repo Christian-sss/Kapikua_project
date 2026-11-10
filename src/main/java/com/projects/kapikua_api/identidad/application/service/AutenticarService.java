@@ -13,14 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-/**
- * CU-02. Verifica la contraseña con BCrypt y emite el token con el rol.
- * Cuando el usuario no existe igual se compara contra un hash de relleno,
- * para que el tiempo de respuesta no revele qué correos o DNI están registrados.
- */
 @Service
 public class AutenticarService implements AutenticarUseCase {
-
     private static final Logger log = LoggerFactory.getLogger(AutenticarService.class);
 
     private final UsuarioRepositoryPort usuarios;

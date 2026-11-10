@@ -7,7 +7,6 @@ import com.projects.kapikua_api.shared.UsuarioId;
 import java.util.Optional;
 
 public interface BilleteraRepositoryPort {
-
     Optional<Billetera> porUsuario(UsuarioId usuarioId);
 
     Optional<Billetera> porCelular(Celular celular);
@@ -16,6 +15,5 @@ public interface BilleteraRepositoryPort {
 
     boolean existeCelular(Celular celular);
 
-    /** Con bloqueo optimista: si otra transacción la cambió antes, lanza OptimisticLockingFailureException. */
     Billetera guardar(Billetera billetera);
 }

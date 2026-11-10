@@ -20,10 +20,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Optional;
 
-/** CU-12 y el panel de crédito: préstamo vigente, solicitud en curso e invitaciones de aval. */
 @Service
 public class ConsultarCreditoService implements ConsultarCreditoUseCase {
-
     private final SoporteOfertas soporte;
     private final OfertaRepositoryPort ofertas;
     private final PrestamoRepositoryPort prestamos;

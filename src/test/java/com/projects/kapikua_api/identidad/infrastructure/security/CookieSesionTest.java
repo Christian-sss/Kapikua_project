@@ -9,9 +9,7 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** La cookie de sesión es Secure por HTTPS y no por HTTP local, donde Safari la descartaría. */
 class CookieSesionTest {
-
     static String cookieEscrita(boolean siempreSegura, boolean https) {
         var request = new MockHttpServletRequest();
         request.setSecure(https);

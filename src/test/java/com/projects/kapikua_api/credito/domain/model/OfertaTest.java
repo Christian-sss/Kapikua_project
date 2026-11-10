@@ -15,9 +15,7 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** RN-19 (vigencia de 7 días) y RN-21 (aval). */
 class OfertaTest {
-
     private static final ZoneId LIMA = ZoneId.of("America/Lima");
     private static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     private static final UsuarioId ANA = new UsuarioId(1L);
@@ -43,7 +41,7 @@ class OfertaTest {
         assertThat(o.getEstado()).isEqualTo(EstadoOferta.PENDIENTE_EFA);
         assertThat(o.getVigenteHasta()).isEqualTo(LocalDate.of(2026, 11, 16));
 
-        assertThat(o.actualizarVencimientos(AHORA.plusDays(7), LIMA, HORAS_48)).isFalse();   // aún el día 16
+        assertThat(o.actualizarVencimientos(AHORA.plusDays(7), LIMA, HORAS_48)).isFalse();
         assertThat(o.actualizarVencimientos(LocalDate.of(2026, 11, 17).atStartOfDay(LIMA).toOffsetDateTime(), LIMA, HORAS_48))
                 .isTrue();
         assertThat(o.getEstado()).isEqualTo(EstadoOferta.VENCIDA);
@@ -91,9 +89,9 @@ class OfertaTest {
     @Test
     void laInvitacionNoDuraMasQueLaOferta() {
         var o = nueva();
-        var seisDiasDespues = AHORA.plusDays(6).plusHours(13);             // el día 15 a las 23:00
+        var seisDiasDespues = AHORA.plusDays(6).plusHours(13);
         o.designarAval(LUIS, true, 3, seisDiasDespues);
-        var finVigencia = o.finVigencia(LIMA);                               // el 17 a las 00:00
+        var finVigencia = o.finVigencia(LIMA);
         assertThat(o.getAvales().getFirst().venceEn(HORAS_48, finVigencia)).isEqualTo(finVigencia);
     }
 
@@ -152,7 +150,6 @@ class OfertaTest {
         assertThat(p.isCargoAutorizado()).isTrue();
         assertThat(p.getFechaAutorizacionCargo()).isEqualTo(AHORA);
         assertThat(p.getCodigoEntidad()).isEqualTo("AYNI_SUR");
-        // El evento de desembolso nace con el préstamo, identificado por el código del crédito.
         assertThat(p.extraerEventos()).singleElement().isInstanceOfSatisfying(
                 com.projects.kapikua_api.credito.domain.event.PrestamoDesembolsado.class, e -> {
                     assertThat(e.codigoCredito()).isEqualTo("EFA-C-1");

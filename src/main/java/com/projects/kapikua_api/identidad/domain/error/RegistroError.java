@@ -2,9 +2,7 @@ package com.projects.kapikua_api.identidad.domain.error;
 
 import com.projects.kapikua_api.shared.ErrorDominio;
 
-/** Errores de negocio del registro (CU-01). */
 public sealed interface RegistroError extends ErrorDominio {
-
     record DatoInvalido(String campo) implements RegistroError {
         public String codigo()  { return "ID-01"; }
         public String mensaje() { return "El dato ingresado no es válido: " + campo + "."; }
@@ -35,7 +33,6 @@ public sealed interface RegistroError extends ErrorDominio {
         public String mensaje() { return "El número de celular ya está registrado."; }
     }
 
-    /** RENIEC no confirma la identidad o los datos no coinciden (RN-06). */
     record DniNoValidado() implements RegistroError {
         public String codigo()  { return "ID-07"; }
         public String mensaje() { return "No pudimos validar tu identidad con RENIEC. Revisa tu DNI y tu fecha de nacimiento."; }
@@ -46,7 +43,6 @@ public sealed interface RegistroError extends ErrorDominio {
         public String mensaje() { return "Debes ser mayor de 18 años para registrarte."; }
     }
 
-    /** Mensaje general a propósito: no se revela el motivo (CU-01, 6a). */
     record EnListasRestrictivas() implements RegistroError {
         public String codigo()  { return "ID-09"; }
         public String mensaje() { return "No es posible completar el registro. Comunícate con atención al cliente."; }

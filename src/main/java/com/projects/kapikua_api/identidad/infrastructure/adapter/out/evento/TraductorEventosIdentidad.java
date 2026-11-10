@@ -5,10 +5,8 @@ import com.projects.kapikua_api.shared.puerto.PublicadorEventos;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/** Traduce los eventos de dominio de Identidad a eventos de integración, en la misma transacción. */
 @Component
 class TraductorEventosIdentidad {
-
     private final PublicadorEventos publicador;
 
     TraductorEventosIdentidad(PublicadorEventos publicador) {

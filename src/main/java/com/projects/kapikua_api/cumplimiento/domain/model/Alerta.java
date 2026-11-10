@@ -7,9 +7,7 @@ import com.projects.kapikua_api.shared.UsuarioId;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-/** RN-28, CU-14: alerta de operación inusual. Su revisión es definitiva (RNF-10: registro inmutable). */
 public final class Alerta {
-
     private final Long id;
     private final Long billeteraId;
     private final Long transaccionId;
@@ -45,7 +43,6 @@ public final class Alerta {
         return new Alerta(id, billeteraId, transaccionId, regla, detalle, fecha, estado, comentario, revisadoPor, fechaRevision);
     }
 
-    /** CU-14, 4-5: el Administrador la descarta o la escala, siempre con un comentario. */
     public Result<Void, ErrorCumplimiento> revisar(EstadoAlerta decision, String comentario, UsuarioId administrador,
                                                    OffsetDateTime ahora) {
         if (estado != EstadoAlerta.PENDIENTE) return Result.err(new ErrorCumplimiento.AlertaYaRevisada());

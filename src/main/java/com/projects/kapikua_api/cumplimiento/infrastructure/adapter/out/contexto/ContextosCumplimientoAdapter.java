@@ -19,10 +19,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/** Cumplimiento consulta Billetera e Identidad solo por sus puertos de entrada. */
 @Component
 class ContextosCumplimientoAdapter implements ContextosCumplimiento {
-
     private final ConsultarBilleteraUseCase billetera;
     private final BloquearBilleteraUseCase bloqueo;
     private final ConsultarIdentidadUseCase identidad;

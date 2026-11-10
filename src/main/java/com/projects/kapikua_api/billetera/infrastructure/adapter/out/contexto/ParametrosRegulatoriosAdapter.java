@@ -15,10 +15,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Lee los topes vigentes de Cumplimiento (códigos del script v6, Res. SBS 00704-2026). */
 @Component
 class ParametrosRegulatoriosAdapter implements ParametrosRegulatorios {
-
     private static final Logger log = LoggerFactory.getLogger(ParametrosRegulatoriosAdapter.class);
     private static final List<String> CODIGOS = List.of(
             "UIT", "TOPE_OPERACION_UIT", "TOPE_SALDO_UIT", "TOPE_RECARGAS_MES_UIT", "TOPE_PAGOS_MES_UIT");

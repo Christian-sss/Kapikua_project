@@ -13,11 +13,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
-/** Formulario de registro. Valida el formato; las reglas de negocio las aplica el dominio. */
 @Getter
 @Setter
 public class RegistroForm {
-
     @NotBlank(message = "Ingresa tu DNI")
     @Pattern(regexp = "^[0-9]{8}$", message = "El DNI tiene 8 dígitos")
     private String dni;

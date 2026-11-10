@@ -11,10 +11,8 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CalculadoraFrancesaTest {
-
     private static final LocalDate DESEMBOLSO = LocalDate.of(2026, 11, 9);
 
-    /** Informe de factibilidad, tabla 15: S/ 1 000, 12 cuotas semanales, TEA 90 %: cuota S/ 90,29 e interés S/ 83,50. */
     @Test
     void cronogramaDelEjemploDelInformeDeFactibilidad() {
         var c = CalculadoraFrancesa.cronograma(Dinero.de("1000"), new BigDecimal("90"), 12, DESEMBOLSO);
@@ -22,10 +20,10 @@ class CalculadoraFrancesaTest {
         assertThat(c.cuota()).isEqualTo(Dinero.de("90.29"));
         assertThat(c.cuotas()).hasSize(12);
         assertThat(c.cuotas().stream().map(CalculadoraFrancesa.CuotaProgramada::capital).reduce(Dinero.CERO, Dinero::sumar))
-                .isEqualTo(Dinero.de("1000"));                              // el capital suma exacto el monto
+                .isEqualTo(Dinero.de("1000"));
         assertThat(c.interesTotal().valor()).isBetween(new BigDecimal("83.40"), new BigDecimal("83.60"));
         assertThat(c.cuotas().subList(0, 11)).allSatisfy(q -> assertThat(q.total()).isEqualTo(Dinero.de("90.29")));
-        assertThat(c.cuotas().get(11).total().valor())                      // la última absorbe el redondeo
+        assertThat(c.cuotas().get(11).total().valor())
                 .isBetween(new BigDecimal("90.20"), new BigDecimal("90.38"));
     }
 

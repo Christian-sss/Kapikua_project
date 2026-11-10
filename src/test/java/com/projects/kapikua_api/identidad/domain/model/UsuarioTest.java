@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UsuarioTest {
-
     private static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     private static final Optional<IdentidadVerificada> RENIEC_OK =
             Optional.of(new IdentidadVerificada("Ana", "Quispe Mamani"));
@@ -107,9 +106,9 @@ class UsuarioTest {
     void elEventoDeRegistroSeRegistraCuandoLaBaseAsignaElId() {
         var u = ((Result.Ok<Usuario, RegistroError>) registrar("45678912", "ana@correo.pe", LocalDate.of(1990, 5, 20),
                 Optional.of(new IdentidadVerificada("Ana", "Quispe")), false)).valor();
-        assertThat(u.extraerEventos()).isEmpty();                     // todavía no tiene identidad
+        assertThat(u.extraerEventos()).isEmpty();
         org.springframework.test.util.ReflectionTestUtils.setField(u, "id", 5L);
-        u.alGuardarseNuevo();                                        // @PostPersist
+        u.alGuardarseNuevo();
         assertThat(u.extraerEventos()).containsExactly(new com.projects.kapikua_api.identidad.domain.event.UsuarioRegistrado(
                 new com.projects.kapikua_api.shared.UsuarioId(5L), "987654321", "Bodega"));
     }

@@ -7,13 +7,8 @@ import com.projects.kapikua_api.shared.evento.UsuarioRegistrado;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/**
- * Abre la billetera en la MISMA transacción del registro: si la apertura falla, la excepción
- * revierte también el usuario, y nunca queda un cliente sin billetera.
- */
 @Component
 class OyenteUsuarioRegistrado {
-
     private final AbrirBilleteraUseCase abrirBilletera;
 
     OyenteUsuarioRegistrado(AbrirBilleteraUseCase abrirBilletera) {

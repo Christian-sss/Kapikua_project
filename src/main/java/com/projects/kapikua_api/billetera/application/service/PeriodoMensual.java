@@ -4,9 +4,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 
-/** Mes calendario en la zona del sistema (America/Lima), para los topes mensuales (RN-03, RN-04). */
 record PeriodoMensual(OffsetDateTime desde, OffsetDateTime hasta) {
-
     static PeriodoMensual actual(Clock clock) {
         var mes = YearMonth.now(clock);
         var zona = clock.getZone();

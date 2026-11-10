@@ -15,10 +15,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-/** Lo que comparten los casos de uso de originación: cargar una oferta al día y sus datos de evaluación. */
 @Component
 class SoporteOfertas {
-
     private final OfertaRepositoryPort ofertas;
     private final EvaluacionCrediticia evaluacion;
     private final ReglasCredito reglas;
@@ -40,10 +38,6 @@ class SoporteOfertas {
         return reglas.vigentes(LocalDate.now(clock));
     }
 
-    /**
-     * La oferta, con los plazos vencidos ya aplicados y guardados (RN-19, RN-21).
-     * Si {@code usuario} no es null, solo la devuelve si es suya o si el usuario es uno de sus avales.
-     */
     Result<Oferta, ErrorCredito> actualizada(Long ofertaId, UsuarioId usuario) {
         var leida = ofertas.porId(ofertaId);
         if (leida.isEmpty() || (usuario != null && !participa(leida.get(), usuario))) {

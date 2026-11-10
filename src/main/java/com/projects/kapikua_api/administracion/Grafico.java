@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-/** Gráfico de barras de resumen (CU-16, 3), dibujado con CSS en la plantilla. */
 public record Grafico(String titulo, List<Barra> barras) {
-
     public record Barra(String etiqueta, String valor, int porcentaje) {}
 
     public static Grafico de(String titulo, Map<String, BigDecimal> datos, Function<BigDecimal, String> formato) {

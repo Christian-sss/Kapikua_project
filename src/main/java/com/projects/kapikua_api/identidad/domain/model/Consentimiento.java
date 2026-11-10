@@ -14,16 +14,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
 
-/**
- * Consentimiento otorgado por el usuario (RN-07). Nunca se borra: se revoca.
- * Un trigger de la base solo permite llenar revocado_en una vez (RNF-10).
- */
 @Entity
 @Table(schema = "identidad", name = "consentimiento")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Consentimiento {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

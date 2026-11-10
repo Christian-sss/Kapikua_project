@@ -10,23 +10,14 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** CU-15 Registrar y atender reclamos (RN-29). */
 public interface ReclamosUseCase {
-
-    // --- Cliente
-
-    /** Devuelve el reclamo registrado, con su código y fecha límite (la constancia). */
     Result<VistaReclamo, ErrorCumplimiento> registrar(UsuarioId usuarioId, MotivoReclamo motivo, String detalle,
                                                       Long transaccionId);
 
     List<VistaReclamo> deUsuario(UsuarioId usuarioId);
 
-    /** Solo si el reclamo es del usuario. */
     Result<VistaReclamo, ErrorCumplimiento> delUsuario(UsuarioId usuarioId, Long reclamoId);
 
-    // --- Administrador
-
-    /** Pendientes ordenados por fecha límite (CU-15, 4). */
     List<VistaReclamo> pendientes();
 
     List<VistaReclamo> atendidos(int limite);

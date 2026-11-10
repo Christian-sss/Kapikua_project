@@ -10,13 +10,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
-/**
- * Entidad dentro de {@link Prestamo}: una cuota semanal del cronograma.
- * {@code montoPagado} cubre, en este orden, el interés moratorio, el interés y el capital (RN-23).
- * {@code montoApartado} es lo retenido de las ventas para esta cuota que todavía no se cobró (RN-22).
- */
 public final class Cuota {
-
     private final Long id;
     private final int numero;
     private final LocalDate fechaVencimiento;
@@ -55,8 +49,6 @@ public final class Cuota {
                 fechaPago, estado);
     }
 
-    // ------------------------------------------------------------------ consultas
-
     public Dinero total() {
         return capital.sumar(interes).sumar(interesMoratorio);
     }
@@ -73,19 +65,16 @@ public final class Cuota {
         return porCobrar() && hoy.isAfter(fechaVencimiento);
     }
 
-    /** Capital todavía no pagado: lo pagado cubre primero el moratorio y el interés. */
     public Dinero capitalPendiente() {
         var cubiertoAntes = interesMoratorio.sumar(interes);
         var aCapital = montoPagado.mayorQue(cubiertoAntes) ? montoPagado.restar(cubiertoAntes) : Dinero.CERO;
         return aCapital.faltaPara(capital);
     }
 
-    /** RN-22: cuánto más se puede apartar para esta cuota sin pasarse de lo que falta pagar. */
     public Dinero faltaPorApartar() {
         return montoApartado.faltaPara(pendiente());
     }
 
-    /** RN-23: cómo se aplicaría un pago de {@code monto}, sin cambiar la cuota. */
     public Imputacion imputar(Dinero monto) {
         if (monto.mayorQue(pendiente())) throw new IllegalArgumentException("El pago supera lo pendiente de la cuota");
         var pagado = montoPagado;
@@ -101,16 +90,10 @@ public final class Cuota {
         return new Imputacion(aMoratorio, aInteres, resto);
     }
 
-    // ------------------------------------------------------------------ cambios (los dispara Prestamo)
-
     void apartar(Dinero monto) {
         montoApartado = montoApartado.sumar(monto);
     }
 
-    /**
-     * Aplica un pago. {@code deApartado} es la parte que salió de lo retenido para esta cuota.
-     * @return lo apartado que sobra si la cuota quedó pagada (hay que liberarlo en la billetera)
-     */
     Dinero pagar(Dinero monto, Dinero deApartado, LocalDate hoy) {
         if (!porCobrar()) throw new IllegalStateException("La cuota " + numero + " no está por cobrar");
         if (monto.mayorQue(pendiente())) throw new IllegalArgumentException("El pago supera lo pendiente de la cuota");
@@ -126,10 +109,6 @@ public final class Cuota {
         return Dinero.CERO;
     }
 
-    /**
-     * RN-24: interés moratorio diario sobre el capital vencido, sin capitalizar y sin penalidades.
-     * Se recalcula con los días de atraso; nunca baja (lo ya pagado de mora no se devuelve).
-     */
     void actualizarMoratorio(LocalDate hoy, BigDecimal tasaDiaria) {
         if (!vencidaAl(hoy)) return;
         var dias = ChronoUnit.DAYS.between(fechaVencimiento, hoy);
@@ -142,7 +121,6 @@ public final class Cuota {
         if (estado == EstadoCuota.PENDIENTE) estado = EstadoCuota.VENCIDA;
     }
 
-    /** RN-27: anulada por un pago anticipado. Devuelve lo apartado que hay que liberar. */
     Dinero anular() {
         if (estado != EstadoCuota.PENDIENTE || !montoPagado.esCero()) {
             throw new IllegalStateException("Solo se anula una cuota pendiente sin pagos");
@@ -153,7 +131,6 @@ public final class Cuota {
         return sobrante;
     }
 
-    /** RN-27: nuevo capital e interés tras un pago anticipado parcial. */
     void reprogramar(Dinero nuevoCapital, Dinero nuevoInteres) {
         if (estado != EstadoCuota.PENDIENTE || !montoPagado.esCero()) {
             throw new IllegalStateException("Solo se reprograma una cuota pendiente sin pagos");
@@ -162,7 +139,6 @@ public final class Cuota {
         interes = nuevoInteres;
     }
 
-    /** RN-22: al revocar el cargo automático, lo apartado vuelve a estar disponible. */
     Dinero liberarApartado() {
         var liberado = montoApartado;
         montoApartado = Dinero.CERO;

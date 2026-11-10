@@ -40,14 +40,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/**
- * Evaluación contra PostgreSQL con el esquema v6 y el cambio 002. Solo corre con KAPIKUA_DB_PRUEBAS
- * (ver BilleteraIntegracionTest). Inserta cobros pasados directamente en la base de prueba.
- */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
 class EvaluacionIntegracionTest {
-
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
@@ -62,9 +57,6 @@ class EvaluacionIntegracionTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
 
-    // ------------------------------------------------------------------ preparación
-
-    /** Registra un cliente cuyo DNI termina en {@code digito} (la Central simulada responde según ese dígito). */
     private UsuarioId cliente(char digito, boolean conConsentimiento) {
         var r = ThreadLocalRandom.current();
         var dni = String.valueOf(1_000_000 + r.nextInt(8_999_999)) + digito;
@@ -77,10 +69,6 @@ class EvaluacionIntegracionTest {
         return id;
     }
 
-    /**
-     * Abre la billetera hace 200 días y le agrega, en cada una de las últimas 12 semanas completas,
-     * 5 cobros de S/ 300 (S/ 1 500 por semana) de 15 pagadores distintos: 60 cobros en total.
-     */
     private void conHistoriaDeCobros(UsuarioId cliente) {
         var billetera = jdbc.queryForObject("select id from billetera.billetera where usuario_id = ?", Long.class, cliente.valor());
         jdbc.update("update billetera.billetera set fecha_apertura = now() - interval '200 days' where id = ?", billetera);
@@ -126,8 +114,6 @@ class EvaluacionIntegracionTest {
         return jdbc.queryForObject("select count(*) from evaluacion.evaluacion where usuario_id = ?", Integer.class, u.valor());
     }
 
-    // ------------------------------------------------------------------ pruebas
-
     @Test
     void sinConsentimientoNoSeEvalua() {
         var u = cliente('0', false);
@@ -144,7 +130,6 @@ class EvaluacionIntegracionTest {
         assertThat(evaluacionesDe(u)).isZero();
     }
 
-    /** Ana: S/ 1 500 por semana, nivel 1, sin historial en la Central → APTO por unos S/ 850, con aval (RN-13, RN-21). */
     @Test
     void anaRecibeUnaRecomendacionAptaQueQuedaGuardada() {
         var u = cliente('0', true);
@@ -153,7 +138,7 @@ class EvaluacionIntegracionTest {
         var r = ok(evaluar.evaluar(u, solicitud("3000", 8)));
         var milisegundos = (System.nanoTime() - inicio) / 1_000_000;
 
-        assertThat(milisegundos).isLessThan(3000);                         // RNF-14
+        assertThat(milisegundos).isLessThan(3000);
         assertThat(r.recomendacion()).isEqualTo(Recomendacion.APTO);
         assertThat(r.condiciones().monto().valor()).isCloseTo(new BigDecimal("850"), within(new BigDecimal("3")));
         assertThat(r.condiciones().tea()).isEqualByComparingTo("95");
@@ -161,7 +146,7 @@ class EvaluacionIntegracionTest {
 
         var guardada = consultar.porId(r.evaluacionId()).orElseThrow();
         assertThat(guardada).usingRecursiveComparison().ignoringFields("fecha").isEqualTo(r);
-        assertThat(guardada.fecha().toInstant()).isEqualTo(r.fecha().toInstant());   // mismo instante, otra zona
+        assertThat(guardada.fecha().toInstant()).isEqualTo(r.fecha().toInstant());
         assertThat(jdbc.queryForObject("select jsonb_array_length(factores) from evaluacion.evaluacion where id = ?",
                 Integer.class, r.evaluacionId())).isEqualTo(6);
     }
@@ -193,7 +178,6 @@ class EvaluacionIntegracionTest {
         assertThat(err(evaluar.evaluarAval(cliente('7', false)))).isInstanceOf(ErrorEvaluacion.AvalClasificacionNoNormal.class);
     }
 
-    /** Los eventos de Créditos mueven la escalera: un crédito pagado a tiempo sube del nivel 1 al 2. */
     @Test
     void unCreditoPagadoATiempoSubeDeNivelYCambiaLasCondiciones() {
         var u = cliente('0', true);
@@ -211,8 +195,8 @@ class EvaluacionIntegracionTest {
         assertThat(nivel.usoMinimo().promedioSemanal()).isEqualTo(Dinero.de("1500"));
 
         var r = ok(evaluar.evaluar(u, solicitud("3000", 12)));
-        assertThat(r.condiciones().tea()).isEqualByComparingTo("90");     // TEA del nivel 2
-        assertThat(r.condiciones().monto().valor()).isGreaterThan(new BigDecimal("2000"));  // 50 % de su capacidad
+        assertThat(r.condiciones().tea()).isEqualByComparingTo("90");
+        assertThat(r.condiciones().monto().valor()).isGreaterThan(new BigDecimal("2000"));
     }
 
     @Test

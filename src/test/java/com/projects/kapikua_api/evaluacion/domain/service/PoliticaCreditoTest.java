@@ -18,9 +18,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/** RN-08 a RN-17 con los parámetros del script v6 y del cambio 002. */
 public class PoliticaCreditoTest {
-
     public static final UsuarioId CLIENTE = new UsuarioId(1L);
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final InformeCentral SIN_HISTORIAL = new InformeCentral(null, Dinero.CERO);
@@ -42,7 +40,6 @@ public class PoliticaCreditoTest {
 
     static BigDecimal bd(int v) { return BigDecimal.valueOf(v); }
 
-    /** 12 semanas con cobros, 60 cobros de 15 pagadores, 200 días de antigüedad. */
     static CobrosDelPeriodo cobrosSemanales(String porSemana) {
         return new CobrosDelPeriodo(12, Dinero.de(porSemana).multiplicar(bd(12)), 12, 60, 15, 200);
     }
@@ -63,9 +60,6 @@ public class PoliticaCreditoTest {
                 cobros, central, h, p, AHORA);
     }
 
-    // ------------------------------------------------------------------ ejemplos del SRS
-
-    /** RN-13: Ana, nivel 1, cobra S/ 1 500 por semana: capacidad de unos S/ 3 400 y recibe unos S/ 850. */
     @Test
     void ana() {
         var e = ok(evaluar("3000", 8, cobrosSemanales("1500"), SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), P));
@@ -74,15 +68,12 @@ public class PoliticaCreditoTest {
         assertThat(e.condiciones().monto().valor()).isCloseTo(new BigDecimal("850"), within(new BigDecimal("2")));
         assertThat(e.condiciones().tea()).isEqualByComparingTo("95");
         assertThat(e.condiciones().cuotas()).isEqualTo(8);
-        assertThat(e.condiciones().porcentajeRetencion()).isEqualTo(8);   // 112.5 / 1500 = 7.5 % → 8
-        assertThat(e.requiereAval()).isTrue();                               // nivel 1 (RN-21)
-        // regularidad 250 + holgura 23,4 (cuota de S/ 397 de S/ 450) + historial nuevo 100 + pagadores 150
-        // + antigüedad 100 + sin historial SBS 70 = 693,4
+        assertThat(e.condiciones().porcentajeRetencion()).isEqualTo(8);
+        assertThat(e.requiereAval()).isTrue();
         assertThat(e.score()).isEqualTo(693);
         assertThat(e.factores()).hasSize(6);
     }
 
-    /** RN-13: Pedro, nivel 3, cobra S/ 300 por semana: capacidad de unos S/ 1 310 (16 cuotas, 80 %) y recibe unos S/ 980. */
     @Test
     void pedro() {
         var pedro = HistorialCrediticio.reconstituir(CLIENTE, 3, 0, 2, false, 0L);
@@ -92,7 +83,7 @@ public class PoliticaCreditoTest {
         assertThat(e.recomendacion()).isEqualTo(Recomendacion.APTO);
         assertThat(e.condiciones().monto().valor()).isCloseTo(new BigDecimal("982"), within(new BigDecimal("3")));
         assertThat(e.condiciones().tea()).isEqualByComparingTo("80");
-        assertThat(e.requiereAval()).isFalse();                              // nivel 3: sin aval
+        assertThat(e.requiereAval()).isFalse();
     }
 
     @Test
@@ -102,10 +93,9 @@ public class PoliticaCreditoTest {
         assertThat(poco.condiciones().monto()).isEqualTo(Dinero.de("500"));
 
         var mucho = ok(evaluar("9000", 24, cobrosSemanales("5000"), SIN_HISTORIAL, nivel4, P));
-        assertThat(mucho.condiciones().monto()).isEqualTo(Dinero.de("3300"));   // RN-01
+        assertThat(mucho.condiciones().monto()).isEqualTo(Dinero.de("3300"));
     }
 
-    /** Con menos cuotas que el máximo del nivel, la cuota tampoco puede pasar del 30 % de los cobros (RN-12). */
     @Test
     void laCuotaNoSuperaElTreintaPorCientoDeLosCobros() {
         var nivel4 = HistorialCrediticio.reconstituir(CLIENTE, 4, 0, 0, false, 0L);
@@ -118,10 +108,8 @@ public class PoliticaCreditoTest {
         var bajaTasa = new ParametrosCredito(30, 3, 20, bd(30), Dinero.de("20000"), Dinero.de("3300"), bd(85),
                 Dinero.de("20"), 4, P.niveles(), 650, 500, bd(60), PESOS, 5, 15, 10, 2, 8, 9, 31, 12);
         var e = ok(evaluar("800", 8, cobrosSemanales("1500"), SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), bajaTasa));
-        assertThat(e.condiciones().tea()).isEqualByComparingTo("85");         // RN-16: min(95, 85)
+        assertThat(e.condiciones().tea()).isEqualByComparingTo("85");
     }
-
-    // ------------------------------------------------------------------ elegibilidad y eliminatorias
 
     @Test
     void sinUsoMinimoNoSeEvaluaYSeDiceQueFalta() {
@@ -154,7 +142,7 @@ public class PoliticaCreditoTest {
     void deudaTotalMasElCreditoMayorQueVeinteMilEsNoApto() {
         var central = new InformeCentral(ClasificacionSbs.NORMAL, Dinero.de("19500"));
         assertThat(ok(evaluar("500", 8, cobrosSemanales("1500"), central, HistorialCrediticio.nuevo(CLIENTE), P)).recomendacion())
-                .isEqualTo(Recomendacion.APTO);                               // 20 000 justo: pasa
+                .isEqualTo(Recomendacion.APTO);
         assertThat(ok(evaluar("500.01", 8, cobrosSemanales("1500"), central, HistorialCrediticio.nuevo(CLIENTE), P)).recomendacion())
                 .isEqualTo(Recomendacion.NO_APTO);
     }
@@ -169,16 +157,13 @@ public class PoliticaCreditoTest {
 
     @Test
     void sinCapacidadParaLaCuotaMinimaEsNoApto() {
-        var pocos = new CobrosDelPeriodo(12, Dinero.de("480"), 12, 60, 15, 200);   // S/ 40 por semana
+        var pocos = new CobrosDelPeriodo(12, Dinero.de("480"), 12, 60, 15, 200);
         var e = ok(evaluar("500", 8, pocos, SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), P));
         assertThat(e.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
         assertThat(e.motivo()).contains("cuota mínima");
         assertThat(e.score()).isNotNull();
     }
 
-    // ------------------------------------------------------------------ score y recomendación
-
-    /** Con todo el peso en la antigüedad y referencia de 1000 días, el score es igual a los días: se prueban los bordes. */
     @ParameterizedTest
     @CsvSource({"499, NO_APTO", "500, APTO_CON_AJUSTE", "649, APTO_CON_AJUSTE", "650, APTO"})
     void bordesDelScore(int dias, Recomendacion esperada) {
@@ -217,11 +202,8 @@ public class PoliticaCreditoTest {
         var sinCreditos = ok(evaluar("800", 8, cobrosSemanales("1500"), SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), P));
         var pagoATiempo = ok(evaluar("800", 8, cobrosSemanales("1500"), SIN_HISTORIAL,
                 HistorialCrediticio.reconstituir(CLIENTE, 1, 0, 2, false, 0L), P));
-        // Nuevo: 50 × 2 = 100 puntos. Con 2 días de atraso: (100 − 10) × 2 = 180 puntos.
         assertThat(pagoATiempo.score() - sinCreditos.score()).isEqualTo(80);
     }
-
-    // ------------------------------------------------------------------ aval (RN-21)
 
     @Test
     void elAvalNecesitaIdentidadValidadaClasificacionNormalYNoEstarBloqueado() {

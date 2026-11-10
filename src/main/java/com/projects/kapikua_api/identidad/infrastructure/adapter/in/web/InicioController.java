@@ -6,13 +6,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/**
- * "/" lleva al inicio de cada rol. "/admin" es el panel del Administrador: alertas, reclamos y reportes.
- * El Cliente va a su billetera (CU-03).
- */
 @Controller
 class InicioController {
-
     @GetMapping("/")
     String inicio(@AuthenticationPrincipal SecurityUser usuario) {
         return "ADMINISTRADOR".equals(usuario.rol()) ? "redirect:/admin" : "redirect:/billetera";

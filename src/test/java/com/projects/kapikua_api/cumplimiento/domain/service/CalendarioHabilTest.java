@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CalendarioHabilTest {
-
     @Test
     void quinceDiasHabilesSaltanFinesDeSemana() {
         assertThat(CalendarioHabil.sumarDiasHabiles(LocalDate.of(2026, 11, 9), 15)).isEqualTo(LocalDate.of(2026, 11, 30));
@@ -17,9 +16,7 @@ class CalendarioHabilTest {
 
     @Test
     void saltanLosFeriadosNacionales() {
-        // 8 y 9 de diciembre
         assertThat(CalendarioHabil.sumarDiasHabiles(LocalDate.of(2026, 12, 1), 15)).isEqualTo(LocalDate.of(2026, 12, 24));
-        // 23, 28 y 29 de julio
         assertThat(CalendarioHabil.sumarDiasHabiles(LocalDate.of(2026, 7, 20), 5)).isEqualTo(LocalDate.of(2026, 7, 30));
     }
 

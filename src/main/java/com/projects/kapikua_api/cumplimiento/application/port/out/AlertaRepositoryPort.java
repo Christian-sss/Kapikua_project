@@ -9,11 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface AlertaRepositoryPort {
-
-    /** Idempotente: la misma regla no se registra dos veces para la misma operación. Devuelve si la insertó. */
     boolean registrar(Alerta alerta);
 
-    /** La fecha de la última alerta de cada regla para la billetera. */
     Map<ReglaAlerta, OffsetDateTime> ultimasPorRegla(Long billeteraId);
 
     Optional<Alerta> porId(Long id);
@@ -22,6 +19,5 @@ public interface AlertaRepositoryPort {
 
     List<Alerta> revisadas(int limite);
 
-    /** Guarda la revisión solo si la alerta seguía PENDIENTE; devuelve false si otro la revisó antes. */
     boolean guardarRevision(Alerta alerta);
 }

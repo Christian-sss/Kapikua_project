@@ -8,7 +8,6 @@
     <p class="exito" th:if="${aviso == 'anticipado'}">Pago anticipado registrado. Revisa tu nuevo cronograma.</p>
     <p class="aviso" th:if="${aviso == 'cargo-revocado'}">Revocaste el cobro automático: lo apartado volvió a tu saldo.
         Paga tus cuotas desde aquí.</p>
-    <!--/* RN-25, día 1: aviso al cliente */-->
     <p class="error" th:if="${p.cuotasVencidas() > 0}"
        th:text="'Tienes ' + ${p.cuotasVencidas()} + (${p.cuotasVencidas() == 1} ? ' cuota vencida' : ' cuotas vencidas') + ' por ' + ${p.vencido()}
                 + '. Págala hoy para evitar más interés moratorio' + (${p.aval() != null} ? ' y que se avise a tu aval.' : '.')"></p>

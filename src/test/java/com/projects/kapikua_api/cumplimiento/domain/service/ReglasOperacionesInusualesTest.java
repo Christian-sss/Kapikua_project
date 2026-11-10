@@ -14,7 +14,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReglasOperacionesInusualesTest {
-
     static final Dinero TOPE = Dinero.de("3300");
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 15, 0, 0, 0, ZoneOffset.ofHours(-5));
     long id = 1;
@@ -46,9 +45,9 @@ class ReglasOperacionesInusualesTest {
     void sinTresOperacionesOSinSuperarElTopeNoHayFraccionamiento() {
         assertThat(reglas(op("RECARGA", "2000", AHORA), List.of(op("RECARGA", "2000", AHORA.minusHours(1))), Map.of())).isEmpty();
         var bajo = List.of(op("RECARGA", "1000", AHORA.minusHours(2)), op("RECARGA", "1000", AHORA.minusHours(1)));
-        assertThat(reglas(op("RECARGA", "1300", AHORA), bajo, Map.of())).isEmpty();   // 3 300 no supera el tope
+        assertThat(reglas(op("RECARGA", "1300", AHORA), bajo, Map.of())).isEmpty();
         var viejas = List.of(op("RECARGA", "2000", AHORA.minusHours(25)), op("RECARGA", "1000", AHORA.minusHours(1)));
-        assertThat(reglas(op("RECARGA", "1000", AHORA), viejas, Map.of())).isEmpty();  // fuera de las 24 horas
+        assertThat(reglas(op("RECARGA", "1000", AHORA), viejas, Map.of())).isEmpty();
     }
 
     @Test
@@ -64,7 +63,6 @@ class ReglasOperacionesInusualesTest {
         var previas = new ArrayList<OperacionObservada>();
         for (int i = 4; i >= 1; i--) previas.add(op(i % 2 == 0 ? "TRANSFERENCIA" : "PAGO_NEGOCIO", "10", AHORA.minusMinutes(2L * i)));
         assertThat(reglas(op("TRANSFERENCIA", "10", AHORA), previas, Map.of())).containsExactly(ReglaAlerta.TRANSFERENCIAS_SEGUIDAS);
-        // Con una alerta hace 5 minutos no se repite.
         assertThat(reglas(op("TRANSFERENCIA", "10", AHORA), previas,
                 Map.of(ReglaAlerta.TRANSFERENCIAS_SEGUIDAS, AHORA.minusMinutes(5)))).isEmpty();
     }

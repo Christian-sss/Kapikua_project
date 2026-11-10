@@ -9,12 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * Usuario autenticado de la petición. Los controladores de otros contextos lo reciben con
- * {@code @AuthenticationPrincipal SecurityUser} y solo deberían usar {@link #usuarioId()}.
- */
 public class SecurityUser implements UsuarioAutenticado {
-
     private final UsuarioId usuarioId;
     private final String nombres;
     private final String rol;

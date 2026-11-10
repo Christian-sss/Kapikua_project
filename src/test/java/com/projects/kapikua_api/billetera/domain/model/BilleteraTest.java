@@ -12,9 +12,7 @@ import java.time.ZoneOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Agregado Billetera: saldo disponible, apartado para la cuota (RN-22), saldo máximo (RN-02) y bloqueo (CU-14). */
 class BilleteraTest {
-
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final Dinero MAXIMO = Dinero.de("2000");
     static final Celular CELULAR = new Celular("987654321");
@@ -33,8 +31,6 @@ class BilleteraTest {
         return ((Result.Err<Void, ErrorBilletera>) r).error();
     }
 
-    // ---------------------------------------------------------------- apertura
-
     @Test
     void seAbreActivaConSaldoCeroYSinNegocioSiElNombreEstaEnBlanco() {
         var b = Billetera.abrir(new UsuarioId(10L), CELULAR, "   ", AHORA);
@@ -52,8 +48,6 @@ class BilleteraTest {
         assertThat(b.esNegocio()).isTrue();
         assertThat(b.getNombreNegocio()).isEqualTo("Bodega Ana");
     }
-
-    // ---------------------------------------------------------------- débito
 
     @Test
     void debitarRestaDelSaldo() {
@@ -76,8 +70,6 @@ class BilleteraTest {
         assertThat(error(conSaldo("100", "0", EstadoBilletera.BLOQUEADA).debitar(Dinero.de("10"))))
                 .isInstanceOf(ErrorBilletera.BilleteraBloqueada.class);
     }
-
-    // ---------------------------------------------------------------- crédito
 
     @Test
     void acreditarSumaHastaElSaldoMaximoExacto() {
@@ -108,8 +100,6 @@ class BilleteraTest {
                 .isInstanceOf(ErrorBilletera.BilleteraBloqueada.class);
         assertThat(error(activa("0").acreditar(Dinero.CERO, MAXIMO, false))).isInstanceOf(ErrorBilletera.MontoInvalido.class);
     }
-
-    // ---------------------------------------------------------------- apartado para la cuota
 
     @Test
     void apartaLoPedidoSiAlcanza() {
@@ -149,8 +139,6 @@ class BilleteraTest {
     void puedeRecibirEsLoQueFaltaParaElMaximo() {
         assertThat(activa("1200").puedeRecibir(MAXIMO)).isEqualTo(Dinero.de("800"));
     }
-
-    // ---------------------------------------------------------------- bloqueo
 
     @Test
     void bloquearGuardaElMotivoRecortadoA150Caracteres() {

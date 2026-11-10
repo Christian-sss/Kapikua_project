@@ -15,13 +15,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * CU-02: adaptador de entrada web. El cierre de sesión (POST /logout) lo atiende Spring Security,
- * que borra la cookie (ver SecurityConfig).
- */
 @Controller
 class LoginController {
-
     private static final String VISTA = "identidad/login";
 
     private final AutenticarUseCase autenticar;
@@ -64,7 +59,6 @@ class LoginController {
         };
     }
 
-    /** CU-02, paso 4: la billetera para el Cliente y el panel para el Administrador. */
     static String inicioDe(Rol rol) {
         return rol == Rol.ADMINISTRADOR ? "/admin" : "/";
     }

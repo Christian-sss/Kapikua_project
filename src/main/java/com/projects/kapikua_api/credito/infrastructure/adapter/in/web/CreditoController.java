@@ -24,14 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
-/**
- * Pantallas de crédito (CU-07 a CU-10, CU-12). Sin atributos flash (la app no usa sesión): ante un error se
- * vuelve a mostrar la misma pantalla con el mensaje; ante un éxito se redirige.
- */
 @Controller
 @RequestMapping("/credito")
 class CreditoController {
-
     private final ConsultarCreditoUseCase consultar;
     private final SimularCreditoUseCase simular;
     private final SolicitarCreditoUseCase solicitar;
@@ -46,8 +41,6 @@ class CreditoController {
         this.avales = avales;
         this.aceptar = aceptar;
     }
-
-    // ---------------------------------------------------------------- panel y préstamo (CU-12)
 
     @GetMapping
     String panel(@AuthenticationPrincipal UsuarioAutenticado u, @RequestParam(required = false) String aviso, Model model) {
@@ -65,8 +58,6 @@ class CreditoController {
         model.addAttribute("aviso", aviso);
         return "credito/prestamo";
     }
-
-    // ---------------------------------------------------------------- simular (CU-07)
 
     @GetMapping("/simular")
     String simularForm(@AuthenticationPrincipal UsuarioAutenticado u, Model model) {
@@ -87,8 +78,6 @@ class CreditoController {
         }
         return "credito/simular";
     }
-
-    // ---------------------------------------------------------------- solicitar (CU-08)
 
     @GetMapping("/solicitar")
     String solicitarForm(@AuthenticationPrincipal UsuarioAutenticado u,
@@ -123,8 +112,6 @@ class CreditoController {
         };
     }
 
-    // ---------------------------------------------------------------- oferta, aval del deudor y entidad (CU-08, CU-09)
-
     @GetMapping("/ofertas/{id}")
     String oferta(@AuthenticationPrincipal UsuarioAutenticado u, @PathVariable Long id,
                   @RequestParam(required = false) String aviso, Model model) {
@@ -155,8 +142,6 @@ class CreditoController {
         };
     }
 
-    // ---------------------------------------------------------------- hoja resumen y aceptación (CU-10)
-
     @GetMapping("/ofertas/{id}/hoja")
     String hoja(@AuthenticationPrincipal UsuarioAutenticado u, @PathVariable Long id, Model model) {
         return switch (aceptar.hojaResumen(u.usuarioId(), id)) {
@@ -175,12 +160,9 @@ class CreditoController {
                    HttpServletRequest request, Model model) {
         return switch (aceptar.aceptar(u.usuarioId(), id, codigo, request.getHeader(HttpHeaders.USER_AGENT), autorizaCargo)) {
             case Result.Ok<Long, ErrorCredito> ok -> "redirect:/credito/prestamo";
-            // Con un código fallido se pide una hoja nueva (y un código nuevo).
             case Result.Err<Long, ErrorCredito> err -> conError(hoja(u, id, model), err.error(), model);
         };
     }
-
-    // ---------------------------------------------------------------- el aval responde (CU-09)
 
     @GetMapping("/aval/{ofertaId}")
     String invitacion(@AuthenticationPrincipal UsuarioAutenticado u, @PathVariable Long ofertaId, Model model) {
@@ -198,7 +180,6 @@ class CreditoController {
                      @RequestParam boolean acepta, @RequestParam(defaultValue = "") String codigo,
                      @RequestParam(defaultValue = "false") boolean autorizaGarantia,
                      HttpServletRequest request, Model model) {
-        // RN-07: el aval autoriza por separado el uso de sus datos y la retención de sus ventas.
         if (acepta && !autorizaGarantia) {
             return conError(invitacion(u, ofertaId, model), new ErrorCredito.GarantiaNoAutorizada(), model);
         }
@@ -207,8 +188,6 @@ class CreditoController {
             case Result.Err<Void, ErrorCredito> err -> conError(invitacion(u, ofertaId, model), err.error(), model);
         };
     }
-
-    // ---------------------------------------------------------------- apoyo
 
     private static <T> void resultado(Result<T, ErrorCredito> r, String nombre, Model model) {
         switch (r) {

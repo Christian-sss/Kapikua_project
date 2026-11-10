@@ -13,15 +13,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
-/**
- * Sesión sin estado en el servidor: el JWT viaja en una cookie HttpOnly (SAD 2.6).
- * La protección CSRF de los formularios sigue activa; su token se guarda en otra cookie,
- * así tampoco se crea una HttpSession.
- */
 @Configuration
 public class SecurityConfig {
-
-    /** RNF-01: BCrypt con factor de costo 10 o más. */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
@@ -34,16 +27,13 @@ public class SecurityConfig {
                                          UsuarioRepositoryPort usuarios) throws Exception {
         var repositorioContexto = new RequestAttributeSecurityContextRepository();
         return http
-                // Sin HttpSession: el contexto de seguridad vive solo durante la petición (lo arma JwtCookieFilter).
-                // Se desactiva sessionManagement porque, sin sesión, creería que en cada petición hay un login nuevo
-                // y renovaría el token CSRF siempre: un formulario abierto en otra pestaña daría 403.
                 .sessionManagement(AbstractHttpConfigurer::disable)
                 .securityContext(c -> c.securityContextRepository(repositorioContexto))
                 .requestCache(RequestCacheConfigurer::disable)
                 .csrf(c -> c.csrfTokenRepository(new CookieCsrfTokenRepository()))
                 .authorizeHttpRequests(c -> c
                         .requestMatchers("/registro", "/login", "/css/**", "/js/**", "/error").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")   // 403 para otro rol (RNF-05)
+                        .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtCookieFilter(jwt, cookie, usuarios, repositorioContexto),
                         UsernamePasswordAuthenticationFilter.class)

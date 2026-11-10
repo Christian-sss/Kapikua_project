@@ -15,15 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * CU-16: consultas de SOLO LECTURA sobre los esquemas de todos los contextos. Administración no es un bounded
- * context: no tiene modelo propio ni escribe nada. El DNI se enmascara en el SQL (RN-30, RNF-11): el número
- * completo nunca llega a la aplicación. En pantalla cada reporte muestra hasta {@link #MAX_FILAS} filas y la
- * descarga en Excel hasta {@link #MAX_FILAS_DESCARGA}; los indicadores y gráficos se calculan sobre todo el período.
- */
 @Repository
 public class ReportesConsulta {
-
     public static final int MAX_FILAS = 300;
     public static final int MAX_FILAS_DESCARGA = 10_000;
 
@@ -54,8 +47,6 @@ public class ReportesConsulta {
         this.jdbc = jdbc;
         this.clock = clock;
     }
-
-    // ---------------------------------------------------------------- clientes
 
     public Reporte<FilaCliente> clientes(Periodo p, String estado) {
         return clientes(p, estado, MAX_FILAS);
@@ -98,8 +89,6 @@ public class ReportesConsulta {
         return reporte(filas, limite, indicadores, graficos);
     }
 
-    // ---------------------------------------------------------------- transacciones
-
     public Reporte<FilaTransaccion> transacciones(Periodo p, String tipo) {
         return transacciones(p, tipo, MAX_FILAS);
     }
@@ -135,8 +124,6 @@ public class ReportesConsulta {
                 Grafico.de(p.porDia() ? "Monto del día" : "Monto por día", porDia(p, "t.fecha", "sum(t.monto)", filtro, tipo), montos()));
         return reporte(filas, limite, indicadores, graficos);
     }
-
-    // ---------------------------------------------------------------- créditos
 
     public Reporte<FilaCredito> creditos(Periodo p, String estado) {
         return creditos(p, estado, MAX_FILAS);
@@ -177,8 +164,6 @@ public class ReportesConsulta {
                 Grafico.de("Solicitudes del período por estado", mapa(solicitudes), cantidad()));
         return reporte(filas, limite, indicadores, graficos);
     }
-
-    // ---------------------------------------------------------------- cobranza
 
     public Reporte<FilaCuota> cobranza(Periodo p, String estado) {
         return cobranza(p, estado, MAX_FILAS);
@@ -236,8 +221,6 @@ public class ReportesConsulta {
         return reporte(filas, limite, indicadores, graficos);
     }
 
-    // ---------------------------------------------------------------- apoyo
-
     private JdbcClient.StatementSpec parametros(JdbcClient.StatementSpec sql, Periodo p, String estado) {
         return sql.param("desde", p.inicio(clock.getZone())).param("hasta", p.fin(clock.getZone())).param("estado", estado);
     }
@@ -246,7 +229,6 @@ public class ReportesConsulta {
         return sql.param("dia_desde", p.desde()).param("dia_hasta", p.hasta()).param("estado", estado);
     }
 
-    /** Un valor por día del período (los días sin datos van en cero). */
     private Map<String, BigDecimal> porDia(Periodo p, String columnaFecha, String agregado, String filtro, String estado) {
         var dia = DIA_LIMA.formatted(columnaFecha);
         var valores = new LinkedHashMap<LocalDate, BigDecimal>();

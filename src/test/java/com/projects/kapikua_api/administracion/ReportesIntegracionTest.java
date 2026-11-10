@@ -26,11 +26,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** CU-16: reportes de solo lectura con DNI enmascarado (RN-30). Solo con KAPIKUA_DB_PRUEBAS. */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
 class ReportesIntegracionTest {
-
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
@@ -85,7 +83,7 @@ class ReportesIntegracionTest {
         assertThat(fila.estadoBilletera()).isEqualTo("ACTIVA");
         assertThat(r.indicadores()).extracting(ReportesConsulta.Indicador::etiqueta).contains("Clientes registrados");
         assertThat(r.graficos()).hasSize(2);
-        assertThat(r.graficos().getFirst().barras()).hasSize(mes.desde().lengthOfMonth());   // un valor por día del mes
+        assertThat(r.graficos().getFirst().barras()).hasSize(mes.desde().lengthOfMonth());
 
         jdbc.update("update billetera.billetera set estado = 'BLOQUEADA', motivo_bloqueo = 'prueba', version = version + 1 where usuario_id = ?",
                 ana.id().valor());
@@ -109,12 +107,10 @@ class ReportesIntegracionTest {
         });
         assertThat(reportes.transacciones(mes, "RECARGA").filas())
                 .anySatisfy(f -> assertThat(f.origen()).isEqualTo("Pasarela de pagos"));
-        // La descarga pide su propio límite de filas; los indicadores siguen cubriendo todo el período.
         var unaFila = reportes.transacciones(mes, null, 1);
         assertThat(unaFila.filas()).hasSize(1);
         assertThat(unaFila.truncado()).isTrue();
         assertThat(unaFila.indicadores()).isEqualTo(reportes.transacciones(mes, null).indicadores());
-        // El driver entrega UTC: el reporte debe mostrar la hora de Lima, no 5 horas adelantada.
         assertThat(pagos.filas()).allSatisfy(f -> assertThat(f.fecha().getOffset()).isEqualTo(java.time.ZoneOffset.ofHours(-5)));
         assertThat(reportes.clientes(mes, null).filas())
                 .allSatisfy(f -> assertThat(f.registro().getOffset()).isEqualTo(java.time.ZoneOffset.ofHours(-5)));

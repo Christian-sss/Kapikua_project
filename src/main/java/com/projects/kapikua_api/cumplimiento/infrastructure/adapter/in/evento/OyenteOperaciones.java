@@ -8,13 +8,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/**
- * RN-28: las reglas se evalúan DESPUÉS de confirmar la operación, para que una falla al generar la alerta
- * nunca revierta el movimiento de dinero del cliente.
- */
 @Component
 class OyenteOperaciones {
-
     private static final Logger log = LoggerFactory.getLogger(OyenteOperaciones.class);
 
     private final GenerarAlertasUseCase alertas;

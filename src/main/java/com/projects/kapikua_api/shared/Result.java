@@ -2,12 +2,7 @@ package com.projects.kapikua_api.shared;
 
 import java.util.function.Function;
 
-/**
- * Resultado de una operación que puede fallar por una regla de negocio.
- * Las reglas de negocio no lanzan excepciones: devuelven {@code Err}.
- */
 public sealed interface Result<T, E extends ErrorDominio> {
-
     record Ok<T, E extends ErrorDominio>(T valor) implements Result<T, E> {
     }
 

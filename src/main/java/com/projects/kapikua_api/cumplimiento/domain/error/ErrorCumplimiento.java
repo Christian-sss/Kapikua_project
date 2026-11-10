@@ -2,9 +2,7 @@ package com.projects.kapikua_api.cumplimiento.domain.error;
 
 import com.projects.kapikua_api.shared.ErrorDominio;
 
-/** Errores de alertas (CU-14) y reclamos (CU-15). */
 public sealed interface ErrorCumplimiento extends ErrorDominio {
-
     record AlertaNoEncontrada() implements ErrorCumplimiento {
         public String codigo()  { return "CM-10"; }
         public String mensaje() { return "La alerta no existe."; }

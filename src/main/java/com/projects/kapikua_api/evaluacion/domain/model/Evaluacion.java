@@ -9,14 +9,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Raíz de agregado inmutable (RN-19, RNF-10): una solicitud evaluada y su recomendación.
- * Solo se crea con {@link #noApto} o {@link #emitir}; una vez guardada no cambia (un trigger lo impide).
- *
- * @param score       null si una regla eliminatoria cortó la evaluación antes de calcularlo
- * @param condiciones null si la recomendación es NO_APTO
- * @param motivo      por qué NO_APTO o por qué se ajustó; null en un APTO
- */
 public record Evaluacion(Long id,
                          UsuarioId usuarioId,
                          SolicitudCredito solicitud,
@@ -29,7 +21,6 @@ public record Evaluacion(Long id,
                          String motivo,
                          List<FactorEvaluado> factores,
                          OffsetDateTime fecha) {
-
     public Evaluacion {
         Objects.requireNonNull(usuarioId);
         Objects.requireNonNull(solicitud);
@@ -50,14 +41,12 @@ public record Evaluacion(Long id,
         }
     }
 
-    /** Solo la crea el servicio de dominio {@code PoliticaCredito} (regla que verificará ArchUnit). */
     public static Evaluacion noApto(UsuarioId usuarioId, SolicitudCredito solicitud, InformeCentral central,
                              Integer score, String motivo, List<FactorEvaluado> factores, OffsetDateTime ahora) {
         return new Evaluacion(null, usuarioId, solicitud, central.clasificacion(), central.deudaTotal(), score,
                 Recomendacion.NO_APTO, null, false, motivo, factores, ahora);
     }
 
-    /** Solo la crea el servicio de dominio {@code PoliticaCredito} (regla que verificará ArchUnit). */
     public static Evaluacion emitir(UsuarioId usuarioId, SolicitudCredito solicitud, InformeCentral central, int score,
                              Recomendacion recomendacion, CondicionesSugeridas condiciones, boolean requiereAval,
                              String motivo, List<FactorEvaluado> factores, OffsetDateTime ahora) {
@@ -74,7 +63,6 @@ public record Evaluacion(Long id,
         return recomendacion != Recomendacion.NO_APTO;
     }
 
-    /** La evaluación es inmutable y su id lo asigna la base: el evento se deriva del registro ya guardado. */
     public List<EventoDominio> eventos() {
         if (id == null) throw new IllegalStateException("La evaluación aún no se ha guardado");
         return List.of(new EvaluacionEmitida(id, usuarioId, recomendacion, requiereAval));

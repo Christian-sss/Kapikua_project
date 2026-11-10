@@ -24,10 +24,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-/** Evaluación Crediticia: traduce sus errores a los de Créditos. */
 @Component
 class EvaluacionCrediticiaAdapter implements EvaluacionCrediticia {
-
     private final EvaluarSolicitudUseCase evaluar;
     private final ConsultarEvaluacionUseCase consultar;
 
@@ -63,10 +61,8 @@ class EvaluacionCrediticiaAdapter implements EvaluacionCrediticia {
     }
 }
 
-/** Billetera: desembolso y búsqueda del aval por celular. */
 @Component
 class OperacionesBilleteraAdapter implements OperacionesBilletera {
-
     private final OperacionesCreditoUseCase operaciones;
     private final ConsultarBilleteraUseCase consultar;
 
@@ -119,10 +115,8 @@ class OperacionesBilleteraAdapter implements OperacionesBilletera {
     }
 }
 
-/** Identidad: consentimientos (RN-07) y datos del cliente. */
 @Component
 class ClientesCreditoAdapter implements ClientesCredito {
-
     private final GestionarConsentimientosUseCase consentimientos;
     private final ConsultarIdentidadUseCase identidad;
 

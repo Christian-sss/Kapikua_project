@@ -11,16 +11,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-/** CU-10 Aceptar oferta y recibir desembolso (RF-CR-04, RF-CR-05) y el reintento ante la entidad aliada. */
 public interface AceptarOfertaUseCase {
-
-    /** CU-08, 9b: si la entidad aliada no respondió, el cliente puede volver a enviarla. */
     Result<Void, ErrorCredito> enviarAEntidad(UsuarioId usuarioId, Long ofertaId);
 
-    /** La hoja resumen que el cliente revisa antes de aceptar (N6); genera el código de un solo uso. */
     Result<HojaResumen, ErrorCredito> hojaResumen(UsuarioId usuarioId, Long ofertaId);
 
-    /** @return id del préstamo creado y desembolsado */
     Result<Long, ErrorCredito> aceptar(UsuarioId usuarioId, Long ofertaId, String codigo, String dispositivo,
                                        boolean autorizaCargo);
 

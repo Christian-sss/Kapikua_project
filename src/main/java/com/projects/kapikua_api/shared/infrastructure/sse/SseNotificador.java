@@ -18,14 +18,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Adaptador del puerto Notificador con Server-Sent Events (SAD 2.4).
- * Cada pantalla abierta mantiene una conexión; un usuario puede tener varias (pestañas o dispositivos).
- * Las conexiones viven en memoria: con más de una instancia de la aplicación haría falta un canal compartido.
- */
 @Component
 public class SseNotificador implements Notificador {
-
     private static final Logger log = LoggerFactory.getLogger(SseNotificador.class);
 
     private final Map<UsuarioId, List<SseEmitter>> conexiones = new ConcurrentHashMap<>();
@@ -35,10 +29,6 @@ public class SseNotificador implements Notificador {
         this.duracionConexion = Duration.ofMinutes(minutos);
     }
 
-    /**
-     * Abre una conexión. Vence a los pocos minutos: el navegador se reconecta solo y, al reconectarse,
-     * se vuelve a comprobar la sesión. Así una pantalla olvidada no recibe avisos con la sesión vencida.
-     */
     public SseEmitter conectar(UsuarioId usuarioId) {
         var emisor = new SseEmitter(duracionConexion.toMillis());
         var lista = conexiones.computeIfAbsent(usuarioId, k -> new CopyOnWriteArrayList<>());
@@ -60,18 +50,12 @@ public class SseNotificador implements Notificador {
         }
     }
 
-    /** Latido cada 25 s para que el proxy de Railway no cierre las conexiones inactivas (SAD 2.4). */
     @Scheduled(fixedRateString = "${kapikua.sse.latido-ms:25000}")
     void latido() {
         conexiones.forEach((usuario, lista) ->
                 lista.forEach(emisor -> enviar(usuario, emisor, SseEmitter.event().comment("latido"))));
     }
 
-    /**
-     * Al apagar la aplicación se cierran las conexiones ANTES del cierre ordenado del servidor
-     * (ContextClosedEvent llega primero). Si no, el servidor esperaría a que terminen conexiones de varios
-     * minutos. Los navegadores se reconectan solos a la nueva instancia.
-     */
     @EventListener(ContextClosedEvent.class)
     void alApagar() {
         conexiones.values().forEach(lista -> lista.forEach(SseEmitter::complete));
@@ -87,7 +71,6 @@ public class SseNotificador implements Notificador {
         try {
             emisor.send(evento);
         } catch (IOException | IllegalStateException e) {
-            // La pantalla se cerró: se descarta la conexión. No es un error del sistema.
             log.debug("Conexión SSE cerrada para el usuario {}", usuarioId.valor());
             quitar(usuarioId, emisor);
             emisor.completeWithError(e);

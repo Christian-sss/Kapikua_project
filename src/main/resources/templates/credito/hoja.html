@@ -4,7 +4,6 @@
 <body>
 <main>
     <div th:replace="~{fragmentos :: barra}"></div>
-    <!--/* N6 (Res. SBS 3274-2017): la hoja resumen se muestra antes de aceptar */-->
     <section class="tarjeta" th:with="c=${h.condiciones()}">
         <h1>Hoja resumen</h1>
         <p class="nota" th:text="'Versión ' + ${h.version()} + ' · Financiera Ayni Sur S.A. otorga el crédito; Kapikua lo cobra por su encargo.'"></p>
@@ -30,13 +29,11 @@
 
     <section class="tarjeta">
         <form th:action="@{/credito/ofertas/{id}/aceptar(id=${h.ofertaId()})}" method="post">
-            <!--/* RN-22: cargo automático expreso y revocable */-->
             <label class="check" style="display:flex;gap:8px">
                 <input type="checkbox" name="autorizaCargo" value="true">
                 <span th:text="'Autorizo que se aparte el ' + ${h.porcentajeRetencion()} + ' % de cada cobro para mi cuota y que, si no alcanza, '
                               + 'la diferencia se cobre de mi saldo el día del vencimiento. Puedo revocarlo cuando quiera.'"></span>
             </label>
-            <!--/* RNF-04: en la v1 no hay SMS: el código se muestra aquí */-->
             <p class="aviso" style="margin-top:16px">Tu código de un solo uso (vence en 5 minutos):
                 <span class="codigo" style="display:block" th:text="${h.codigoMostrado()}"></span>
                 <span class="nota">En producción este código llegaría por SMS.</span></p>

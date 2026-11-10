@@ -18,9 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Prepara clientes y su historia de cobros en una base de prueba (solo para pruebas de integración). */
 public final class DatosDePrueba {
-
     public record Cliente(UsuarioId id, String dni, String celular) {}
 
     private final RegistrarUsuarioUseCase registrar;
@@ -33,7 +31,6 @@ public final class DatosDePrueba {
         this.clock = clock;
     }
 
-    /** Un cliente cuyo DNI termina en {@code digito}: la Central y la entidad aliada simuladas responden según ese dígito. */
     public Cliente cliente(char digito) {
         var r = ThreadLocalRandom.current();
         String dni;
@@ -45,10 +42,6 @@ public final class DatosDePrueba {
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), dni, celular);
     }
 
-    /**
-     * Billetera abierta hace 200 días con 5 cobros de S/ 300 en cada una de las últimas 12 semanas completas,
-     * de 15 pagadores distintos (S/ 1 500 por semana, 60 cobros).
-     */
     public void conHistoriaDeCobros(UsuarioId cliente) {
         var billetera = jdbc.queryForObject("select id from billetera.billetera where usuario_id = ?", Long.class, cliente.valor());
         jdbc.update("update billetera.billetera set fecha_apertura = now() - interval '200 days' where id = ?", billetera);

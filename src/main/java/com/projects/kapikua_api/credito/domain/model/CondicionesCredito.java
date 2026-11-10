@@ -6,12 +6,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
-/**
- * Condiciones que fija la entidad aliada y que van a la hoja resumen (N6).
- * Sin comisiones ni seguros al cliente, la TCEA es igual a la TEA (chk: tcea >= tea).
- */
 public record CondicionesCredito(Dinero monto, int cuotas, BigDecimal tea, BigDecimal tcea, Dinero cuota) {
-
     public CondicionesCredito {
         Objects.requireNonNull(monto);
         Objects.requireNonNull(cuota);

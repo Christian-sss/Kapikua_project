@@ -19,13 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * CU-16: el reporte en un archivo .xlsx con las mismas columnas que la pantalla. Los montos y las fechas van como
- * números y fechas de Excel (no como texto), así se pueden sumar y ordenar sin depender de la configuración regional.
- * El DNI llega enmascarado desde el SQL (RN-30): el archivo nunca tiene el número completo.
- */
 final class ReporteExcel {
-
     static final String TIPO_CONTENIDO = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private static final String FECHA_HORA = "dd/mm/yyyy hh:mm";
@@ -34,7 +28,6 @@ final class ReporteExcel {
     private static final String ENTERO = "0";
     private static final DateTimeFormatter GENERADO = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    /** Una columna: título, cómo obtener el valor de la fila, formato de Excel (null = general) y ancho. */
     record Columna<T>(String titulo, Function<T, Object> valor, String formato, double ancho) {}
 
     static final List<Columna<FilaCliente>> CLIENTES = List.of(
@@ -80,11 +73,6 @@ final class ReporteExcel {
 
     private ReporteExcel() {}
 
-    /**
-     * Arma el libro: título, filtros, indicadores del período y la tabla (con la fila de títulos fija al desplazarse).
-     *
-     * @param filtro texto del filtro aplicado, o null si no hay
-     */
     static <T> byte[] generar(TipoReporte tipo, Periodo periodo, String filtro, Reporte<T> reporte,
                               List<Columna<T>> columnas, LocalDateTime generado) {
         var salida = new ByteArrayOutputStream();
@@ -139,7 +127,6 @@ final class ReporteExcel {
         return salida.toByteArray();
     }
 
-    /** kapikua-transacciones-2026-11.xlsx o kapikua-transacciones-2026-11-07.xlsx */
     static String nombreArchivo(TipoReporte tipo, Periodo periodo) {
         return "kapikua-" + tipo.ruta() + "-" + (periodo.porDia() ? periodo.dia() : periodo.mes()) + ".xlsx";
     }
@@ -159,6 +146,6 @@ final class ReporteExcel {
     }
 
     private static Object fechaHora(OffsetDateTime fecha) {
-        return fecha == null ? null : fecha.toLocalDateTime();   // ya viene en hora de Lima (HoraLocal)
+        return fecha == null ? null : fecha.toLocalDateTime();
     }
 }

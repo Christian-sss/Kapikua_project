@@ -7,10 +7,8 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.LocalDate;
 
-/** CU-13: el temporizador del sistema inicia el cobro diario (por defecto a las 6:00, hora de Lima). */
 @Component
 class CobranzaProgramada {
-
     private final CobranzaUseCase cobranza;
     private final Clock clock;
 

@@ -9,8 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 class MatematicaFinancieraTest {
-
-    /** Año de 360 días: (1 + i)^(360/7) = 1 + TEA, o sea (1 + i)^360 = (1 + TEA)^7. */
     @Test
     void laTasaSemanalCapitalizadaUnAnioDe360DiasDevuelveLaTea() {
         var i = MatematicaFinanciera.tasaSemanal(new BigDecimal("95"));
@@ -19,7 +17,6 @@ class MatematicaFinancieraTest {
         assertThat(izquierda).isCloseTo(derecha, within(new BigDecimal("1E-10")));
     }
 
-    /** Informe de factibilidad, tabla 15: S/ 1 000 en 12 cuotas semanales al 90 % TEA → S/ 90,29 e interés de S/ 83,50. */
     @Test
     void cuotaDelEjemploDelInformeDeFactibilidad() {
         var i = MatematicaFinanciera.tasaSemanal(new BigDecimal("90"));
@@ -29,7 +26,6 @@ class MatematicaFinancieraTest {
                 .isCloseTo(new BigDecimal("83.50"), within(new BigDecimal("0.05")));
     }
 
-    /** SRS RN-12: quien cobra S/ 1 500 por semana tiene cuota máxima S/ 450 y capacidad de unos S/ 3 400 (8 cuotas, 95 %). */
     @Test
     void capacidadDeAna() {
         var i = MatematicaFinanciera.tasaSemanal(new BigDecimal("95"));
@@ -37,7 +33,6 @@ class MatematicaFinancieraTest {
                 .isCloseTo(new BigDecimal("3400"), within(new BigDecimal("5")));
     }
 
-    /** SRS RN-13: Pedro cobra S/ 300 por semana; con 16 cuotas al 80 % su capacidad es de unos S/ 1 310. */
     @Test
     void capacidadDePedro() {
         var i = MatematicaFinanciera.tasaSemanal(new BigDecimal("80"));

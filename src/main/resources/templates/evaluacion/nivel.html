@@ -44,7 +44,6 @@
                 <span th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></span></div>
         </section>
 
-        <!--/* RN-08: uso mínimo de la billetera para poder solicitar */-->
         <section class="tarjeta" th:with="u=${n.usoMinimo()}">
             <h2>Uso de tu billetera</h2>
             <p class="exito" th:if="${u.cumple()}">Ya cumples el uso mínimo para solicitar un crédito.</p>

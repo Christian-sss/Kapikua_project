@@ -16,11 +16,9 @@ import static com.projects.kapikua_api.shared.puerto.CodigoUnSoloUso.Proposito.T
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CodigoUnSoloUsoEnMemoriaTest {
-
     private static final UsuarioId ANA = new UsuarioId(1L);
     private static final String DETALLE = "987654321|50.00|ref-1";
 
-    /** Reloj que se puede adelantar. */
     private static final class Reloj extends Clock {
         Instant ahora = Instant.parse("2026-11-09T15:00:00Z");
         public ZoneId getZone() { return ZoneOffset.UTC; }

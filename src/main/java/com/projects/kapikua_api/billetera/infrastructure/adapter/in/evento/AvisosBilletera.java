@@ -10,13 +10,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-/**
- * RNF-17: avisa a las pantallas de ambos participantes que su billetera cambió.
- * AFTER_COMMIT: solo se avisa de lo que quedó guardado; si la transacción se revierte, no sale ningún aviso.
- */
 @Component
 class AvisosBilletera {
-
     private final ConsultarBilleteraUseCase billeteras;
     private final Notificador notificador;
 

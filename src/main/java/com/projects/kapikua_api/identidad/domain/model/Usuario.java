@@ -31,17 +31,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/**
- * Raíz del agregado de Identidad. Como Identidad es un subdominio genérico,
- * el modelo de dominio y la entidad JPA son la misma clase. No tiene setters:
- * se crea con {@link #registrar} y solo cambia por métodos con intención.
- */
 @Entity
 @Table(schema = "identidad", name = "usuario")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Usuario extends AgregadoRaiz {
-
     private static final Pattern DNI = Pattern.compile("^[0-9]{8}$");
     private static final Pattern CORREO = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private static final int EDAD_MINIMA = 18;
@@ -50,7 +44,6 @@ public class Usuario extends AgregadoRaiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Datos de contacto del registro: no son de Identidad, viajan en el evento para abrir la billetera. */
     @Transient
     @Getter(AccessLevel.NONE)
     private String celularRegistro;
@@ -98,12 +91,6 @@ public class Usuario extends AgregadoRaiz {
     @JoinColumn(name = "usuario_id", nullable = false, updatable = false)
     private List<Consentimiento> consentimientos = new ArrayList<>();
 
-    /**
-     * Registra un cliente (CU-01). Aplica RN-06: DNI validado ante RENIEC, mayor de 18 años
-     * y sin coincidencias en listas restrictivas. La contraseña llega ya cifrada.
-     *
-     * @param identidadReniec vacío si RENIEC no confirmó el DNI con la fecha de nacimiento
-     */
     public static Result<Usuario, RegistroError> registrar(String dni,
                                                            String correo,
                                                            String passwordHash,
@@ -156,37 +143,25 @@ public class Usuario extends AgregadoRaiz {
         return Result.ok(u);
     }
 
-    /**
-     * El evento de registro necesita el id, que lo asigna la base al insertar: se registra en ese momento.
-     * Solo ocurre una vez, al insertar un usuario nuevo creado con {@link #registrar}.
-     */
     @PostPersist
     void alGuardarseNuevo() {
         if (celularRegistro != null) registrar(new UsuarioRegistrado(new UsuarioId(id), celularRegistro, nombreNegocioRegistro));
     }
 
-    /**
-     * Solo existe después de guardar el usuario.
-     */
     public UsuarioId usuarioId() {
         if (id == null) throw new IllegalStateException("El usuario aún no se ha guardado");
         return new UsuarioId(id);
     }
 
-    /**
-     * RN-30: el DNI se muestra como ****5678.
-     */
     public String dniEnmascarado() {
         return "****" + dni.substring(dni.length() - 4);
     }
 
-    /** RN-07. Uno vigente por tipo (uq_consentimiento_vigente): si ya está vigente, no se duplica. */
     public void otorgarConsentimiento(TipoConsentimiento tipo, String versionTexto, OffsetDateTime ahora) {
         if (tieneConsentimientoVigente(tipo)) return;
         consentimientos.add(Consentimiento.otorgar(tipo, versionTexto, ahora));
     }
 
-    /** RN-07. Revocar llena revocado_en; el registro nunca se borra (RNF-10). */
     public void revocarConsentimiento(TipoConsentimiento tipo, OffsetDateTime ahora) {
         consentimientos.stream()
                 .filter(c -> c.getTipo() == tipo && c.estaVigente())

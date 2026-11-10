@@ -19,14 +19,8 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.Optional;
 
-/**
- * Emite y lee el JWT de la sesión, firmado con HMAC-SHA256.
- * Vence a los {@code kapikua.sesion.minutos} (15 por defecto, RNF-03); el filtro lo renueva en cada petición,
- * así que la sesión solo expira por inactividad.
- */
 @Component
 public class JwtServicio implements EmisorToken {
-
     private static final Logger log = LoggerFactory.getLogger(JwtServicio.class);
     private static final String CLAIM_ROL = "rol";
 
@@ -58,7 +52,6 @@ public class JwtServicio implements EmisorToken {
                 .compact();
     }
 
-    /** Vacío si el token no es válido, está alterado o ya venció. */
     public Optional<UsuarioId> leer(String token) {
         try {
             var claims = Jwts.parser()
@@ -73,10 +66,6 @@ public class JwtServicio implements EmisorToken {
         }
     }
 
-    /**
-     * En producción el secreto llega por la variable de entorno KAPIKUA_JWT_SECRETO (al menos 32 caracteres).
-     * Sin ella se genera uno aleatorio: sirve para desarrollo, pero las sesiones se pierden al reiniciar.
-     */
     private static byte[] bytesDelSecreto(String secreto) {
         if (secreto == null || secreto.isBlank()) {
             log.warn("KAPIKUA_JWT_SECRETO no está definido: se usa un secreto aleatorio (solo para desarrollo)");

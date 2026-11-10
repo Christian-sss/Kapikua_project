@@ -3,12 +3,7 @@ package com.projects.kapikua_api.shared;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/**
- * Monto en soles, siempre con 2 decimales y redondeo bancario (RNF-09). Nunca es negativo:
- * los movimientos con signo usan un BigDecimal aparte.
- */
 public record Dinero(BigDecimal valor) implements Comparable<Dinero> {
-
     public static final Dinero CERO = new Dinero(BigDecimal.ZERO);
 
     public Dinero {
@@ -29,12 +24,10 @@ public record Dinero(BigDecimal valor) implements Comparable<Dinero> {
         return new Dinero(valor.add(otro.valor));
     }
 
-    /** Lanza IllegalArgumentException si el resultado sería negativo: valida antes con {@link #menorQue}. */
     public Dinero restar(Dinero otro) {
         return new Dinero(valor.subtract(otro.valor));
     }
 
-    /** Lo que falta para llegar a {@code limite}, o cero si ya se alcanzó. */
     public Dinero faltaPara(Dinero limite) {
         return menorQue(limite) ? limite.restar(this) : CERO;
     }

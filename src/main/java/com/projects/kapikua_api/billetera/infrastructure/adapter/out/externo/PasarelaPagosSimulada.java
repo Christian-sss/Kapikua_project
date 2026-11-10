@@ -10,18 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * PROVISIONAL: pasarela simulada hasta configurar el adaptador de Culqi con sus llaves de integración.
- * Reglas para probar cada caso:
- * <ul>
- *   <li>token "tok_rechazado": tarjeta rechazada (CU-04, 5a).</li>
- *   <li>cualquier otro token: cargo aprobado con un id "chr_sim_...".</li>
- * </ul>
- * Una misma referencia de formulario devuelve el mismo cargo, como haría la pasarela ante un reintento.
- */
 @Component
 class PasarelaPagosSimulada implements PasarelaPagos {
-
     private final Map<String, String> cargosPorReferencia = new ConcurrentHashMap<>();
 
     @Override

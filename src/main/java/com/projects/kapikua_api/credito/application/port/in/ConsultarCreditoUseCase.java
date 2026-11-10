@@ -17,31 +17,18 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** CU-12 Consultar préstamo y cronograma, y el estado de la solicitud y de las invitaciones de aval. */
 public interface ConsultarCreditoUseCase {
-
     Panel panel(UsuarioId usuarioId);
 
     Result<DetalleOferta, ErrorCredito> oferta(UsuarioId usuarioId, Long ofertaId);
 
-    /**
-     * @param prestamo  el préstamo vigente o en mora; null si no tiene
-     * @param oferta    la solicitud más reciente si no terminó en préstamo; null si no hay
-     */
     record Panel(DetallePrestamo prestamo, DetalleOferta oferta, List<Invitacion> invitaciones, List<Garantia> garantias) {}
 
-    /**
-     * CU-12, 1b: lo que ve el aval del crédito que respalda, sin datos de la billetera del deudor.
-     * @param avisadoEl fecha del aviso por atraso (día 9); null si no hubo
-     */
     record Garantia(Long prestamoId, String deudor, EstadoAval estadoAval, EstadoPrestamo estadoPrestamo, Dinero monto,
                     int cuotasVencidas, Dinero vencido, OffsetDateTime avisadoEl) {}
 
     record Invitacion(Long ofertaId, String deudor, Dinero monto, OffsetDateTime vence) {}
 
-    /**
-     * Condiciones sugeridas por Kapikua hasta que la entidad aliada confirma; desde ahí, las de la entidad.
-     */
     record DetalleOferta(Long id, EstadoOferta estado, Recomendacion recomendacion, String motivo,
                          Dinero monto, int cuotas, BigDecimal tea, Dinero cuota, boolean condicionesConfirmadas,
                          boolean requiereAval, List<AvalVista> avales, LocalDate vigenteHasta, String motivoDenegacion,

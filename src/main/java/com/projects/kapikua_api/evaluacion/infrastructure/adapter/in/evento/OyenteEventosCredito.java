@@ -7,13 +7,8 @@ import com.projects.kapikua_api.shared.evento.EventosCredito.PrestamoPagado;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/**
- * Mueve la escalera de niveles con lo que pasa en Créditos (RN-26, RN-32). Oyentes síncronos: corren en la
- * misma transacción en la que Créditos registra el desembolso, el atraso o el pago.
- */
 @Component
 class OyenteEventosCredito {
-
     private final ActualizarHistorialUseCase historial;
 
     OyenteEventosCredito(ActualizarHistorialUseCase historial) {

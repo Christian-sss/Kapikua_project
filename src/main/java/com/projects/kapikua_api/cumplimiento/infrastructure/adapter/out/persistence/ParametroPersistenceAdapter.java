@@ -10,10 +10,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-/** La aplicación solo lee los parámetros (RNF-12): consultas SQL con JdbcClient. */
 @Repository
 class ParametroPersistenceAdapter implements ParametroRepositoryPort {
-
     private static final String VIGENTES = """
             select id, codigo, valor, vigente_desde, vigente_hasta, fuente
             from cumplimiento.parametro
@@ -30,7 +28,6 @@ class ParametroPersistenceAdapter implements ParametroRepositoryPort {
         this.jdbc = jdbc;
     }
 
-    /** La restricción exc_parametro_vigencia garantiza que haya a lo sumo uno por código y fecha. */
     @Override
     public Optional<Parametro> vigente(String codigo, LocalDate fecha) {
         return jdbc.sql(VIGENTES + " and codigo = :codigo")

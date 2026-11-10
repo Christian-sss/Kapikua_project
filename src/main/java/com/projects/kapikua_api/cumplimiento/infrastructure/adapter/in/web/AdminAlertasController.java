@@ -15,11 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** CU-14 Revisar alertas (/admin/** exige el rol ADMINISTRADOR). */
 @Controller
 @RequestMapping("/admin/alertas")
 class AdminAlertasController {
-
     private final RevisarAlertasUseCase alertas;
 
     AdminAlertasController(RevisarAlertasUseCase alertas) {

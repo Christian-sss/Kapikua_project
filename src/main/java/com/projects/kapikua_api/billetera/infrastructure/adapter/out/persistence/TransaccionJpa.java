@@ -22,12 +22,10 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** billetera.transaccion y billetera.movimiento: solo inserción (triggers de la base, RNF-10). */
 @Entity
 @Immutable
 @Table(schema = "billetera", name = "transaccion")
 class TransaccionJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -78,7 +76,6 @@ class TransaccionJpa {
 @Immutable
 @Table(schema = "billetera", name = "movimiento")
 class MovimientoJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -86,7 +83,6 @@ class MovimientoJpa {
     @Column(name = "billetera_id", nullable = false)
     Long billeteraId;
 
-    /** Positivo entra, negativo sale. */
     @Column(nullable = false, precision = 12, scale = 2)
     BigDecimal monto;
 

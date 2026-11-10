@@ -22,16 +22,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/** RN-22 a RN-27: retención, imputación, mora, pagos, pago anticipado, revocación y escalamiento al aval. */
 class CobranzaDominioTest {
-
     private static final ZoneId LIMA = ZoneId.of("America/Lima");
     private static final LocalDate DESEMBOLSO = LocalDate.of(2026, 11, 9);
     private static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     private static final UsuarioId ANA = new UsuarioId(1L);
     private static final BigDecimal MORATORIA = new BigDecimal("17.20");
 
-    /** Préstamo de S/ 800 en 8 cuotas al 95 % con retención del 8 %, con ids como si viniera de la base. */
     private static Prestamo prestamo() {
         var cronograma = CalculadoraFrancesa.cronograma(Dinero.de("800"), new BigDecimal("95"), 8, DESEMBOLSO);
         var cuotas = new ArrayList<Cuota>();
@@ -48,8 +45,6 @@ class CobranzaDominioTest {
         return p.getCuotas().get(numero - 1);
     }
 
-    // ------------------------------------------------------------------ imputación (RN-23)
-
     @Test
     void elPagoVaPrimeroAlMoratorioLuegoAlInteresYAlFinalAlCapital() {
         var c = Cuota.reconstituir(1L, 1, DESEMBOLSO, Dinero.de("100"), Dinero.de("9.40"), Dinero.de("1.20"),
@@ -62,8 +57,6 @@ class CobranzaDominioTest {
         assertThat(c.getFechaPago()).isEqualTo(DESEMBOLSO.plusDays(1));
     }
 
-    // ------------------------------------------------------------------ mora (RN-24)
-
     @Test
     void laMoraEsInteresDiarioSobreElCapitalVencidoSinCapitalizarYNuncaBaja() {
         var p = prestamo();
@@ -74,7 +67,6 @@ class CobranzaDominioTest {
 
         var diezDias = c1.getFechaVencimiento().plusDays(10);
         p.actualizarMora(diezDias, MORATORIA);
-        // 17,20 % anual en año de 360 días ≈ 0,0441 % diario; por 10 días sobre el capital de la cuota.
         var esperado = c1.getCapital().valor().multiply(new BigDecimal("0.000441")).multiply(BigDecimal.TEN);
         assertThat(c1.getInteresMoratorio().valor()).isCloseTo(esperado, within(new BigDecimal("0.02")));
         var antes = c1.getInteresMoratorio();
@@ -83,20 +75,18 @@ class CobranzaDominioTest {
         assertThat(p.diasAtraso(diezDias)).isEqualTo(10);
     }
 
-    // ------------------------------------------------------------------ retención (RN-22)
-
     @Test
     void seRetieneElPorcentajeAutorizadoSoloHastaCubrirLaCuota() {
         var p = prestamo();
         var c1 = cuota(p, 1);
-        assertThat(p.montoARetener(Dinero.de("500"))).isEqualTo(Dinero.de("40"));     // 8 % de 500
+        assertThat(p.montoARetener(Dinero.de("500"))).isEqualTo(Dinero.de("40"));
         p.registrarRetencion(100L, Dinero.de("40"), AHORA);
         assertThat(c1.getMontoApartado()).isEqualTo(Dinero.de("40"));
 
         var falta = c1.pendiente().restar(Dinero.de("40"));
-        assertThat(p.montoARetener(Dinero.de("5000"))).isEqualTo(falta);               // tope: lo que falta
+        assertThat(p.montoARetener(Dinero.de("5000"))).isEqualTo(falta);
         p.registrarRetencion(101L, falta, AHORA);
-        assertThat(p.montoARetener(Dinero.de("500"))).isEqualTo(Dinero.CERO);          // cuota ya cubierta
+        assertThat(p.montoARetener(Dinero.de("500"))).isEqualTo(Dinero.CERO);
         assertThat(p.retencionesNuevas()).hasSize(2);
     }
 
@@ -127,8 +117,6 @@ class CobranzaDominioTest {
         assertThat(p.totalVencido()).isEqualTo(c1.pendiente());
         assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.EN_MORA);
     }
-
-    // ------------------------------------------------------------------ pago anticipado (RN-27)
 
     @Test
     void elPagoAnticipadoTotalCancelaElCapitalYCierraElPrestamo() {
@@ -176,8 +164,6 @@ class CobranzaDominioTest {
                 .isInstanceOf(ErrorCredito.HayCuotasVencidas.class);
     }
 
-    // ------------------------------------------------------------------ revocar el cargo (RN-22)
-
     @Test
     void alRevocarElCargoSeLiberaLoApartadoYNoSeRetieneMas() {
         var p = prestamo();
@@ -189,8 +175,6 @@ class CobranzaDominioTest {
         assertThat(p.montoARetener(Dinero.de("500"))).isEqualTo(Dinero.CERO);
     }
 
-    // ------------------------------------------------------------------ escalamiento al aval (RN-25, RN-32)
-
     @Test
     void elAvalSeAvisaAlDiaNueveSeActivaAlQuinceYSeLiberaAlPagar() {
         var o = Oferta.crear(10L, ANA, AHORA, LIMA, 7);
@@ -200,7 +184,7 @@ class CobranzaDominioTest {
 
         assertThat(o.escalarAval(8, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.NINGUNO);
         assertThat(o.escalarAval(9, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.AVISADO);
-        assertThat(o.escalarAval(10, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.NINGUNO);   // un solo aviso
+        assertThat(o.escalarAval(10, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.NINGUNO);
         assertThat(o.escalarAval(15, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.ACTIVADO);
         assertThat(o.avalAceptadoOActivo().orElseThrow().getEstado()).isEqualTo(EstadoAval.ACTIVADO);
 
@@ -213,8 +197,6 @@ class CobranzaDominioTest {
         return ((Result.Err<?, ErrorCredito>) r).error();
     }
 
-    // ------------------------------------------------------------------ eventos de dominio
-
     @Test
     void cadaPagoRegistraUnPagoAplicadoYPagarTodoRegistraPrestamoPagadoUnaSolaVez() {
         var p = prestamo();
@@ -225,7 +207,7 @@ class CobranzaDominioTest {
             assertThat(e.monto()).isEqualTo(c1.total());
             assertThat(e.origen()).isEqualTo(Origen.DEUDOR);
         });
-        assertThat(p.extraerEventos()).isEmpty();   // se extraen una sola vez
+        assertThat(p.extraerEventos()).isEmpty();
 
         p.aplicarAnticipado(p.montoAnticipadoTotal(), ModalidadPago.TOTAL, Dinero.CERO, 901L, AHORA);
         var eventos = p.extraerEventos();

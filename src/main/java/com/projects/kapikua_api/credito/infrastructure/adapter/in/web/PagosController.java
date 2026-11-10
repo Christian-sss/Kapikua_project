@@ -18,11 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
-/** CU-11 Pagar cuota o adelantar pago (2 pantallas: confirmar y resultado en el préstamo) y RN-22 revocar el cargo. */
 @Controller
 @RequestMapping("/credito/prestamo")
 class PagosController {
-
     private final PagarPrestamoUseCase pagos;
 
     PagosController(PagarPrestamoUseCase pagos) {

@@ -14,10 +14,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Parámetros de la originación (script v6 y cambio 003), leídos de Cumplimiento. */
 @Component
 class ReglasCreditoAdapter implements ReglasCredito {
-
     private static final Logger log = LoggerFactory.getLogger(ReglasCreditoAdapter.class);
     private static final List<String> CODIGOS = List.of("VIGENCIA_OFERTA_DIAS", "HORAS_RESPUESTA_AVAL",
             "MAX_AVALES_SOLICITUD", "CUOTA_MINIMA", "UIT", "TOPE_OPERACION_UIT", "TASA_MORATORIA_MAX",

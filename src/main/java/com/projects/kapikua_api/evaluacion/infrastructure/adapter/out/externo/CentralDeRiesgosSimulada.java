@@ -8,21 +8,8 @@ import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import org.springframework.stereotype.Component;
 
-/**
- * PROVISIONAL: Central de Riesgos de la SBS simulada. La respuesta depende del último dígito del DNI,
- * para poder probar cada caso a propósito:
- * <pre>
- *  0 a 3  sin historial en el sistema financiero, deuda S/ 0
- *  4 y 5  NORMAL, deuda S/ 1 500
- *  6      NORMAL, deuda S/ 19 500  (con un crédito de más de S/ 500 supera los S/ 20 000: RN-11)
- *  7      CPP, deuda S/ 800        (recibe como máximo APTO_CON_AJUSTE: RN-15)
- *  8      DEFICIENTE, deuda S/ 3 000 (NO_APTO: RN-10)
- *  9      PÉRDIDA, deuda S/ 5 000    (NO_APTO: RN-10)
- * </pre>
- */
 @Component
 class CentralDeRiesgosSimulada implements CentralDeRiesgos {
-
     @Override
     public Result<InformeCentral, ErrorEvaluacion> consultar(String dni) {
         if (dni == null || dni.isBlank()) return Result.err(new ErrorEvaluacion.CentralNoDisponible());

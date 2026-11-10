@@ -5,9 +5,6 @@ import com.projects.kapikua_api.shared.Dinero;
 
 import java.time.OffsetDateTime;
 
-/**
- * Constancia que ve el cliente al terminar una operación.
- */
 public record Comprobante(Long transaccionId,
       TipoTransaccion tipo,
       Dinero monto,

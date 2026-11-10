@@ -26,36 +26,20 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
-/**
- * Reglas de la arquitectura hexagonal y de los límites entre bounded contexts.
- * Si una regla falla, el mensaje dice qué clase cruzó qué límite. Las excepciones están listadas y justificadas aquí.
- */
 @AnalyzeClasses(packages = "com.projects.kapikua_api", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArquitecturaTest {
-
     private static final String RAIZ = "com.projects.kapikua_api.";
     private static final Set<String> CONTEXTOS = Set.of("identidad", "billetera", "evaluacion", "credito", "cumplimiento", "administracion");
 
-    /**
-     * Entidades de dominio que también son entidades JPA (decisión pragmática: su mapeo es 1:1 con la tabla
-     * y no tienen un modelo de persistencia aparte). Son las únicas clases del dominio que pueden usar JPA.
-     */
     private static final Set<String> DOMINIO_CON_JPA = Set.of(
             RAIZ + "identidad.domain.model.Usuario",
             RAIZ + "identidad.domain.model.Consentimiento",
             RAIZ + "cumplimiento.domain.model.Parametro");
 
-    /**
-     * Lenguaje publicado: tipos de dominio que un contexto expone a otros a través de sus puertos de entrada.
-     * Créditos solicita evaluaciones indicando el destino y recibe la recomendación con las condiciones sugeridas
-     * (ResultadoEvaluacion); son valores inmutables, sin comportamiento que Créditos pueda alterar.
-     */
     private static final Set<String> LENGUAJE_PUBLICADO = Set.of(
             RAIZ + "evaluacion.domain.model.Destino",
             RAIZ + "evaluacion.domain.model.Recomendacion",
             RAIZ + "evaluacion.domain.model.CondicionesSugeridas");
-
-    // ---------------------------------------------------------------- capas hexagonales
 
     @ArchTest
     static final ArchRule capasHexagonales = layeredArchitecture()
@@ -97,8 +81,6 @@ class ArquitecturaTest {
             .that().resideInAPackage("..infrastructure..")
             .should().dependOnClassesThat().resideInAPackage("..application.service..")
             .because("los adaptadores entran por los puertos de entrada, no por la implementación del caso de uso");
-
-    // ---------------------------------------------------------------- límites entre bounded contexts
 
     @ArchTest
     static final ArchRule dominioAislado = classes()
@@ -148,8 +130,6 @@ class ArquitecturaTest {
             .matching("..kapikua_api.(*).application..")
             .should().beFreeOfCycles();
 
-    // ---------------------------------------------------------------- tácticas DDD
-
     @ArchTest
     static final ArchRule eventosDeDominio = classes()
             .that().implement(EventoDominio.class)
@@ -174,8 +154,6 @@ class ArquitecturaTest {
             .should().onlyBeCalled().byClassesThat().belongToAnyOf(PoliticaCredito.class)
             .because("el resultado de una evaluación lo decide la política de crédito (servicio de dominio)");
 
-    // ---------------------------------------------------------------- ubicación de los adaptadores
-
     @ArchTest
     static final ArchRule entidadesJpaEnPersistencia = classes()
             .that().areAnnotatedWith(Entity.class)
@@ -195,8 +173,6 @@ class ArquitecturaTest {
             .should().resideInAnyPackage("..infrastructure.adapter.in.web..", "..shared.infrastructure..",
                     "..kapikua_api.administracion..");
 
-    // ---------------------------------------------------------------- utilidades
-
     private static Optional<String> contexto(JavaClass clase) {
         var nombre = clase.getName();
         if (!nombre.startsWith(RAIZ)) return Optional.empty();
@@ -208,7 +184,6 @@ class ArquitecturaTest {
         boolean test(JavaClass origen, JavaClass destino);
     }
 
-    /** Las dependencias hacia otro contexto solo se aceptan si {@code permitido} lo autoriza. */
     private static ArchCondition<JavaClass> soloDependerDe(String descripcion, Permitido permitido) {
         return new ArchCondition<>("solo depender de " + descripcion) {
             @Override

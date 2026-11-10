@@ -6,12 +6,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-/**
- * Entidad dentro de {@link Oferta}: otro cliente que respalda el crédito en los niveles 1 y 2 (RN-21).
- * Responde solo por las cuotas vencidas (RN-25). Tiene 48 horas para aceptar con su código de un solo uso.
- */
 public final class Aval {
-
     private final Long id;
     private final UsuarioId usuarioDeudorId;
     private final UsuarioId usuarioAvalId;
@@ -54,7 +49,6 @@ public final class Aval {
                 fechaAviso, fechaActivacion, fechaLiberacion);
     }
 
-    /** Momento en que la invitación vence: 48 horas, pero nunca después de la vigencia de la oferta. */
     public OffsetDateTime venceEn(Duration plazo, OffsetDateTime finVigenciaOferta) {
         var limite = fechaInvitacion.plus(plazo);
         return limite.isBefore(finVigenciaOferta) ? limite : finVigenciaOferta;
@@ -69,21 +63,18 @@ public final class Aval {
         fechaRespuesta = ahora;
     }
 
-    /** Rechazó, o no respondió a tiempo: la fecha de respuesta es la del vencimiento. El rechazo no afecta a nadie. */
     void rechazar(OffsetDateTime cuando) {
         if (estado != EstadoAval.PENDIENTE) throw new IllegalStateException("La invitación no está pendiente");
         estado = EstadoAval.RECHAZADO;
         fechaRespuesta = cuando.isBefore(fechaInvitacion) ? fechaInvitacion : cuando;
     }
 
-    /** RN-25, día 9: se avisa una sola vez por préstamo. Devuelve true si es el primer aviso. */
     boolean avisar(OffsetDateTime ahora) {
         if (fechaAviso != null || (estado != EstadoAval.ACEPTADO && estado != EstadoAval.ACTIVADO)) return false;
         fechaAviso = ahora;
         return true;
     }
 
-    /** RN-25, día 15: se activa la garantía y se empiezan a retener sus ventas. Devuelve true si recién se activó. */
     boolean activar(OffsetDateTime ahora) {
         if (estado != EstadoAval.ACEPTADO) return false;
         if (fechaAviso == null) fechaAviso = ahora;
@@ -92,7 +83,6 @@ public final class Aval {
         return true;
     }
 
-    /** RN-32: con el préstamo pagado, el aval queda liberado. */
     void liberar(OffsetDateTime ahora) {
         if (estado == EstadoAval.ACEPTADO || estado == EstadoAval.ACTIVADO) {
             estado = EstadoAval.LIBERADO;

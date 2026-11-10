@@ -15,22 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Servicio de dominio con toda la política de crédito (RN-08 a RN-17, RN-21, RN-22), en Java puro.
- * Los datos los reúne el caso de uso; aquí solo se decide. Err = no se puede evaluar;
- * Ok = una evaluación emitida, que puede ser NO_APTO.
- */
 public final class PoliticaCredito {
-
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
 
     private PoliticaCredito() {
     }
 
-    /**
-     * Lo que se puede verificar sin la Central de Riesgos: datos de la solicitud (RN-14) y uso mínimo (RN-08).
-     * Se llama antes de consultar la Central para no pagar consultas de quien no es elegible.
-     */
     public static Result<Void, ErrorEvaluacion> verificarElegibilidad(SolicitudCredito solicitud, CobrosDelPeriodo cobros,
                                                                       HistorialCrediticio historial, ParametrosCredito p) {
         var nivel = p.nivel(historial.getNivel());
@@ -49,37 +39,31 @@ public final class PoliticaCredito {
                                                               OffsetDateTime ahora) {
         var nivel = p.nivel(historial.getNivel());
 
-        // 1. Datos de la solicitud (RN-14) y uso mínimo de la billetera (RN-08): sin evaluación guardada.
         var elegibilidad = verificarElegibilidad(solicitud, cobros, historial, p);
         if (elegibilidad instanceof Result.Err<Void, ErrorEvaluacion> err) return Result.err(err.error());
 
-        // 2. Reglas eliminatorias (RN-10, RN-11): NO_APTO sin score.
         var eliminatoria = reglaEliminatoria(solicitud, central, historial, p);
         if (eliminatoria != null) {
             return Result.ok(Evaluacion.noApto(usuarioId, solicitud, central, null, eliminatoria, List.of(), ahora));
         }
 
-        // 3. Capacidad de pago (RN-12) y monto (RN-13)
-        var tea = nivel.tea().min(p.tasaMaxima());                                    // RN-16
+        var tea = nivel.tea().min(p.tasaMaxima());
         var i = MatematicaFinanciera.tasaSemanal(tea);
         var promedio = cobros.promedioSemanal();
         var cuotaMaxima = promedio.multiply(p.porcentajeCapacidadPago()).divide(CIEN, 10, RoundingMode.HALF_EVEN);
         var capacidadNivel = MatematicaFinanciera.valorPresente(cuotaMaxima, i, nivel.maxCuotas())
                 .multiply(nivel.porcentajeCapacidad()).divide(CIEN, 10, RoundingMode.HALF_EVEN);
-        // Con las cuotas pedidas, la cuota tampoco puede pasar del máximo (importa si pide menos cuotas).
         var capacidadConSusCuotas = MatematicaFinanciera.valorPresente(cuotaMaxima, i, solicitud.cuotas());
         var montoPosible = Stream.of(solicitud.monto().valor(), capacidadNivel, capacidadConSusCuotas,
                         p.topePorOperacion().valor())
                 .min(BigDecimal::compareTo).orElseThrow()
-                .setScale(2, RoundingMode.DOWN);                                     // nunca redondear hacia arriba
+                .setScale(2, RoundingMode.DOWN);
 
-        // 4. Score (RN-15)
         var cuotaPedida = MatematicaFinanciera.cuota(solicitud.monto(), i, solicitud.cuotas());
         var factores = factores(cobros, central, historial, cuotaPedida, cuotaMaxima, p.pesos());
         var score = factores.stream().map(FactorEvaluado::aporte).reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(0, RoundingMode.HALF_UP).intValueExact();
 
-        // 5. Recomendación (RN-15)
         if (score < p.scoreAjuste()) {
             return Result.ok(Evaluacion.noApto(usuarioId, solicitud, central, score,
                     "Score de " + score + ", menor que " + p.scoreAjuste() + ".", factores, ahora));
@@ -92,7 +76,7 @@ public final class PoliticaCredito {
             motivo = "Score de " + score + ": se ofrece hasta el " + p.porcentajeAjuste().stripTrailingZeros().toPlainString()
                     + " % de lo pedido.";
         } else if (central.clasificacion() == ClasificacionSbs.CPP) {
-            recomendacion = Recomendacion.APTO_CON_AJUSTE;                            // CPP: como máximo un ajuste
+            recomendacion = Recomendacion.APTO_CON_AJUSTE;
             motivo = "Clasificación CPP en el sistema financiero: se ofrece hasta el "
                     + p.porcentajeAjuste().stripTrailingZeros().toPlainString() + " % de lo pedido.";
         }
@@ -101,7 +85,6 @@ public final class PoliticaCredito {
             monto = monto.min(ajustado);
         }
 
-        // 6. Condiciones (RN-16, RN-17, RN-22, RN-21)
         var montoOfrecido = Dinero.de(monto);
         var cuota = montoOfrecido.esCero() ? Dinero.CERO : MatematicaFinanciera.cuota(montoOfrecido, i, solicitud.cuotas());
         if (cuota.menorQue(p.cuotaMinima())) {
@@ -116,9 +99,6 @@ public final class PoliticaCredito {
                 requiereAval, motivo, factores, ahora));
     }
 
-    /**
-     * RN-21: el aval debe tener la identidad validada, clasificación Normal y no estar bloqueado.
-     */
     public static Result<Void, ErrorEvaluacion> evaluarAval(boolean identidadValidada, InformeCentral central,
                                                             HistorialCrediticio historial) {
         if (!identidadValidada) return Result.err(new ErrorEvaluacion.AvalIdentidadNoValidada());
@@ -127,8 +107,6 @@ public final class PoliticaCredito {
         if (historial.isBloqueadoInterno()) return Result.err(new ErrorEvaluacion.AvalBloqueado());
         return Result.ok();
     }
-
-    // ------------------------------------------------------------------ reglas
 
     private static String faltaUsoMinimo(CobrosDelPeriodo c, ParametrosCredito p) {
         var faltas = new ArrayList<String>();
@@ -172,7 +150,7 @@ public final class PoliticaCredito {
                 : switch (central.clasificacion()) {
             case NORMAL -> w.sbsNormal();
             case CPP -> w.sbsCpp();
-            default -> BigDecimal.ZERO;                                  // no llega: es eliminatoria
+            default -> BigDecimal.ZERO;
         };
         return List.of(
                 new FactorEvaluado("regularidad_cobros", c.semanasConCobros() + "/" + c.semanas() + " semanas",
@@ -189,9 +167,6 @@ public final class PoliticaCredito {
                         : central.clasificacion().name(), redondear(clasificacion), w.clasificacion()));
     }
 
-    /**
-     * RN-22: cuota entre cobros semanales promedio, redondeado hacia arriba, entre el mínimo y el máximo.
-     */
     private static int porcentajeRetencion(Dinero cuota, BigDecimal promedioSemanal, ParametrosCredito p) {
         if (promedioSemanal.signum() == 0) return p.retencionDefecto();
         var porcentaje = cuota.valor().multiply(CIEN).divide(promedioSemanal, 0, RoundingMode.CEILING).intValue();

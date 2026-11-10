@@ -14,11 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** CU-15, lado del Administrador (/admin/** exige el rol ADMINISTRADOR). */
 @Controller
 @RequestMapping("/admin/reclamos")
 class AdminReclamosController {
-
     private final ReclamosUseCase reclamos;
 
     AdminReclamosController(ReclamosUseCase reclamos) {

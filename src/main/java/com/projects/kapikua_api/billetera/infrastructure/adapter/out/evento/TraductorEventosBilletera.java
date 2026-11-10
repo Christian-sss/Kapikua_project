@@ -9,13 +9,8 @@ import com.projects.kapikua_api.shared.puerto.PublicadorEventos;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/**
- * Traduce los eventos de dominio de Billetera a los eventos de integración que escuchan Cumplimiento
- * (TransaccionRegistrada) y Créditos (CobroRecibido), en la misma transacción.
- */
 @Component
 class TraductorEventosBilletera {
-
     private final PublicadorEventos publicador;
     private final BilleteraRepositoryPort billeteras;
 
@@ -30,7 +25,6 @@ class TraductorEventosBilletera {
                 e.billeteraOrigenId(), e.billeteraDestinoId(), e.fecha()));
     }
 
-    /** Créditos identifica al negocio por su usuario (RN-22): se agrega el titular de la billetera. */
     @EventListener
     void alRecibirCobro(CobroRecibido e) {
         billeteras.porId(e.billeteraId()).map(Billetera::getUsuarioId).ifPresent(usuario ->

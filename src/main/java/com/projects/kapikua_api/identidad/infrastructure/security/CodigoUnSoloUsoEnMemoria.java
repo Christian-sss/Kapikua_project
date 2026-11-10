@@ -16,15 +16,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * Código de un solo uso de 6 dígitos (RNF-04), en memoria como indica el script v6.
- * Hay un código vigente por usuario y propósito: pedir otro reemplaza al anterior.
- * Vence a los {@code kapikua.codigo.minutos} (5), se consume al validarse bien y se anula tras 3 intentos fallidos.
- * Con más de una instancia de la aplicación habría que llevarlo a un almacén compartido.
- */
 @Component
 class CodigoUnSoloUsoEnMemoria implements CodigoUnSoloUso {
-
     private static final int INTENTOS_MAXIMOS = 3;
 
     private record Clave(UsuarioId usuarioId, Proposito proposito) {}
@@ -64,7 +57,6 @@ class CodigoUnSoloUsoEnMemoria implements CodigoUnSoloUso {
     public Result<Void, CodigoError> validar(UsuarioId usuarioId, Proposito proposito, String detalleOperacion,
                                              String codigo) {
         var clave = new Clave(usuarioId, proposito);
-        // compute: la lectura, el conteo de intentos y el consumo son atómicos por usuario y propósito.
         var resultado = new AtomicReference<Result<Void, CodigoError>>();
         vigentes.compute(clave, (k, entrada) -> {
             if (entrada == null || !clock.instant().isBefore(entrada.vence)) {

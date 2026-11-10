@@ -13,9 +13,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Los eventos de una transacción se derivan del registro guardado. */
 class TransaccionEventosTest {
-
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
 
     Transaccion tx(Long id, TipoTransaccion tipo, Transaccion.Movimiento... movimientos) {

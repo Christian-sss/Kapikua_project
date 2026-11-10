@@ -10,10 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-/** "Mi nivel": la escalera de créditos del cliente (RN-14, RN-26) y su avance hacia el uso mínimo (RN-08). */
 @Controller
 class NivelController {
-
     private final ConsultarEvaluacionUseCase consultar;
 
     NivelController(ConsultarEvaluacionUseCase consultar) {

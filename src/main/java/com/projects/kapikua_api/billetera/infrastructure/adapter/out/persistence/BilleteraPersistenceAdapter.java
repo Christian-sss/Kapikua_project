@@ -14,7 +14,6 @@ import java.util.Optional;
 
 @Repository
 class BilleteraPersistenceAdapter implements BilleteraRepositoryPort {
-
     private final BilleteraJpaRepository repositorio;
     private final EntityManager em;
 
@@ -43,11 +42,6 @@ class BilleteraPersistenceAdapter implements BilleteraRepositoryPort {
         return repositorio.existsByNumeroCelular(celular.numero());
     }
 
-    /**
-     * Copia el estado del dominio sobre la entidad gestionada. Si su versión ya no es la que se leyó,
-     * otra transacción la cambió: se lanza el conflicto para que el ejecutor reintente (RNF-08).
-     * Además, Hibernate actualiza con "WHERE version = ?", lo que cubre el cambio concurrente hasta el commit.
-     */
     @Override
     public Billetera guardar(Billetera billetera) {
         if (billetera.getId() == null) {
@@ -70,7 +64,6 @@ class BilleteraPersistenceAdapter implements BilleteraRepositoryPort {
 }
 
 interface BilleteraJpaRepository extends JpaRepository<BilleteraJpa, Long> {
-
     Optional<BilleteraJpa> findByUsuarioId(Long usuarioId);
 
     Optional<BilleteraJpa> findByNumeroCelular(String numeroCelular);

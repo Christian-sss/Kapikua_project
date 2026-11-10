@@ -38,13 +38,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * La oferta y sus avales se leen y guardan con JPA (bloqueo optimista); las consultas sobre avales
- * se hacen con SQL sobre JdbcClient, que usa la misma conexión de la transacción en curso.
- */
 @Repository
 class OfertaPersistenceAdapter implements OfertaRepositoryPort {
-
     private static final List<String> GARANTIA_ACTIVA = nombres(EstadoAval.ACEPTADO, EstadoAval.ACTIVADO);
     private static final List<String> EN_CURSO = nombres(EstadoAval.PENDIENTE, EstadoAval.ACEPTADO, EstadoAval.ACTIVADO);
 
@@ -83,7 +78,6 @@ class OfertaPersistenceAdapter implements OfertaRepositoryPort {
                 .map(OfertaJpa::aDominio).toList();
     }
 
-    /** RN-21: ya respalda un crédito (aval ACEPTADO o ACTIVADO). */
     @Override
     public boolean tieneGarantiaActiva(UsuarioId avalId) {
         return jdbc.sql("""
@@ -96,7 +90,6 @@ class OfertaPersistenceAdapter implements OfertaRepositoryPort {
                 .single();
     }
 
-    /** RN-21, avales cruzados. */
     @Override
     public boolean esAvalEnCursoDe(UsuarioId avalDe, UsuarioId deudor) {
         return jdbc.sql("""
@@ -131,10 +124,6 @@ class OfertaPersistenceAdapter implements OfertaRepositoryPort {
         return Arrays.stream(estados).map(Enum::name).toList();
     }
 
-    /**
-     * Copia el dominio sobre la entidad gestionada. Si la versión ya no es la leída, otra transacción la cambió
-     * y se lanza el conflicto (el ejecutor reintenta). Los avales nuevos se agregan; los existentes se actualizan.
-     */
     @Override
     public Oferta guardar(Oferta o) {
         if (o.getId() == null) {
@@ -192,14 +181,12 @@ class OfertaPersistenceAdapter implements OfertaRepositoryPort {
 }
 
 interface OfertaJpaRepository extends JpaRepository<OfertaJpa, Long> {
-
     Optional<OfertaJpa> findFirstByUsuarioIdOrderByIdDesc(Long usuarioId);
 }
 
 @Entity
 @Table(schema = "credito", name = "oferta")
 class OfertaJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -261,7 +248,6 @@ class OfertaJpa {
 @Entity
 @Table(schema = "credito", name = "aval")
 class AvalJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;

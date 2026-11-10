@@ -2,7 +2,6 @@ package com.projects.kapikua_api.administracion;
 
 import java.util.List;
 
-/** CU-16, 1: los cuatro reportes, cada uno con los estados por los que se puede filtrar. */
 public enum TipoReporte {
     CLIENTES("Clientes", "Estado de la billetera", List.of("ACTIVA", "BLOQUEADA")),
     TRANSACCIONES("Transacciones", "Tipo", List.of("RECARGA", "TRANSFERENCIA", "PAGO_NEGOCIO", "DESEMBOLSO", "PAGO_CUOTA", "PAGO_ANTICIPADO")),
@@ -24,7 +23,6 @@ public enum TipoReporte {
     public List<String> estados() { return estados; }
     public String ruta() { return name().toLowerCase(); }
 
-    /** Un estado fuera de la lista se ignora (sin filtro). */
     public String estadoValido(String estado) {
         return estado != null && estados.contains(estado) ? estado : null;
     }

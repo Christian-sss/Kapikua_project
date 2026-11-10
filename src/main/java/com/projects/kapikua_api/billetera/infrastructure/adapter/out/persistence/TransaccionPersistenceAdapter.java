@@ -14,13 +14,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Escritura y búsquedas por id o referencia con JPA; las consultas de lectura (acumulados, historial y
- * cobros) con SQL sobre JdbcClient. JdbcClient usa la misma conexión de la transacción de JPA en curso.
- */
 @Repository
 class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
-
     private static final List<String> PAGOS_Y_TRANSFERENCIAS =
             List.of(TipoTransaccion.TRANSFERENCIA.name(), TipoTransaccion.PAGO_NEGOCIO.name());
 
@@ -42,13 +37,11 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
         return repositorio.findById(transaccionId).map(TransaccionJpa::aDominio);
     }
 
-    /** saveAndFlush: si la referencia ya existe, la restricción UNIQUE salta aquí y no al confirmar. */
     @Override
     public Transaccion registrar(Transaccion transaccion) {
         return repositorio.saveAndFlush(TransaccionJpa.desde(transaccion)).aDominio();
     }
 
-    /** RN-03 y RN-04 en una sola consulta: lo recargado y lo enviado en pagos y transferencias. */
     @Override
     public AcumuladoMensual acumulado(Long billeteraId, OffsetDateTime desde, OffsetDateTime hasta) {
         return jdbc.sql("""
@@ -87,7 +80,6 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
                 .list();
     }
 
-    /** El movimiento que entra a la billetera y, de la misma transacción, la billetera que pagó (RN-08, RN-12). */
     @Override
     public List<LineaCobro> cobrosRecibidos(Long billeteraId, OffsetDateTime desde, OffsetDateTime hasta) {
         return jdbc.sql("""
@@ -109,6 +101,5 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
 }
 
 interface TransaccionJpaRepository extends JpaRepository<TransaccionJpa, Long> {
-
     Optional<TransaccionJpa> findByReferencia(String referencia);
 }

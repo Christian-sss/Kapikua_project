@@ -11,14 +11,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Servicio de dominio: cuota y cronograma semanal por sistema francés (RF-CR-01). Usa la misma tasa semanal
- * que Evaluación (MatematicaFinanciera, año de 360 días). Cada cuota vence 7 días después de la anterior;
- * la primera, 7 días después del desembolso. La última absorbe el residuo del redondeo para que el capital
- * pagado sea exactamente el monto prestado.
- */
 public final class CalculadoraFrancesa {
-
     private CalculadoraFrancesa() {}
 
     public record CuotaProgramada(int numero, LocalDate vencimiento, Dinero capital, Dinero interes) {
@@ -35,7 +28,6 @@ public final class CalculadoraFrancesa {
         }
     }
 
-    /** Capital e interés de un periodo. */
     public record Tramo(Dinero capital, Dinero interes) {}
 
     public static Cronograma cronograma(Dinero monto, BigDecimal teaPorcentaje, int numeroCuotas, LocalDate desembolso) {
@@ -50,10 +42,6 @@ public final class CalculadoraFrancesa {
         return new Cronograma(cuota, List.copyOf(cuotas));
     }
 
-    /**
-     * Reparte {@code saldo} en {@code n} periodos con cuota fija: interés = saldo × i, capital = cuota − interés.
-     * La última cuota paga todo el saldo que quede.
-     */
     public static List<Tramo> amortizar(Dinero saldo, BigDecimal i, Dinero cuotaFija, int n) {
         var restante = saldo.valor();
         var tramos = new ArrayList<Tramo>(n);
@@ -68,7 +56,6 @@ public final class CalculadoraFrancesa {
         return List.copyOf(tramos);
     }
 
-    /** RN-27, reducir plazo: el menor número de cuotas (hasta {@code maximo}) con el que la cuota fija paga el saldo. */
     public static int plazoPara(Dinero saldo, BigDecimal i, Dinero cuotaFija, int maximo) {
         for (int k = 1; k < maximo; k++) {
             if (MatematicaFinanciera.valorPresente(cuotaFija.valor(), i, k).compareTo(saldo.valor()) >= 0) return k;
@@ -76,7 +63,6 @@ public final class CalculadoraFrancesa {
         return maximo;
     }
 
-    /** Sin comisiones, gastos ni seguros cobrados al cliente, la TCEA es igual a la TEA. */
     public static BigDecimal tcea(BigDecimal tea) {
         return tea;
     }

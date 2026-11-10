@@ -24,13 +24,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * CU-04 Recargar saldo. Con la pasarela simulada, el formulario elige una "tarjeta de prueba" que se
- * convierte en el token. Con Culqi, el token lo entrega Culqi Checkout en el navegador.
- */
 @Controller
 class RecargaController {
-
     private final RecargarSaldoUseCase recargar;
 
     RecargaController(RecargarSaldoUseCase recargar) {

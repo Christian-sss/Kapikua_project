@@ -12,10 +12,8 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 
-/** Corre dentro de la transacción del registro: si falla, el registro completo se revierte. */
 @Service
 public class AbrirBilleteraService implements AbrirBilleteraUseCase {
-
     private final BilleteraRepositoryPort billeteras;
     private final Clock clock;
 

@@ -6,14 +6,12 @@ import static com.projects.kapikua_api.evaluacion.domain.service.PoliticaCredito
 import static com.projects.kapikua_api.evaluacion.domain.service.PoliticaCreditoTest.P;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Escalera de niveles (RN-26) y bloqueo cuando paga el aval (RN-32). */
 class HistorialCrediticioTest {
-
     @Test
     void subeDelUnoAlDosConUnCreditoPagadoATiempo() {
         var h = HistorialCrediticio.nuevo(CLIENTE);
         h.registrarDesembolso();
-        h.registrarAtraso(8, P);                       // 8 días: todavía Normal
+        h.registrarAtraso(8, P);
         h.registrarCreditoPagado(false, P);
         assertThat(h.getNivel()).isEqualTo(2);
         assertThat(h.esNuevo()).isFalse();
@@ -28,16 +26,16 @@ class HistorialCrediticioTest {
         h.registrarCreditoPagado(false, P);
         assertThat(h.getNivel()).isEqualTo(4);
         h.registrarCreditoPagado(false, P);
-        assertThat(h.getNivel()).isEqualTo(4);         // no hay nivel 5
+        assertThat(h.getNivel()).isEqualTo(4);
     }
 
     @Test
     void conMasDeOchoDiasDeAtrasoNoSube() {
         var h = HistorialCrediticio.reconstituir(CLIENTE, 2, 0, 0, false, 0L);
         h.registrarAtraso(9, P);
-        assertThat(h.getNivel()).isEqualTo(1);         // baja un nivel al día 9
+        assertThat(h.getNivel()).isEqualTo(1);
         h.registrarCreditoPagado(false, P);
-        assertThat(h.getNivel()).isEqualTo(1);         // y ese crédito no cuenta para subir
+        assertThat(h.getNivel()).isEqualTo(1);
     }
 
     @Test
@@ -72,6 +70,6 @@ class HistorialCrediticioTest {
         h.registrarDesembolso();
         assertThat(h.getMaxDiasAtraso()).isZero();
         h.registrarAtraso(9, P);
-        assertThat(h.getNivel()).isEqualTo(1);         // vuelve a bajar en el nuevo crédito
+        assertThat(h.getNivel()).isEqualTo(1);
     }
 }

@@ -12,7 +12,6 @@ import java.time.ZoneOffset;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReclamoYAlertaTest {
-
     static final OffsetDateTime LUNES = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final UsuarioId ANA = new UsuarioId(10L);
     static final UsuarioId ADMIN = new UsuarioId(1L);
@@ -37,8 +36,8 @@ class ReclamoYAlertaTest {
         assertThat(r.getFechaLimite()).isEqualTo(LocalDate.of(2026, 11, 30));
         assertThat(r.getEstado()).isEqualTo(EstadoReclamo.REGISTRADO);
         assertThat(r.diasHabilesRestantes(LUNES.toLocalDate())).isEqualTo(15);
-        assertThat(r.cercaDelLimite(LocalDate.of(2026, 11, 25))).isTrue();     // quedan 3
-        assertThat(r.cercaDelLimite(LocalDate.of(2026, 11, 24))).isFalse();    // quedan 4
+        assertThat(r.cercaDelLimite(LocalDate.of(2026, 11, 25))).isTrue();
+        assertThat(r.cercaDelLimite(LocalDate.of(2026, 11, 24))).isFalse();
         assertThat(r.fueraDePlazo(LocalDate.of(2026, 12, 1))).isTrue();
     }
 
@@ -69,7 +68,7 @@ class ReclamoYAlertaTest {
     void laProrrogaAmplia15DiasHabilesUnaSolaVez() {
         var r = reclamo();
         ok(r.prorrogar("Esperamos la respuesta de la entidad aliada"));
-        assertThat(r.getFechaLimite()).isEqualTo(LocalDate.of(2026, 12, 23));   // 30/11 + 15 hábiles (sin 8 y 9/12)
+        assertThat(r.getFechaLimite()).isEqualTo(LocalDate.of(2026, 12, 23));
         assertThat(error(r.prorrogar("Otra vez más tiempo"))).isInstanceOf(ErrorCumplimiento.ProrrogaYaRegistrada.class);
     }
 

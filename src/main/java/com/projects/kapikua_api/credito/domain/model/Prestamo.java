@@ -26,16 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Raíz de agregado: el préstamo aceptado y desembolsado. La deuda oficial es de la entidad aliada; esta es
- * la copia que Kapikua muestra y cobra, con las condiciones aceptadas y la constancia (N6, RN-20).
- * Las retenciones y los pagos nuevos se acumulan para que el repositorio los inserte (son de solo inserción).
- * El dinero lo mueve Billetera: aquí solo se decide cuánto y a qué cuota se aplica.
- * Registra sus eventos de dominio: desembolso, cada pago aplicado, el atraso y el pago total.
- */
 public final class Prestamo extends AgregadoRaiz {
-
-    /** La única entidad aliada de la v1 (puerto EntidadFinanciera). */
     public static final String CODIGO_ENTIDAD = "AYNI_SUR";
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
 
@@ -58,7 +49,6 @@ public final class Prestamo extends AgregadoRaiz {
     private final List<Cuota> cuotas;
     private final List<Retencion> retencionesNuevas = new ArrayList<>();
     private final List<Pago> pagosNuevos = new ArrayList<>();
-    /** RN-32: si el aval pagó alguna cuota (en este u otro momento). */
     private boolean conPagosDeAval;
 
     private Prestamo(Long id, Long ofertaId, UsuarioId usuarioId, String codigoEntidad, String codigoCreditoEfa,
@@ -87,10 +77,6 @@ public final class Prestamo extends AgregadoRaiz {
         this.cuotas.sort(Comparator.comparingInt(Cuota::getNumero));
     }
 
-    /**
-     * CU-10, paso 8: crea el préstamo VIGENTE con su cronograma, a partir de la oferta aceptada.
-     * El cargo automático queda autorizado con la misma fecha de la aceptación (RN-22).
-     */
     public static Prestamo desembolsar(Oferta oferta, String codigoCreditoEfa, int porcentajeRetencion,
                                        ConstanciaAceptacion constancia, OffsetDateTime ahora, ZoneId zona) {
         if (oferta.getEstado() != EstadoOferta.ACEPTADA) throw new IllegalStateException("La oferta no está aceptada");
@@ -116,18 +102,14 @@ public final class Prestamo extends AgregadoRaiz {
                 estado, fechaDesembolso, version, cuotas, conPagosDeAval);
     }
 
-    // ------------------------------------------------------------------ consultas
-
     public boolean estaActivo() {
         return estado == EstadoPrestamo.VIGENTE || estado == EstadoPrestamo.EN_MORA;
     }
 
-    /** Capital que falta pagar: el de las cuotas por cobrar. */
     public Dinero capitalPendiente() {
         return cuotas.stream().filter(Cuota::porCobrar).map(Cuota::capitalPendiente).reduce(Dinero.CERO, Dinero::sumar);
     }
 
-    /** La próxima cuota que se debe: la vencida más antigua o, si no hay, la siguiente pendiente. */
     public Optional<Cuota> cuotaObjetivo() {
         return cuotas.stream().filter(Cuota::porCobrar).findFirst();
     }
@@ -136,12 +118,10 @@ public final class Prestamo extends AgregadoRaiz {
         return cuotas.stream().filter(c -> c.getEstado() == EstadoCuota.VENCIDA).toList();
     }
 
-    /** CU-13, paso 2: las que vencen hoy y las ya vencidas. */
     public List<Cuota> cuotasPorCobrarAl(LocalDate hoy) {
         return cuotas.stream().filter(c -> c.porCobrar() && !c.getFechaVencimiento().isAfter(hoy)).toList();
     }
 
-    /** Días de atraso de la cuota vencida más antigua; 0 si no hay atraso. */
     public int diasAtraso(LocalDate hoy) {
         return cuotas.stream().filter(c -> c.vencidaAl(hoy))
                 .mapToInt(c -> (int) ChronoUnit.DAYS.between(c.getFechaVencimiento(), hoy))
@@ -152,12 +132,6 @@ public final class Prestamo extends AgregadoRaiz {
         return cuotas.stream().map(Cuota::getMontoApartado).reduce(Dinero.CERO, Dinero::sumar);
     }
 
-    // ------------------------------------------------------------------ retención de ventas (RN-22)
-
-    /**
-     * Cuánto apartar de un cobro: el porcentaje autorizado, solo hasta cubrir la cuota objetivo.
-     * Cero si el cargo automático fue revocado o no hay cuota por cobrar.
-     */
     public Dinero montoARetener(Dinero cobro) {
         if (!cargoAutorizado || !estaActivo()) return Dinero.CERO;
         var objetivo = cuotaObjetivo();
@@ -168,7 +142,6 @@ public final class Prestamo extends AgregadoRaiz {
         return porcentaje.menorQue(falta) ? porcentaje : falta;
     }
 
-    /** Registra lo que Billetera efectivamente apartó para la cuota objetivo. */
     public void registrarRetencion(Long transaccionVentaId, Dinero apartado, OffsetDateTime ahora) {
         if (apartado.esCero()) return;
         var cuota = cuotaObjetivo().orElseThrow();
@@ -176,7 +149,6 @@ public final class Prestamo extends AgregadoRaiz {
         retencionesNuevas.add(new Retencion(cuota.getId(), transaccionVentaId, Origen.DEUDOR, apartado, ahora));
     }
 
-    /** RN-25: lo retenido de una venta del aval, que se aplica de inmediato a las cuotas vencidas. */
     public void registrarRetencionDeAval(Long cuotaId, Long transaccionVentaId, Dinero monto, OffsetDateTime ahora) {
         retencionesNuevas.add(new Retencion(cuotaId, transaccionVentaId, Origen.AVAL, monto, ahora));
     }
@@ -185,13 +157,6 @@ public final class Prestamo extends AgregadoRaiz {
         return cuotasVencidas().stream().map(Cuota::pendiente).reduce(Dinero.CERO, Dinero::sumar);
     }
 
-    // ------------------------------------------------------------------ pagos de cuotas (RN-23)
-
-    /**
-     * Aplica {@code monto} a las cuotas dadas, en orden, cada una hasta lo que debe. Si {@code usaApartado}, cada cuota
-     * consume primero lo retenido para ella (así lo cobra Billetera). Registra un Pago por cuota con su imputación.
-     * @return lo apartado que sobró en cuotas que quedaron pagadas (hay que liberarlo en la billetera)
-     */
     public Dinero aplicarPago(List<Cuota> destino, Dinero monto, boolean usaApartado, Long transaccionId, Origen origen,
                               boolean automatico, LocalDate hoy, OffsetDateTime ahora) {
         var resto = monto;
@@ -216,24 +181,16 @@ public final class Prestamo extends AgregadoRaiz {
         return sobrante;
     }
 
-    // ------------------------------------------------------------------ cobro diario (CU-13, RN-24)
-
-    /** Suma el interés moratorio del día a las cuotas atrasadas, sin capitalizar (RN-24). */
     public void actualizarMora(LocalDate hoy, BigDecimal tasaMoratoriaAnual) {
         var tasaDiaria = MatematicaFinanciera.tasaDiaria(tasaMoratoriaAnual);
         cuotas.forEach(c -> c.actualizarMoratorio(hoy, tasaDiaria));
     }
 
-    /** Las cuotas que vencieron sin cubrirse pasan a VENCIDA; el préstamo, a EN_MORA. */
     public void vencerImpagas(LocalDate hoy) {
         cuotas.stream().filter(c -> c.porCobrar() && !c.getFechaVencimiento().isAfter(hoy)).forEach(Cuota::vencer);
         actualizarEstado();
     }
 
-    /**
-     * CU-13, 5a y 5b: vence las cuotas impagas y, si hay atraso, lo registra (Evaluación lo usa para el nivel y
-     * Créditos para escalar al aval). Se llama una vez por día. Devuelve los días de atraso.
-     */
     public int revisarAtraso(LocalDate hoy) {
         vencerImpagas(hoy);
         var dias = diasAtraso(hoy);
@@ -251,9 +208,6 @@ public final class Prestamo extends AgregadoRaiz {
         }
     }
 
-    // ------------------------------------------------------------------ pago anticipado (RN-27)
-
-    /** Verificaciones antes de cobrar un pago anticipado. */
     public Result<Void, ErrorCredito> verificarAnticipado(Dinero montoPago, ModalidadPago modalidad) {
         if (!estaActivo()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
         if (!cuotasVencidas().isEmpty()) return Result.err(new ErrorCredito.HayCuotasVencidas());
@@ -265,17 +219,10 @@ public final class Prestamo extends AgregadoRaiz {
         return Result.ok();
     }
 
-    /** Lo que cobra un pago anticipado total: el capital pendiente, sin intereses futuros ni penalidad. */
     public Dinero montoAnticipadoTotal() {
         return capitalPendiente();
     }
 
-    /**
-     * Aplica un pago anticipado ya cobrado. TOTAL anula las cuotas pendientes y cierra el préstamo; los parciales
-     * reprograman: REDUCIR_CUOTA mantiene el número de cuotas y REDUCIR_PLAZO mantiene la cuota.
-     * @param deApartado lo que el cobro tomó de lo retenido para esas cuotas
-     * @return lo apartado que hay que liberar en la billetera
-     */
     public Dinero aplicarAnticipado(Dinero montoPago, ModalidadPago modalidad, Dinero deApartado, Long transaccionId,
                                     OffsetDateTime ahora) {
         var pendientes = cuotas.stream().filter(c -> c.getEstado() == EstadoCuota.PENDIENTE).toList();
@@ -304,9 +251,6 @@ public final class Prestamo extends AgregadoRaiz {
         return sobrante;
     }
 
-    // ------------------------------------------------------------------ cargo automático (RN-22)
-
-    /** La autorización es revocable: se dejan de retener ventas y lo apartado vuelve a estar disponible. */
     public Result<Dinero, ErrorCredito> revocarCargo(OffsetDateTime ahora) {
         if (!estaActivo()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
         if (!cargoAutorizado) return Result.err(new ErrorCredito.CargoNoAutorizado());
@@ -316,8 +260,6 @@ public final class Prestamo extends AgregadoRaiz {
         for (var c : cuotas) liberado = liberado.sumar(c.liberarApartado());
         return Result.ok(liberado);
     }
-
-    // ------------------------------------------------------------------ acceso
 
     public List<Retencion> retencionesNuevas() { return Collections.unmodifiableList(retencionesNuevas); }
     public List<Pago> pagosNuevos() { return Collections.unmodifiableList(pagosNuevos); }

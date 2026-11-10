@@ -16,13 +16,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Arma la política de crédito con los parámetros vigentes de Cumplimiento (script v6 y cambio 002).
- * Los niveles se descubren solos: NIVEL_1_*, NIVEL_2_*… mientras existan.
- */
 @Component
 class ParametrosPoliticaAdapter implements ParametrosPolitica {
-
     private static final Logger log = LoggerFactory.getLogger(ParametrosPoliticaAdapter.class);
 
     private final ConsultarParametrosUseCase parametros;

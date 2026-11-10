@@ -12,13 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * RN-28: evalúa una operación recién hecha contra las operaciones del mismo titular en las últimas 24 horas.
- * Para no repetir la misma alerta con cada operación siguiente, FRACCIONAMIENTO no se repite en 24 horas
- * ni TRANSFERENCIAS_SEGUIDAS en 10 minutos para la misma billetera. CERCA_DEL_TOPE es por operación.
- */
 public final class ReglasOperacionesInusuales {
-
     public static final Duration VENTANA_FRACCIONAMIENTO = Duration.ofHours(24);
     public static final Duration VENTANA_SEGUIDAS = Duration.ofMinutes(10);
     static final int MINIMO_FRACCIONAMIENTO = 3;
@@ -29,10 +23,6 @@ public final class ReglasOperacionesInusuales {
 
     private ReglasOperacionesInusuales() {}
 
-    /**
-     * @param ultimas       operaciones del titular en las últimas 24 horas, incluida {@code actual}
-     * @param ultimaAlerta  fecha de la última alerta de cada regla para esta billetera (si hubo)
-     */
     public static List<AlertaDetectada> evaluar(OperacionObservada actual, List<OperacionObservada> ultimas,
                                                 Dinero topePorOperacion, Map<ReglaAlerta, OffsetDateTime> ultimaAlerta) {
         var alertas = new ArrayList<AlertaDetectada>();

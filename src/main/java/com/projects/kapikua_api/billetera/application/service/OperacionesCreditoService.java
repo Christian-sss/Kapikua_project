@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 
 @Service
 public class OperacionesCreditoService implements OperacionesCreditoUseCase {
-
     private final BilleteraRepositoryPort billeteras;
     private final TransaccionRepositoryPort transacciones;
     private final ParametrosRegulatorios parametros;
@@ -49,7 +48,6 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
     @Transactional(propagation = Propagation.MANDATORY)
     public Result<Long, ErrorBilletera> acreditarDesembolso(UsuarioId usuarioId, Dinero monto, String referencia,
                                                             String descripcion) {
-        // Idempotente: el mismo desembolso no entra dos veces (RNF-07).
         var existente = transacciones.porReferencia(referencia);
         if (existente.isPresent()) return Result.ok(existente.get().id());
 
@@ -57,7 +55,7 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         if (validacion instanceof Result.Err<Billetera, ErrorBilletera> err) return Result.err(err.error());
         var billetera = ((Result.Ok<Billetera, ErrorBilletera>) validacion).valor();
 
-        var guardada = billeteras.guardar(billetera);   // ya tiene el monto acreditado en memoria
+        var guardada = billeteras.guardar(billetera);
         var ahora = OffsetDateTime.now(clock);
         var transaccion = transacciones.registrar(Transaccion.desembolso(guardada, monto, referencia, descripcion, ahora));
         publicador.publicarTodos(transaccion.eventos());
@@ -89,7 +87,6 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
     @Transactional(propagation = Propagation.MANDATORY)
     public Result<Cargo, ErrorBilletera> cobrar(UsuarioId usuarioId, Dinero monto, Dinero usarApartado, boolean exigirTodo,
                                                 boolean anticipado, String referencia, String descripcion) {
-        // Idempotente (RNF-07): el mismo cobro no se hace dos veces; se avisa que no es nuevo.
         var existente = transacciones.porReferencia(referencia);
         if (existente.isPresent()) {
             return Result.ok(new Cargo(existente.get().id(), existente.get().monto(), Dinero.CERO, false));
@@ -122,7 +119,6 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         return a.menorQue(b) ? a : b;
     }
 
-    /** RN-01 (tope por operación) y RN-02 (saldo máximo). Devuelve la billetera con el monto ya acreditado en memoria. */
     private Result<Billetera, ErrorBilletera> billeteraYTopes(UsuarioId usuarioId, Dinero monto) {
         var billetera = billeteras.porUsuario(usuarioId);
         if (billetera.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());

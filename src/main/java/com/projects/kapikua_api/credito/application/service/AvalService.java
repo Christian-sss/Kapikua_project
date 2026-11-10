@@ -18,10 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 
-/** CU-09 Gestionar aval (RF-CR-10, RN-21). */
 @Service
 public class AvalService implements GestionarAvalUseCase {
-
     private final SoporteOfertas soporte;
     private final DecisionEntidad decision;
     private final OfertaRepositoryPort ofertas;
@@ -58,15 +56,14 @@ public class AvalService implements GestionarAvalUseCase {
         if (ev instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err) return Result.err(err.error());
         var requiereAval = ((Result.Ok<ResultadoEvaluacion, ErrorCredito>) ev).valor().requiereAval();
 
-        // CU-09, paso 2: quién es y si puede ser aval. Los mensajes no revelan sus datos crediticios (2a).
         var aval = billetera.usuarioPorCelular(celularAval);
         if (aval.isEmpty()) return Result.err(new ErrorCredito.AvalNoEncontrado());
         var avalId = aval.get();
         if (avalId.equals(deudor)) return Result.err(new ErrorCredito.AvalMismoDeudor());
         if (ofertas.esAvalEnCursoDe(deudor, avalId)) return Result.err(new ErrorCredito.AvalCruzado());
         if (!evaluacion.evaluarAval(avalId).esOk()
-                || ofertas.tieneGarantiaActiva(avalId)                 // respalda otro crédito
-                || prestamos.tienePrestamoEnMora(avalId)) {             // está en mora
+                || ofertas.tieneGarantiaActiva(avalId)
+                || prestamos.tienePrestamoEnMora(avalId)) {
             return Result.err(new ErrorCredito.AvalNoCalifica());
         }
 
@@ -111,12 +108,10 @@ public class AvalService implements GestionarAvalUseCase {
         var porcentaje = ((Result.Ok<ResultadoEvaluacion, ErrorCredito>) ev).valor().condiciones().porcentajeRetencion();
 
         if (acepta) {
-            // RNF-04 y RN-07: aceptar exige su código y el consentimiento de garantía.
             var valido = codigos.validar(aval, CodigoUnSoloUso.Proposito.ACEPTAR_AVAL, detalle(ofertaId), codigo);
             if (valido instanceof Result.Err<Void, CodigoUnSoloUso.CodigoError> err) {
                 return Result.err(new ErrorCredito.CodigoNoValido(err.error().mensaje()));
             }
-            // Pudo comprometerse con otro crédito mientras tanto (uq_aval_una_garantia).
             if (ofertas.tieneGarantiaActiva(aval)) return Result.err(new ErrorCredito.AvalNoCalifica());
             clientes.otorgarConsentimientoDeGarantia(aval);
         }
@@ -126,7 +121,6 @@ public class AvalService implements GestionarAvalUseCase {
             if (r.esOk()) ofertas.guardar(o);
             return r;
         });
-        // CU-09, paso 8: con el aval aceptado, la solicitud sigue hacia la entidad aliada.
         if (acepta && respuesta.esOk()) decision.pedirSiEstaLista(ofertaId);
         return respuesta;
     }

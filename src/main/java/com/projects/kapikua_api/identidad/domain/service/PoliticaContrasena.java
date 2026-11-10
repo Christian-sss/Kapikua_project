@@ -5,9 +5,7 @@ import com.projects.kapikua_api.identidad.domain.model.*;
 import com.projects.kapikua_api.identidad.domain.error.RegistroError;
 import com.projects.kapikua_api.shared.Result;
 
-/** RNF-02: al menos 8 caracteres, con letras y números. Se valida antes de cifrar. */
 public final class PoliticaContrasena {
-
     private static final int LONGITUD_MINIMA = 8;
 
     private PoliticaContrasena() {}

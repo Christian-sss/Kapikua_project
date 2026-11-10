@@ -18,9 +18,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Transacción inmutable (RNF-10): sus movimientos del libro mayor, las validaciones y el celular. */
 class TransaccionTest {
-
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final Dinero CINCUENTA = Dinero.de("50");
 
@@ -28,8 +26,6 @@ class TransaccionTest {
         return Billetera.reconstituir(id, new UsuarioId(id * 10), new Celular("98765432" + id), null, Dinero.de(saldo),
                 Dinero.CERO, EstadoBilletera.ACTIVA, null, AHORA, 0L);
     }
-
-    // ---------------------------------------------------------------- movimientos
 
     @Test
     void unaTransferenciaDebitaAlOrigenYAcreditaAlDestinoConSusSaldosPosteriores() {
@@ -74,8 +70,6 @@ class TransaccionTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ---------------------------------------------------------------- inmutabilidad y validaciones
-
     @Test
     void losMovimientosNoSePuedenModificarDesdeAfuera() {
         var lista = new ArrayList<>(List.of(new Transaccion.Movimiento(1L, BigDecimal.TEN, Dinero.de("10"))));
@@ -111,8 +105,6 @@ class TransaccionTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ---------------------------------------------------------------- celular
-
     @Test
     void elCelularTiene9DigitosYEmpiezaCon9() {
         assertThat(Celular.de(" 987 654 321 ")).contains(new Celular("987654321"));
@@ -127,8 +119,6 @@ class TransaccionTest {
     void elCelularEnmascaradoMuestraSoloElInicioYElFinal() {
         assertThat(new Celular("987654321").enmascarado()).isEqualTo("987 *** 321");
     }
-
-    // ---------------------------------------------------------------- catálogo de errores
 
     @Test
     void cadaErrorTieneUnCodigoUnicoYUnMensajeParaElUsuario() {

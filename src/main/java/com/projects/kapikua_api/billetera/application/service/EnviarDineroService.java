@@ -27,15 +27,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-/**
- * CU-05 y CU-06. El débito, el crédito, la transacción y sus movimientos se guardan en una sola transacción
- * (RNF-06). Si otra operación cambió una de las billeteras al mismo tiempo, el bloque se repite desde cero
- * con los saldos nuevos (RNF-08). Todas las reglas se validan antes de escribir: un Err nunca deja
- * escrituras a medias.
- */
 @Service
 public class EnviarDineroService implements EnviarDineroUseCase {
-
     private final BilleteraRepositoryPort billeteras;
     private final TransaccionRepositoryPort transacciones;
     private final ParametrosRegulatorios parametros;
@@ -60,8 +53,6 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         this.comprobantes = comprobantes;
         this.clock = clock;
     }
-
-    // ------------------------------------------------------------------ CU-05
 
     @Override
     public Result<VistaPrevia, ErrorBilletera> prepararTransferencia(UsuarioId origen, String celularDestino,
@@ -90,8 +81,6 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         return enviar(TipoTransaccion.TRANSFERENCIA, origen, celularDestino, monto, referencia);
     }
 
-    // ------------------------------------------------------------------ CU-06
-
     @Override
     public Result<VistaPrevia, ErrorBilletera> prepararPagoNegocio(UsuarioId origen, String celularNegocio,
                                                                    Dinero monto, String referencia) {
@@ -108,11 +97,8 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         return enviar(TipoTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto, referencia);
     }
 
-    // ------------------------------------------------------------------ común
-
     private record Partes(Billetera origen, Billetera destino, Topes topes) {}
 
-    /** Lee las billeteras, los topes y lo acumulado del mes, y aplica RN-01, RN-02 y RN-04. No escribe. */
     private Result<Partes, ErrorBilletera> validar(TipoTransaccion tipo, UsuarioId usuarioOrigen,
                                                    String celularDestino, Dinero monto) {
         var celular = Celular.de(celularDestino);
@@ -146,7 +132,6 @@ public class EnviarDineroService implements EnviarDineroUseCase {
             return ejecutor.ejecutar(() -> validar(tipo, usuarioOrigen, celularDestino, monto)
                     .flatMap(partes -> mover(tipo, partes, monto, referencia)));
         } catch (DataIntegrityViolationException e) {
-            // Dos envíos simultáneos con la misma referencia: el segundo choca con la restricción UNIQUE.
             var repetida = comprobanteSiYaExiste(usuarioOrigen, referencia);
             if (repetida != null) return repetida;
             throw e;
@@ -164,7 +149,6 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         var credito = destino.acreditar(monto, partes.topes().saldoMaximo(), true);
         if (credito instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
 
-        // Se guardan en orden de id para que dos envíos cruzados (A→B y B→A) no se bloqueen entre sí.
         Billetera origenGuardado;
         Billetera destinoGuardado;
         if (origen.getId() < destino.getId()) {
@@ -180,16 +164,12 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         var transaccion = transacciones.registrar(Transaccion.entreBilleteras(
                 tipo, origenGuardado, destinoGuardado, monto, referencia, descripcion, ahora));
 
-        publicador.publicarTodos(transaccion.eventos());   // OperacionRegistrada y CobroRecibido
+        publicador.publicarTodos(transaccion.eventos());
 
         return Result.ok(new Comprobante(transaccion.id(), tipo, monto, referencia,
                 comprobantes.contraparte(tipo, destino, false), ahora, origenGuardado.saldoDisponible()));
     }
 
-    /**
-     * RNF-07: la misma referencia devuelve el comprobante original, sin un segundo movimiento.
-     * Si la referencia es de una operación ajena (o recibida), se rechaza. Null si la referencia es nueva.
-     */
     private Result<Comprobante, ErrorBilletera> comprobanteSiYaExiste(UsuarioId usuario, String referencia) {
         return transacciones.porReferencia(referencia)
                 .map(t -> comprobantes.paraOrigen(t, usuario)
@@ -198,7 +178,6 @@ public class EnviarDineroService implements EnviarDineroUseCase {
                 .orElse(null);
     }
 
-    /** Liga el código a esta operación: no sirve para otro destino, otro monto ni otra referencia. */
     private static String detalle(Celular destino, Dinero monto, String referencia) {
         return destino.numero() + "|" + monto.valor().toPlainString() + "|" + referencia;
     }

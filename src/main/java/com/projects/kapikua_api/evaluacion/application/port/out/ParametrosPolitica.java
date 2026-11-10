@@ -6,8 +6,6 @@ import com.projects.kapikua_api.shared.Result;
 
 import java.time.LocalDate;
 
-/** Política de crédito vigente, leída de Cumplimiento (RNF-12). */
 public interface ParametrosPolitica {
-
     Result<ParametrosCredito, ErrorEvaluacion> vigentes(LocalDate fecha);
 }

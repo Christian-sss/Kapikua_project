@@ -31,11 +31,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Alertas (CU-14, RN-28) y reclamos (CU-15, RN-29) contra PostgreSQL. Solo con KAPIKUA_DB_PRUEBAS. */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
 class CumplimientoIntegracionTest {
-
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
@@ -84,8 +82,6 @@ class CumplimientoIntegracionTest {
                 billetera(u), regla.name());
     }
 
-    // ------------------------------------------------------------------ alertas
-
     @Test
     void unaRecargaCercaDelTopeGeneraUnaAlertaConElDniEnmascarado() {
         var ana = datos.cliente('0');
@@ -122,7 +118,7 @@ class CumplimientoIntegracionTest {
             assertThat(enviar.pagarNegocio(ana.id(), bodega.celular(), Dinero.de("10"), UUID.randomUUID().toString()).esOk()).isTrue();
         }
         assertThat(reglasDe(ana.id())).containsExactly("TRANSFERENCIAS_SEGUIDAS");
-        assertThat(reglasDe(bodega.id())).isEmpty();   // quien recibe no hizo las operaciones
+        assertThat(reglasDe(bodega.id())).isEmpty();
     }
 
     @Test
@@ -163,8 +159,6 @@ class CumplimientoIntegracionTest {
         assertThat(jdbc.queryForObject("select estado from billetera.billetera where usuario_id = ?", String.class, ana.id().valor()))
                 .isEqualTo("ACTIVA");
     }
-
-    // ------------------------------------------------------------------ reclamos
 
     @Test
     void elClienteRegistraUnReclamoConCodigoYPlazoYElAdministradorResponde() {

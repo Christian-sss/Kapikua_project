@@ -14,14 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * RF-CR-03: envía la solicitud, el score y los datos del aval a la entidad aliada y registra la oferta
- * CONFIRMADA o DENEGADA. La llamada a la entidad va FUERA de la transacción (SAD 2.4). Si no responde,
- * la oferta queda PENDIENTE_EFA y el cliente puede reintentar (CU-08, 9b).
- */
 @Component
 class DecisionEntidad {
-
     private static final Logger log = LoggerFactory.getLogger(DecisionEntidad.class);
 
     private final SoporteOfertas soporte;
@@ -39,7 +33,6 @@ class DecisionEntidad {
         this.ejecutor = ejecutor;
     }
 
-    /** No hace nada si la oferta aún no está lista (por ejemplo, espera al aval). */
     Result<Void, ErrorCredito> pedirSiEstaLista(Long ofertaId) {
         var cargada = soporte.actualizada(ofertaId, null);
         if (cargada instanceof Result.Err<Oferta, ErrorCredito> err) return Result.err(err.error());

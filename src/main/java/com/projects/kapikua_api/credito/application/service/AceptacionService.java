@@ -26,10 +26,8 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 
-/** CU-10 Aceptar oferta y recibir desembolso (RF-CR-04, RF-CR-05, RN-19 a RN-22, RN-31). */
 @Service
 public class AceptacionService implements AceptarOfertaUseCase {
-
     private static final Logger log = LoggerFactory.getLogger(AceptacionService.class);
 
     private final SoporteOfertas soporte;
@@ -91,29 +89,24 @@ public class AceptacionService implements AceptarOfertaUseCase {
     @Override
     public Result<Long, ErrorCredito> aceptar(UsuarioId usuarioId, Long ofertaId, String codigo, String dispositivo,
                                               boolean autorizaCargo) {
-        // CU-10, paso 3: sin autorizar el cargo automático no se acepta (RN-22).
         if (!autorizaCargo) return Result.err(new ErrorCredito.CargoNoAutorizado());
         var preparada = aceptable(usuarioId, ofertaId);
         if (preparada instanceof Result.Err<Preparada, ErrorCredito> err) return Result.err(err.error());
         var p = ((Result.Ok<Preparada, ErrorCredito>) preparada).valor();
         if (prestamos.activoDe(usuarioId).isPresent()) return Result.err(new ErrorCredito.PrestamoActivoExistente());
 
-        // Paso 4: código de un solo uso (RN-20, RNF-04).
         var valido = codigos.validar(usuarioId, CodigoUnSoloUso.Proposito.ACEPTAR_OFERTA, detalle(ofertaId), codigo);
         if (valido instanceof Result.Err<Void, CodigoUnSoloUso.CodigoError> err) {
             return Result.err(new ErrorCredito.CodigoNoValido(err.error().mensaje()));
         }
-        // Paso 7, antes de llamar a la entidad: el saldo resultante no puede superar el máximo (RN-02).
         var monto = p.oferta().getCondiciones().monto();
         var ingreso = billetera.verificarIngreso(usuarioId, monto);
         if (ingreso instanceof Result.Err<Void, ErrorCredito> err) return Result.err(err.error());
 
-        // Paso 6: la entidad aliada desembolsa (fuera de la transacción).
         var desembolso = entidad.confirmarDesembolso(p.oferta().getCodigoSolicitudEfa());
         if (desembolso instanceof Result.Err<String, ErrorCredito> err) return Result.err(err.error());
         var codigoCredito = ((Result.Ok<String, ErrorCredito>) desembolso).valor();
 
-        // Pasos 5 y 8, en una sola transacción: oferta ACEPTADA, préstamo VIGENTE con cronograma y abono en la billetera.
         var porcentaje = p.evaluacion().condiciones().porcentajeRetencion();
         var resultado = ejecutor.ejecutarResultado(() -> {
             var o = ofertas.porId(ofertaId).orElseThrow();
@@ -127,7 +120,7 @@ public class AceptacionService implements AceptarOfertaUseCase {
             var abono = billetera.acreditarDesembolso(usuarioId, monto, "DES-" + codigoCredito,
                     "Desembolso del crédito " + codigoCredito);
             if (abono instanceof Result.Err<Long, ErrorCredito> err) return Result.<Long, ErrorCredito>err(err.error());
-            publicador.publicarDe(nuevo);   // PrestamoDesembolsado
+            publicador.publicarDe(nuevo);
             return Result.<Long, ErrorCredito>ok(prestamo.getId());
         });
         if (resultado instanceof Result.Err<Long, ErrorCredito> err) {
@@ -139,7 +132,6 @@ public class AceptacionService implements AceptarOfertaUseCase {
 
     private record Preparada(Oferta oferta, ResultadoEvaluacion evaluacion, ReglasCredito.Reglas reglas) {}
 
-    /** Oferta propia, CONFIRMADA, vigente y, en niveles 1 y 2, con el aval aceptado (RN-19, RN-21). */
     private Result<Preparada, ErrorCredito> aceptable(UsuarioId usuarioId, Long ofertaId) {
         var cargada = soporte.actualizada(ofertaId, usuarioId);
         if (cargada instanceof Result.Err<Oferta, ErrorCredito> err) return Result.err(err.error());

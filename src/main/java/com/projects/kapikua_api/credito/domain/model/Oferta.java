@@ -14,13 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Raíz de agregado: la oferta de crédito que nace con la evaluación y que la entidad aliada confirma o deniega
- * (RN-18, RN-19). Vence a los 7 días; ese plazo incluye la búsqueda del aval. Contiene de 0 a 3 avales.
- * Es Java puro: el adaptador de persistencia la convierte a su entidad JPA.
- */
 public final class Oferta {
-
     private final Long id;
     private final Long evaluacionId;
     private final UsuarioId usuarioId;
@@ -49,7 +43,6 @@ public final class Oferta {
         this.avales = new ArrayList<>(avales);
     }
 
-    /** CU-08, paso 6: la oferta nace PENDIENTE_EFA junto con la recomendación, vigente {@code vigenciaDias} días. */
     public static Oferta crear(Long evaluacionId, UsuarioId usuarioId, OffsetDateTime ahora, ZoneId zona, int vigenciaDias) {
         var hoy = ahora.atZoneSameInstant(zona).toLocalDate();
         return new Oferta(null, evaluacionId, usuarioId, null, EstadoOferta.PENDIENTE_EFA, null, null, ahora,
@@ -63,17 +56,10 @@ public final class Oferta {
                 fecha, vigenteHasta, version, avales);
     }
 
-    // ------------------------------------------------------------------ vigencia (RN-19, RN-21)
-
-    /** Último instante de vigencia: el fin del día {@code vigenteHasta}. */
     public OffsetDateTime finVigencia(ZoneId zona) {
         return vigenteHasta.plusDays(1).atStartOfDay(zona).toOffsetDateTime();
     }
 
-    /**
-     * Aplica los plazos vencidos: la oferta en curso pasa a VENCIDA tras su vigencia, y la invitación pendiente
-     * a RECHAZADO tras 48 horas sin respuesta. Devuelve true si algo cambió (hay que guardarla).
-     */
     public boolean actualizarVencimientos(OffsetDateTime ahora, ZoneId zona, Duration plazoAval) {
         var cambio = false;
         var fin = finVigencia(zona);
@@ -90,12 +76,6 @@ public final class Oferta {
         return cambio;
     }
 
-    // ------------------------------------------------------------------ aval (RN-21, CU-09)
-
-    /**
-     * Designa un aval. Las reglas que dependen de otras ofertas o de Evaluación (garantía activa, mora,
-     * aval cruzado, clasificación) las verifica el caso de uso antes de llamar aquí.
-     */
     public Result<Aval, ErrorCredito> designarAval(UsuarioId avalId, boolean requiereAval, int maxAvales,
                                                    OffsetDateTime ahora) {
         if (estado != EstadoOferta.PENDIENTE_EFA) return Result.err(new ErrorCredito.OfertaEstadoInvalido(estado.name()));
@@ -111,7 +91,6 @@ public final class Oferta {
         return Result.ok(aval);
     }
 
-    /** El aval invitado acepta (con el porcentaje de retención sugerido) o rechaza. */
     public Result<Void, ErrorCredito> responderAval(UsuarioId avalId, boolean acepta, int porcentajeRetencion,
                                                     String dispositivo, OffsetDateTime ahora) {
         var invitacion = invitacionPendientePara(avalId);
@@ -130,19 +109,13 @@ public final class Oferta {
         return avales.stream().filter(a -> a.getEstado() == EstadoAval.ACEPTADO).findFirst();
     }
 
-    /** El aval que respalda el préstamo: aceptado o, desde el día 15 de atraso, activado (RN-25). */
     public Optional<Aval> avalAceptadoOActivo() {
         return avales.stream().filter(a -> a.getEstado() == EstadoAval.ACEPTADO || a.getEstado() == EstadoAval.ACTIVADO)
                 .findFirst();
     }
 
-    /** Qué pasó con el aval en el escalamiento de hoy. */
     public enum Escalamiento { NINGUNO, AVISADO, ACTIVADO }
 
-    /**
-     * RN-25: con {@code diasAtraso} días de atraso del préstamo, avisa al aval (día 9) y activa su garantía (día 15).
-     * Los días vienen de los parámetros.
-     */
     public Escalamiento escalarAval(int diasAtraso, int diasAviso, int diasActivacion, OffsetDateTime ahora) {
         var aval = avalAceptadoOActivo();
         if (aval.isEmpty()) return Escalamiento.NINGUNO;
@@ -151,18 +124,14 @@ public final class Oferta {
         return Escalamiento.NINGUNO;
     }
 
-    /** RN-32: el préstamo se pagó. */
     public void liberarAval(OffsetDateTime ahora) {
         avalAceptadoOActivo().ifPresent(a -> a.liberar(ahora));
     }
 
-    /** Con aval aceptado, o sin necesidad de aval, ya se puede pedir la decisión a la entidad aliada. */
     public boolean listaParaEfa(boolean requiereAval) {
         return estado == EstadoOferta.PENDIENTE_EFA && codigoSolicitudEfa == null
                 && (!requiereAval || avalAceptado().isPresent());
     }
-
-    // ------------------------------------------------------------------ decisión de la EFA (RN-18, RF-CR-03)
 
     public Result<Void, ErrorCredito> confirmar(String codigoSolicitud, CondicionesCredito condicionesEfa) {
         if (estado != EstadoOferta.PENDIENTE_EFA) return Result.err(new ErrorCredito.OfertaEstadoInvalido(estado.name()));
@@ -180,9 +149,6 @@ public final class Oferta {
         return Result.ok();
     }
 
-    // ------------------------------------------------------------------ aceptación (CU-10)
-
-    /** RN-19, RN-21: oferta CONFIRMADA y vigente; en los niveles 1 y 2, con el aval aceptado. */
     public Result<Void, ErrorCredito> verificarAceptable(boolean requiereAval, OffsetDateTime ahora, ZoneId zona) {
         if (estado == EstadoOferta.VENCIDA || (estado.enCurso() && !ahora.isBefore(finVigencia(zona)))) {
             return Result.err(new ErrorCredito.OfertaNoVigente());

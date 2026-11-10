@@ -6,13 +6,7 @@ import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 
-/**
- * Topes de dinero electrónico de la SBS (Res. SBS 00704-2026):
- * RN-01 a toda operación, RN-02 a toda entrada, RN-03 a las recargas y RN-04 a pagos y transferencias.
- * Solo valida: el cambio de saldo lo hacen {@link Billetera#debitar} y {@link Billetera#acreditar}.
- */
 public final class TopesSBS {
-
     private TopesSBS() {
     }
 
@@ -31,9 +25,6 @@ public final class TopesSBS {
         return Result.ok();
     }
 
-    /**
-     * Transferencia o pago a negocio: lo que sale del origen y entra al destino.
-     */
     public static Result<Void, ErrorBilletera> validarEnvio(Billetera origen, Billetera destino, Dinero monto,
                                                             AcumuladoMensual acumuladoOrigen, Topes topes) {
         if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());

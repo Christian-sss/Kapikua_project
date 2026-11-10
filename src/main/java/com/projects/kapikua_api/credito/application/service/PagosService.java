@@ -22,10 +22,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/** CU-11 Pagar cuota o adelantar pago, y revocar el cargo automático (RN-22, RN-23, RN-27). */
 @Service
 public class PagosService implements PagarPrestamoUseCase {
-
     private final PrestamoRepositoryPort prestamos;
     private final OperacionesBilletera billetera;
     private final SoporteOfertas soporte;
@@ -42,8 +40,6 @@ public class PagosService implements PagarPrestamoUseCase {
         this.ejecutor = ejecutor;
         this.clock = clock;
     }
-
-    // ------------------------------------------------------------------ pagar cuotas (RF-CR-06)
 
     @Override
     public Result<VistaPago, ErrorCredito> prepararPagoCuotas(UsuarioId usuarioId) {
@@ -70,7 +66,7 @@ public class PagosService implements PagarPrestamoUseCase {
                 return Result.<Dinero, ErrorCredito>err(new ErrorCredito.SaldoInsuficienteParaPagar(a.total().toString()));
             }
             var c = ((Result.Ok<Cargo, ErrorCredito>) cargo).valor();
-            if (!c.nuevo()) return Result.<Dinero, ErrorCredito>ok(c.cobrado());   // reenvío del mismo formulario
+            if (!c.nuevo()) return Result.<Dinero, ErrorCredito>ok(c.cobrado());
             var ahora = soporte.ahora();
             var sobrante = p.aplicarPago(a.cuotas(), c.cobrado(), true, c.transaccionId(), Origen.DEUDOR, false,
                     LocalDate.now(clock), ahora);
@@ -81,7 +77,6 @@ public class PagosService implements PagarPrestamoUseCase {
 
     private record APagar(Prestamo prestamo, List<Cuota> cuotas, Dinero total, Dinero deApartado) {}
 
-    /** CU-11, paso 2: las vencidas (con su mora al día) o, si no hay, la próxima cuota. */
     private Result<APagar, ErrorCredito> paraPagar(UsuarioId usuarioId) {
         var activo = prestamos.activoDe(usuarioId);
         if (activo.isEmpty()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
@@ -98,8 +93,6 @@ public class PagosService implements PagarPrestamoUseCase {
                 .reduce(Dinero.CERO, Dinero::sumar);
         return Result.ok(new APagar(p, cuotas, total, deApartado));
     }
-
-    // ------------------------------------------------------------------ pago anticipado (RF-CR-07, RN-27)
 
     @Override
     public Result<VistaAnticipado, ErrorCredito> prepararAnticipado(UsuarioId usuarioId) {
@@ -122,7 +115,6 @@ public class PagosService implements PagarPrestamoUseCase {
             var verificacion = p.verificarAnticipado(aPagar, modalidad);
             if (verificacion instanceof Result.Err<Void, ErrorCredito> err) return Result.<Dinero, ErrorCredito>err(err.error());
 
-            // En el pago total se usa lo ya retenido; en un parcial se respeta para la próxima cuota.
             var usarApartado = modalidad == ModalidadPago.TOTAL ? p.totalApartado() : Dinero.CERO;
             var cargo = billetera.cobrar(usuarioId, aPagar, usarApartado, true, true, referencia,
                     "Pago anticipado del crédito " + p.getCodigoCreditoEfa());
@@ -137,8 +129,6 @@ public class PagosService implements PagarPrestamoUseCase {
             return Result.<Dinero, ErrorCredito>ok(c.cobrado());
         });
     }
-
-    // ------------------------------------------------------------------ revocar el cargo (RN-22)
 
     @Override
     public Result<Dinero, ErrorCredito> revocarCargo(UsuarioId usuarioId) {

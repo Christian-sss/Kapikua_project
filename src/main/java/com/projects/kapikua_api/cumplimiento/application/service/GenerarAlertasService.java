@@ -15,13 +15,8 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Set;
 
-/**
- * RN-28. Solo cuentan las operaciones que decide el titular: recargas (entran a su billetera) y envíos
- * (transferencias y pagos a negocio que salen de ella). Desembolsos y cobros de cuotas no generan alertas.
- */
 @Service
 public class GenerarAlertasService implements GenerarAlertasUseCase {
-
     private static final Set<String> TIPOS_OBSERVADOS = Set.of("RECARGA", "TRANSFERENCIA", "PAGO_NEGOCIO");
 
     private final AlertaRepositoryPort alertas;
@@ -34,7 +29,6 @@ public class GenerarAlertasService implements GenerarAlertasUseCase {
         this.clock = clock;
     }
 
-    /** Se llama después del commit de la operación: corre en su propia transacción. */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int evaluar(TransaccionRegistrada operacion) {
@@ -48,7 +42,7 @@ public class GenerarAlertasService implements GenerarAlertasUseCase {
                 operacion.fecha().minus(ReglasOperacionesInusuales.VENTANA_FRACCIONAMIENTO), operacion.fecha().plusSeconds(1))) {
             if (!o.transaccionId().equals(actual.transaccionId())) ultimas.add(o);
         }
-        ultimas.add(actual);   // con la fecha exacta del evento (la base guarda microsegundos)
+        ultimas.add(actual);
 
         var tope = contextos.topePorOperacion(operacion.fecha().atZoneSameInstant(clock.getZone()).toLocalDate());
         var detectadas = ReglasOperacionesInusuales.evaluar(actual, ultimas, tope, alertas.ultimasPorRegla(billeteraId));

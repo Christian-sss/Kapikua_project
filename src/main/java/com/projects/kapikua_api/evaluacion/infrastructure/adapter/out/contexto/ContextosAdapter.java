@@ -12,10 +12,8 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.Optional;
 
-/** Cobros desde Billetera: Evaluación no lee el esquema billetera, pide el resumen por su puerto. */
 @Component
 class CobrosClienteAdapter implements CobrosCliente {
-
     private final ConsultarBilleteraUseCase billetera;
 
     CobrosClienteAdapter(ConsultarBilleteraUseCase billetera) {
@@ -29,10 +27,8 @@ class CobrosClienteAdapter implements CobrosCliente {
     }
 }
 
-/** Identidad: DNI para la Central y consentimiento para evaluar con la billetera (RN-07). */
 @Component
 class IdentidadClienteAdapter implements IdentidadCliente {
-
     private final ConsultarIdentidadUseCase identidad;
 
     IdentidadClienteAdapter(ConsultarIdentidadUseCase identidad) {

@@ -7,10 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** Conexión de la pantalla para recibir avisos en tiempo real (RNF-17). Solo para usuarios con sesión. */
 @RestController
 class EventosController {
-
     private final SseNotificador notificador;
 
     EventosController(SseNotificador notificador) {

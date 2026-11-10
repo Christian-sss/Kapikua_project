@@ -15,14 +15,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.function.BiConsumer;
 
-/**
- * Corre dentro de la transacción de Créditos (MANDATORY): si actualizar el historial falla, tampoco
- * se confirma el pago o el atraso que lo provocó.
- */
 @Service
 @Transactional(propagation = Propagation.MANDATORY)
 public class ActualizarHistorialService implements ActualizarHistorialUseCase {
-
     private final HistorialRepositoryPort historiales;
     private final ParametrosPolitica parametros;
     private final Clock clock;
@@ -51,7 +46,6 @@ public class ActualizarHistorialService implements ActualizarHistorialUseCase {
     private void aplicar(UsuarioId usuarioId, BiConsumer<HistorialCrediticio, ParametrosCredito> cambio) {
         var resultado = parametros.vigentes(LocalDate.now(clock));
         if (!(resultado instanceof Result.Ok<ParametrosCredito, ?> ok)) {
-            // Sin política vigente no se puede mover la escalera: se revierte la operación de Créditos.
             throw new IllegalStateException("No hay política de crédito vigente para actualizar el historial");
         }
         var historial = historiales.porUsuario(usuarioId).orElseGet(() -> HistorialCrediticio.nuevo(usuarioId));

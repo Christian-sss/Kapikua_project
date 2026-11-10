@@ -27,7 +27,6 @@ import java.util.Optional;
 
 @Service
 public class ConsultarBilleteraService implements ConsultarBilleteraUseCase {
-
     private static final int DIAS_POR_DEFECTO = 30;
     private static final int MAX_MOVIMIENTOS = 100;
 
@@ -84,7 +83,6 @@ public class ConsultarBilleteraService implements ConsultarBilleteraUseCase {
         return billeteras.porUsuario(usuarioId).map(b -> {
             var zona = clock.getZone();
             var apertura = b.getFechaApertura().atZoneSameInstant(zona).toLocalDate();
-            // Semanas completas: de lunes a domingo, sin la semana en curso.
             var hasta = fechaSolicitud.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             var primerLunes = apertura.with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
             var desde = hasta.minusWeeks(semanasPeriodo);

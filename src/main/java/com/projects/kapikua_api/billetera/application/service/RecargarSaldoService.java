@@ -28,13 +28,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-/**
- * CU-04. Valida los topes, cobra en la pasarela FUERA de la transacción (SAD 2.4) y luego acredita
- * con el identificador del cargo como referencia única (RNF-07), volviendo a validar los topes.
- */
 @Service
 public class RecargarSaldoService implements RecargarSaldoUseCase {
-
     private static final Logger log = LoggerFactory.getLogger(RecargarSaldoService.class);
 
     private final BilleteraRepositoryPort billeteras;
@@ -65,16 +60,13 @@ public class RecargarSaldoService implements RecargarSaldoUseCase {
     @Override
     public Result<Comprobante, ErrorBilletera> recargar(UsuarioId usuarioId, Dinero monto, String tokenTarjeta,
                                                         String referenciaFormulario) {
-        // 3. Topes antes de cobrar: si no pasan, la tarjeta no se toca.
         var previa = validar(usuarioId, monto);
         if (previa instanceof Result.Err<Billetera, ErrorBilletera> err) return Result.err(err.error());
 
-        // 4 y 5. Cargo en la pasarela, fuera de la transacción.
         var cargo = pasarela.cargar(monto, tokenTarjeta, titulares.correo(usuarioId), referenciaFormulario);
         if (cargo instanceof Result.Err<String, ErrorBilletera> err) return Result.err(err.error());
         var idCargo = ((Result.Ok<String, ErrorBilletera>) cargo).valor();
 
-        // 6. Acreditar; 6a. con el mismo cargo no se duplica.
         try {
             var resultado = ejecutor.ejecutar(() -> validar(usuarioId, monto).flatMap(b -> acreditar(b, monto, idCargo)));
             if (resultado instanceof Result.Err<Comprobante, ErrorBilletera> err) {
@@ -105,7 +97,6 @@ public class RecargarSaldoService implements RecargarSaldoUseCase {
                 .map(ok -> billetera.get());
     }
 
-    /** {@code billetera} ya tiene el monto acreditado en memoria (lo hizo {@link #validar}). */
     private Result<Comprobante, ErrorBilletera> acreditar(Billetera billetera, Dinero monto, String idCargo) {
         var existente = transacciones.porReferencia(idCargo);
         if (existente.isPresent()) return Result.ok(comprobante(existente.get(), billetera.getUsuarioId()));

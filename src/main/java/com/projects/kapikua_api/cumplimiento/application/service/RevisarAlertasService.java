@@ -18,7 +18,6 @@ import java.util.List;
 
 @Service
 public class RevisarAlertasService implements RevisarAlertasUseCase {
-
     private static final Cliente DESCONOCIDO = new Cliente("—", "—");
 
     private final AlertaRepositoryPort alertas;
@@ -49,7 +48,6 @@ public class RevisarAlertasService implements RevisarAlertasUseCase {
         var alerta = alertas.porId(alertaId);
         if (alerta.isEmpty()) return Result.err(new ErrorCumplimiento.AlertaNoEncontrada());
         var a = alerta.get();
-        // Las operaciones que vio la regla: las 24 horas anteriores a la alerta.
         var operaciones = contextos.operaciones(a.getBilleteraId(),
                 a.getFecha().minus(ReglasOperacionesInusuales.VENTANA_FRACCIONAMIENTO), a.getFecha().plusSeconds(1));
         var revisor = a.getRevisadoPor() == null ? null

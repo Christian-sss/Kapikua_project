@@ -10,12 +10,9 @@ import com.projects.kapikua_api.shared.UsuarioId;
 
 import java.util.Optional;
 
-/** Evaluación Crediticia: Créditos recibe su ResultadoEvaluacion, nunca la entidad Evaluacion. */
 public interface EvaluacionCrediticia {
-
     Result<ResultadoEvaluacion, ErrorCredito> evaluar(UsuarioId usuarioId, Dinero monto, int cuotas, Destino destino);
 
-    /** RN-21: identidad validada, clasificación Normal y sin bloqueo. */
     Result<Void, ErrorCredito> evaluarAval(UsuarioId avalId);
 
     Optional<ResultadoEvaluacion> evaluacion(Long evaluacionId);

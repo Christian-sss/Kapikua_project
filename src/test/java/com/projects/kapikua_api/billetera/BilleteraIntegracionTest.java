@@ -29,15 +29,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Pruebas contra PostgreSQL con el esquema v6. Solo corren si KAPIKUA_DB_PRUEBAS apunta a una base de prueba
- * (por ejemplo, jdbc:postgresql://localhost:5432/kapikua_pruebas) creada con kapikua_db_v6_postgresql.sql.
- * Nunca usar la base compartida de Railway: estas pruebas crean usuarios y movimientos.
- */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
 class BilleteraIntegracionTest {
-
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
@@ -128,7 +122,6 @@ class BilleteraIntegracionTest {
         assertThat(c2.transaccionId()).isEqualTo(c1.transaccionId());
         assertThat(saldo(luis)).isEqualTo(Dinero.de("180"));
         assertThat(saldo(ana)).isEqualTo(Dinero.de("120"));
-        // Ana no puede usar la referencia de Luis para ver su comprobante.
         assertThat(err(enviar.pagarNegocio(ana.id(), luis.celular(), Dinero.de("1"), referencia)))
                 .isInstanceOf(ErrorBilletera.ReferenciaInvalida.class);
     }
@@ -142,14 +135,12 @@ class BilleteraIntegracionTest {
                 .isInstanceOf(ErrorBilletera.NoEsNegocio.class);
     }
 
-    /** Dos o más pagos simultáneos desde la misma billetera: el saldo final es correcto y nunca negativo (RNF-08). */
     @Test
     void pagosSimultaneosNoDejanElSaldoNegativo() throws Exception {
         var luis = registrarCliente(null);
         var bodega = registrarCliente("Bodega concurrente");
         ok(recargar.recargar(luis.id(), Dinero.de("500"), "tok_aprobado", UUID.randomUUID().toString()));
 
-        // Sin try/catch: un conflicto que agota los reintentos debe llegar como Err, nunca como excepción.
         var tareas = new ArrayList<Callable<Boolean>>();
         for (int i = 0; i < 10; i++) {
             tareas.add(() -> {
@@ -165,7 +156,7 @@ class BilleteraIntegracionTest {
         try (var hilos = Executors.newFixedThreadPool(10)) {
             var futuros = hilos.invokeAll(tareas);
             exitosos = 0;
-            for (var f : futuros) if (f.get()) exitosos++;   // f.get() relanza cualquier excepción o aserción
+            for (var f : futuros) if (f.get()) exitosos++;
         }
 
         assertThat(exitosos).isBetween(1, 5);

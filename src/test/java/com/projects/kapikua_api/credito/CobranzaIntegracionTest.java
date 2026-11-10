@@ -34,11 +34,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Cobranza de punta a punta (CU-11, CU-13, RN-22 a RN-27, RN-32) contra PostgreSQL. Solo con KAPIKUA_DB_PRUEBAS. */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
 class CobranzaIntegracionTest {
-
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
@@ -62,8 +60,6 @@ class CobranzaIntegracionTest {
         datos = new DatosDePrueba(registrar, jdbc, clock);
     }
 
-    // ------------------------------------------------------------------ apoyo
-
     private record Escenario(DatosDePrueba.Cliente ana, DatosDePrueba.Cliente luis, Long prestamoId) {}
 
     private static <T> T ok(Result<T, ErrorCredito> r) {
@@ -71,7 +67,6 @@ class CobranzaIntegracionTest {
         return ((Result.Ok<T, ErrorCredito>) r).valor();
     }
 
-    /** Ana (nivel 1) recibe un préstamo de unos S/ 849 en 8 cuotas, con Luis como aval. */
     private Escenario prestamoConAval() {
         var ana = datos.cliente('0');
         datos.conHistoriaDeCobros(ana.id());
@@ -84,7 +79,6 @@ class CobranzaIntegracionTest {
         return new Escenario(ana, luis, ok(aceptar.aceptar(ana.id(), r.ofertaId(), hoja.codigoMostrado(), "x", true)));
     }
 
-    /** Un cliente con saldo que le paga al negocio de {@code destino}. */
     private void leCompran(DatosDePrueba.Cliente destino, String monto) {
         var comprador = datos.cliente('1');
         var rec = recargar.recargar(comprador.id(), Dinero.de("3000"), "tok_aprobado", UUID.randomUUID().toString());
@@ -115,7 +109,6 @@ class CobranzaIntegracionTest {
                 where p.id = ? and a.estado <> 'RECHAZADO'""", String.class, prestamoId);
     }
 
-    /** Ana se queda sin saldo (lo gastó): ni lo apartado ni el saldo cubren sus cuotas. */
     private void sinSaldo(UsuarioId u) {
         jdbc.update("update billetera.billetera set saldo = 0, saldo_apartado = 0, version = version + 1 where usuario_id = ?", u.valor());
         jdbc.update("""
@@ -123,9 +116,6 @@ class CobranzaIntegracionTest {
                 where prestamo_id in (select id from credito.prestamo where usuario_id = ?)""", u.valor());
     }
 
-    // ------------------------------------------------------------------ pruebas
-
-    /** RN-22: cada venta aparta el 8 % para la cuota, solo hasta cubrirla. */
     @Test
     void cadaVentaApartaElPorcentajeParaLaCuota() {
         var e = prestamoConAval();
@@ -137,7 +127,6 @@ class CobranzaIntegracionTest {
                 where c.prestamo_id = ? and r.origen = 'DEUDOR'""", Integer.class, e.prestamoId())).isEqualTo(1);
     }
 
-    /** CU-13: el día del vencimiento se cobra la cuota (apartado + saldo); repetir el proceso no cobra dos veces. */
     @Test
     void elCobroDiarioCobraLaCuotaYNoRepite() {
         var e = prestamoConAval();
@@ -157,7 +146,6 @@ class CobranzaIntegracionTest {
         assertThat(apartado(e.ana().id())).isEqualByComparingTo("0");
     }
 
-    /** CU-13, 5a a 5c: sin saldo, la cuota vence con mora; al día 9 se avisa al aval y al 15 se retienen sus ventas. */
     @Test
     void moraYEscalamientoAlAvalHastaQueSusVentasCubrenLoVencido() {
         var e = prestamoConAval();
@@ -171,21 +159,20 @@ class CobranzaIntegracionTest {
 
         cobranza.ejecutarCobroDiario(v1.plusDays(8));
         assertThat(estadoAval(e.prestamoId())).isEqualTo("ACEPTADO");
-        assertThat(prestamo(e.ana().id()).cuotas().getFirst().getInteresMoratorio().esCero()).isFalse();   // RN-24
+        assertThat(prestamo(e.ana().id()).cuotas().getFirst().getInteresMoratorio().esCero()).isFalse();
 
-        cobranza.ejecutarCobroDiario(v1.plusDays(9));                    // día 9: aviso al aval
+        cobranza.ejecutarCobroDiario(v1.plusDays(9));
         assertThat(jdbc.queryForObject("""
                 select a.fecha_aviso is not null from credito.aval a join credito.prestamo p on p.oferta_id = a.oferta_id
                 where p.id = ? and a.estado = 'ACEPTADO'""", Boolean.class, e.prestamoId())).isTrue();
         assertThat(consultar.panel(e.luis().id()).garantias()).singleElement()
                 .satisfies(g -> assertThat(g.cuotasVencidas()).isGreaterThan(0));
 
-        cobranza.ejecutarCobroDiario(v1.plusDays(15));                   // día 15: se activa la garantía
+        cobranza.ejecutarCobroDiario(v1.plusDays(15));
         assertThat(estadoAval(e.prestamoId())).isEqualTo("ACTIVADO");
         assertThat(jdbc.queryForObject("select nivel from evaluacion.historial_crediticio where usuario_id = ?",
-                Integer.class, e.ana().id().valor())).isEqualTo(1);       // RN-26: bajó (ya estaba en el 1)
+                Integer.class, e.ana().id().valor())).isEqualTo(1);
 
-        // Una venta de Luis cubre lo vencido de Ana (retención con origen AVAL).
         var vencido = prestamo(e.ana().id()).vencido();
         leCompran(e.luis(), "3000");
         assertThat(pagos(e.prestamoId(), "AVAL")).isGreaterThan(0);
@@ -195,14 +182,13 @@ class CobranzaIntegracionTest {
         }
     }
 
-    /** CU-11: pago manual de la próxima cuota y pago anticipado total, que cierra el préstamo y libera al aval. */
     @Test
     void pagoManualYPagoAnticipadoTotal() {
         var e = prestamoConAval();
         leCompran(e.ana(), "500");
         var ref = UUID.randomUUID().toString();
         ok(pagos.pagarCuotas(e.ana().id(), ref));
-        ok(pagos.pagarCuotas(e.ana().id(), ref));                         // reenvío: no cobra dos veces
+        ok(pagos.pagarCuotas(e.ana().id(), ref));
         assertThat(pagos(e.prestamoId(), "DEUDOR")).isEqualTo(1);
         assertThat(prestamo(e.ana().id()).cuotas().getFirst().getEstado().name()).isEqualTo("PAGADA");
 
@@ -217,9 +203,9 @@ class CobranzaIntegracionTest {
                 where p.id = ? and a.estado in ('LIBERADO', 'ACEPTADO')""", String.class, e.prestamoId()))
                 .isEqualTo(EstadoAval.LIBERADO.name());
         assertThat(jdbc.queryForObject("select nivel from evaluacion.historial_crediticio where usuario_id = ?",
-                Integer.class, e.ana().id().valor())).isEqualTo(2);        // RN-26: pagó a tiempo, sube de nivel
+                Integer.class, e.ana().id().valor())).isEqualTo(2);
         assertThat(apartado(e.ana().id())).isEqualByComparingTo("0");
-        assertThat(consultar.panel(e.luis().id()).garantias()).isEmpty();  // Luis ya no respalda nada
+        assertThat(consultar.panel(e.luis().id()).garantias()).isEmpty();
     }
 
     @Test
@@ -235,7 +221,6 @@ class CobranzaIntegracionTest {
                 String.class, e.prestamoId())).isEqualTo("REDUCIR_PLAZO");
     }
 
-    /** RN-22: al revocar el cargo se libera lo apartado, no se retienen más ventas ni se cobra solo. */
     @Test
     void revocarElCargoAutomatico() {
         var e = prestamoConAval();
@@ -252,7 +237,6 @@ class CobranzaIntegracionTest {
         assertThat(pagos(e.prestamoId(), "DEUDOR")).isZero();
     }
 
-    /** RN-19 y RN-21: la tarea diaria vence las invitaciones sin respuesta y las ofertas fuera de plazo. */
     @Test
     void laTareaDiariaVenceInvitacionesYOfertas() {
         var ana = datos.cliente('0');

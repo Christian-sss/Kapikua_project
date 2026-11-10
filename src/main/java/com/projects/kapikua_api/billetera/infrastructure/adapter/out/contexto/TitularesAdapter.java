@@ -5,10 +5,8 @@ import com.projects.kapikua_api.identidad.application.port.in.ConsultarIdentidad
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.stereotype.Component;
 
-/** Lee los datos del titular desde Identidad. */
 @Component
 class TitularesAdapter implements Titulares {
-
     private final ConsultarIdentidadUseCase identidad;
 
     TitularesAdapter(ConsultarIdentidadUseCase identidad) {

@@ -13,13 +13,8 @@ import com.projects.kapikua_api.shared.puerto.EjecutorTransaccional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
-/**
- * Implementación con TransactionTemplate: si el bloque pierde un conflicto de bloqueo optimista (@Version),
- * lo vuelve a ejecutar desde cero hasta 3 veces, con una espera corta y aleatoria entre intentos.
- */
 @Component
 public class EjecutorTransaccionalSpring implements EjecutorTransaccional {
-
     private static final Logger log = LoggerFactory.getLogger(EjecutorTransaccionalSpring.class);
     private static final int INTENTOS = 3;
 
@@ -29,16 +24,11 @@ public class EjecutorTransaccionalSpring implements EjecutorTransaccional {
         this.transaccion = transaccion;
     }
 
-    /** Si agota los reintentos, lanza la OptimisticLockingFailureException: el llamador la convierte en un Err. */
     @Override
     public <T> T ejecutar(Supplier<T> bloque) {
         return conReintentos(estado -> bloque.get());
     }
 
-    /**
-     * Como {@link #ejecutar}, pero si el bloque devuelve un Err, revierte todo lo que escribió.
-     * Sirve cuando una regla falla después de alguna escritura (por ejemplo, al acreditar en otro contexto).
-     */
     @Override
     public <T, E extends ErrorDominio> Result<T, E> ejecutarResultado(Supplier<Result<T, E>> bloque) {
         return conReintentos(estado -> {
@@ -60,7 +50,6 @@ public class EjecutorTransaccionalSpring implements EjecutorTransaccional {
         }
     }
 
-    /** Espera corta y aleatoria para que las operaciones que compiten no vuelvan a chocar a la vez. */
     private static void esperar(int intento) {
         try {
             Thread.sleep(ThreadLocalRandom.current().nextLong(10, 40) * intento);

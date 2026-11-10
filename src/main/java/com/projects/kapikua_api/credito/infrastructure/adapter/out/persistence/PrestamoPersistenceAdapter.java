@@ -41,13 +41,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * El préstamo y sus cuotas se leen y guardan con JPA (bloqueo optimista); las retenciones y los pagos se insertan
- * (son de solo inserción); las consultas de la cobranza van con SQL sobre JdbcClient.
- */
 @Repository
 class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
-
     private static final List<EstadoPrestamo> ACTIVOS = List.of(EstadoPrestamo.VIGENTE, EstadoPrestamo.EN_MORA);
 
     private final PrestamoJpaRepository repositorio;
@@ -105,10 +100,6 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
         return j.aDominio(false);
     }
 
-    /**
-     * Copia el estado del préstamo y de sus cuotas sobre las entidades gestionadas, con control de versión,
-     * e inserta las retenciones y los pagos nuevos.
-     */
     @Override
     public Prestamo guardar(Prestamo p) {
         var j = repositorio.findById(p.getId()).orElseThrow();
@@ -164,8 +155,6 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
         cj.fechaPago = c.getFechaPago();
         cj.estado = c.getEstado();
     }
-
-    // ------------------------------------------------------------------ consultas de la cobranza
 
     @Override
     public List<Long> idsConCobroPendiente(LocalDate hoy) {
@@ -226,18 +215,15 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
 }
 
 interface PrestamoJpaRepository extends JpaRepository<PrestamoJpa, Long> {
-
     Optional<PrestamoJpa> findFirstByUsuarioIdAndEstadoIn(Long usuarioId, Collection<EstadoPrestamo> estados);
 
     boolean existsByUsuarioIdAndEstado(Long usuarioId, EstadoPrestamo estado);
 }
 
-/** credito.retencion: solo inserción (trigger trg_retencion_inmutable). */
 @Entity
 @Immutable
 @Table(schema = "credito", name = "retencion")
 class RetencionJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -259,12 +245,10 @@ class RetencionJpa {
     OffsetDateTime fecha;
 }
 
-/** credito.pago: solo inserción (trigger trg_pago_inmutable). */
 @Entity
 @Immutable
 @Table(schema = "credito", name = "pago")
 class PagoJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -312,7 +296,6 @@ class PagoJpa {
 @Entity
 @Table(schema = "credito", name = "prestamo")
 class PrestamoJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -387,7 +370,6 @@ class PrestamoJpa {
 @Entity
 @Table(schema = "credito", name = "cuota")
 class CuotaJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;

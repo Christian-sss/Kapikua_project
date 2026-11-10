@@ -19,14 +19,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 
-/**
- * CU-01. Primero valida todo y consulta RENIEC fuera de la transacción (SAD 2.4);
- * solo al final abre la transacción para guardar el usuario y publicar
- * {@link UsuarioRegistrado}, que Billetera escuchará en esa misma transacción.
- */
 @Service
 public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
-
     private final UsuarioRepositoryPort usuarios;
     private final ValidadorIdentidad validadorIdentidad;
     private final CifradorContrasena cifrador;
@@ -56,11 +50,9 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
 
     @Override
     public Result<UsuarioId, RegistroError> registrar(RegistrarUsuarioCommand c) {
-        // 3a. Sin aceptar los términos no se continúa.
         if (!c.aceptaTerminos()) {
             return Result.err(new RegistroError.TerminosNoAceptados());
         }
-        // 4. Política de contraseña (RNF-02) y unicidad de DNI, correo y celular.
         var politica = PoliticaContrasena.validar(c.contrasena());
         if (politica instanceof Result.Err<Void, RegistroError> err) {
             return Result.err(err.error());
@@ -75,12 +67,9 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
             return Result.err(new RegistroError.CelularDuplicado());
         }
 
-        // 5 y 6. RENIEC y listas restrictivas, fuera de la transacción.
         var identidad = validadorIdentidad.validar(c.dni(), c.fechaNacimiento());
         var enListas = identidad.isPresent() && validadorIdentidad.figuraEnListas(c.dni());
-        // TODO(Cumplimiento): con coincidencia en listas, generar una alerta (CU-01, 6a).
 
-        // 7 y 8. El dominio aplica RN-06 y registra el consentimiento de términos.
         var registro = Usuario.registrar(c.dni(), c.correo(), cifrador.cifrar(c.contrasena()),
                 c.fechaNacimiento(), identidad, enListas, versionTerminos, c.celular(), c.nombreNegocio(),
                 OffsetDateTime.now(clock));
@@ -89,7 +78,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
             case Result.Err<Usuario, RegistroError> err -> Result.err(err.error());
             case Result.Ok<Usuario, RegistroError> ok -> Result.ok(transaccion.execute(estado -> {
                 var guardado = usuarios.guardar(ok.valor());
-                publicador.publicarDe(guardado);   // UsuarioRegistrado: Billetera abre la cuenta
+                publicador.publicarDe(guardado);
                 return guardado.usuarioId();
             }));
         };

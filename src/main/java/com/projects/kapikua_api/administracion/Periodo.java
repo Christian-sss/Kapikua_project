@@ -8,12 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
-/**
- * CU-16, 2: filtro por día o por mes, en hora de Lima. {@code hasta} no se incluye.
- * Sin filtro (o con uno inválido) se usa el mes en curso; {@code aviso} explica el cambio.
- */
 public record Periodo(LocalDate desde, LocalDate hasta, boolean porDia, String etiqueta, String aviso) {
-
     private static final DateTimeFormatter MES = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", Locale.forLanguageTag("es-PE"));
     private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -42,7 +37,6 @@ public record Periodo(LocalDate desde, LocalDate hasta, boolean porDia, String e
         return hasta.atStartOfDay(zona).toOffsetDateTime();
     }
 
-    /** Para volver a llenar el formulario. */
     public String dia() {
         return porDia ? desde.toString() : "";
     }

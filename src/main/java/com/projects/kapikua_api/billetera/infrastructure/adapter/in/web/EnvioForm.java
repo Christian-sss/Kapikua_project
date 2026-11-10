@@ -12,14 +12,9 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Formulario de transferencia y de pago a negocio. La referencia es un UUID que se genera al mostrar
- * el formulario y acompaña a la operación hasta el final: evita el doble envío (RNF-07).
- */
 @Getter
 @Setter
 public class EnvioForm {
-
     private static final String UUID_REGEX = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 
     @NotBlank(message = "Ingresa el número de celular")
@@ -34,14 +29,12 @@ public class EnvioForm {
     @Pattern(regexp = UUID_REGEX, message = "Vuelve a empezar la operación")
     private String referencia = UUID.randomUUID().toString();
 
-    /** Solo en la confirmación de la transferencia. */
     private String codigo;
 
     Dinero dinero() {
         return Dinero.de(monto);
     }
 
-    /** Para volver a empezar después de un error que exige otra referencia. */
     void nuevaReferencia() {
         referencia = UUID.randomUUID().toString();
     }

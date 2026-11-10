@@ -18,14 +18,9 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 
-/**
- * CU-16 Consultar reportes (/admin/** exige el rol ADMINISTRADOR; un Cliente recibe 403, RNF-05). Solo GET.
- * Cada reporte se ve en pantalla y se descarga en Excel con los mismos filtros.
- */
 @Controller
 @RequestMapping("/admin/reportes")
 class ReportesController {
-
     private final ReportesConsulta consulta;
     private final Clock clock;
 
@@ -60,7 +55,6 @@ class ReportesController {
         return "administracion/reportes";
     }
 
-    /** El mismo reporte, con los mismos filtros, como archivo .xlsx (hasta MAX_FILAS_DESCARGA filas). */
     @GetMapping("/{tipo}/excel")
     ResponseEntity<byte[]> excel(@PathVariable String tipo, @RequestParam(required = false) String dia,
                                  @RequestParam(required = false) String mes, @RequestParam(required = false) String estado) {
@@ -81,7 +75,7 @@ class ReportesController {
                 .contentType(MediaType.parseMediaType(ReporteExcel.TIPO_CONTENIDO))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename(ReporteExcel.nombreArchivo(t, periodo), StandardCharsets.UTF_8).build().toString())
-                .header(HttpHeaders.CACHE_CONTROL, "no-store")   // datos de clientes: el navegador no lo guarda en caché
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .body(archivo);
     }
 

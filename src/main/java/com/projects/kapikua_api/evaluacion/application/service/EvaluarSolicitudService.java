@@ -27,14 +27,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-/**
- * RF-EV-01. Reúne los datos FUERA de la transacción (identidad, parámetros, historial, cobros y Central de
- * Riesgos; SAD 2.4), aplica PoliticaCredito y solo al final abre una transacción para guardar la evaluación.
- * Debe responder en menos de 3 s (RNF-14).
- */
 @Service
 public class EvaluarSolicitudService implements EvaluarSolicitudUseCase {
-
     private static final Logger log = LoggerFactory.getLogger(EvaluarSolicitudService.class);
 
     private final IdentidadCliente identidad;
@@ -65,7 +59,6 @@ public class EvaluarSolicitudService implements EvaluarSolicitudUseCase {
     @Override
     public Result<ResultadoEvaluacion, ErrorEvaluacion> evaluar(UsuarioId usuarioId, SolicitudCredito solicitud) {
         var inicio = System.nanoTime();
-        // RN-07: sin el consentimiento no se miran los datos de la billetera.
         if (!identidad.autorizoEvaluacionConBilletera(usuarioId)) {
             return Result.err(new ErrorEvaluacion.ConsentimientoFaltante());
         }
@@ -81,7 +74,6 @@ public class EvaluarSolicitudService implements EvaluarSolicitudUseCase {
         var periodo = cobros.delPeriodo(usuarioId, hoy, politica.periodoCobrosSemanas());
         if (periodo.isEmpty()) return Result.err(new ErrorEvaluacion.UsuarioNoEncontrado());
 
-        // Antes de pagar la consulta a la Central: datos de la solicitud y uso mínimo (RN-08, RN-14).
         var elegible = PoliticaCredito.verificarElegibilidad(solicitud, periodo.get(), historial, politica);
         if (elegible instanceof Result.Err<Void, ErrorEvaluacion> err) return Result.err(err.error());
 

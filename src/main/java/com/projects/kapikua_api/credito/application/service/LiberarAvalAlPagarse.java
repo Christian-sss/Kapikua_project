@@ -8,13 +8,8 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 
-/**
- * Reacción dentro de Créditos a su propio evento de dominio: al pagarse el préstamo, el aval queda liberado
- * (RN-25). Corre en la misma transacción que el pago.
- */
 @Component
 class LiberarAvalAlPagarse {
-
     private final OfertaRepositoryPort ofertas;
     private final Clock clock;
 

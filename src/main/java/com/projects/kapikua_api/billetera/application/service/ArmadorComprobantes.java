@@ -11,13 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-/**
- * Arma el comprobante de una transacción visto por uno de sus participantes.
- * Vacío si el usuario no participa: nadie ve operaciones ajenas.
- */
 @Component
 class ArmadorComprobantes {
-
     private final BilleteraRepositoryPort billeteras;
     private final Titulares titulares;
 
@@ -40,7 +35,6 @@ class ArmadorComprobantes {
                 movimiento.get().saldoPosterior()));
     }
 
-    /** Solo si el usuario es quien envió el dinero (para devolver el comprobante de un reintento). */
     Optional<Comprobante> paraOrigen(Transaccion t, UsuarioId usuario) {
         return paraUsuario(t, usuario).filter(c -> billeteras.porUsuario(usuario)
                 .flatMap(b -> t.movimientoDe(b.getId()))

@@ -18,11 +18,9 @@ import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-/** Entidad JPA de billetera.billetera. El modelo de dominio es {@link Billetera}. */
 @Entity
 @Table(schema = "billetera", name = "billetera")
 class BilleteraJpa {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -52,7 +50,6 @@ class BilleteraJpa {
     @Column(name = "fecha_apertura", nullable = false)
     OffsetDateTime fechaApertura;
 
-    /** Bloqueo optimista (RNF-08). */
     @Version
     @Column(nullable = false)
     Long version;

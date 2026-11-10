@@ -16,9 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** RN-07: consentimientos que se otorgan una vez por tipo y se revocan sin borrarse (RNF-10). */
 class ConsentimientoTest {
-
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final OffsetDateTime DESPUES = AHORA.plusDays(3);
     static final Optional<IdentidadVerificada> RENIEC = Optional.of(new IdentidadVerificada("Ana", "Quispe"));
@@ -57,7 +55,7 @@ class ConsentimientoTest {
         assertThat(u.tieneConsentimientoVigente(TipoConsentimiento.EVALUACION_CON_BILLETERA)).isFalse();
         assertThat(u.consentimientos()).filteredOn(c -> c.getTipo() == TipoConsentimiento.EVALUACION_CON_BILLETERA)
                 .singleElement().satisfies(c -> assertThat(c.getRevocadoEn()).isEqualTo(DESPUES));
-        assertThat(u.tieneConsentimientoVigente(TipoConsentimiento.TERMINOS_SERVICIO)).isTrue();   // los demás no cambian
+        assertThat(u.tieneConsentimientoVigente(TipoConsentimiento.TERMINOS_SERVICIO)).isTrue();
 
         u.otorgarConsentimiento(TipoConsentimiento.EVALUACION_CON_BILLETERA, "2.2", DESPUES.plusDays(1));
         assertThat(u.tieneConsentimientoVigente(TipoConsentimiento.EVALUACION_CON_BILLETERA)).isTrue();
@@ -88,8 +86,6 @@ class ConsentimientoTest {
         assertThatThrownBy(() -> Consentimiento.otorgar(TipoConsentimiento.TERMINOS_SERVICIO, null, AHORA)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> Consentimiento.otorgar(TipoConsentimiento.TERMINOS_SERVICIO, "1.0", null)).isInstanceOf(IllegalArgumentException.class);
     }
-
-    // ---------------------------------------------------------------- casos del registro no cubiertos en UsuarioTest
 
     @Test
     void laFechaDeNacimientoNoPuedeFaltarNiSerFuturaYElCorreoEsObligatorio() {

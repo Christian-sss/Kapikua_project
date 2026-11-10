@@ -23,10 +23,8 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 
-/** CU-07 Simular crédito y CU-08 Solicitar crédito. */
 @Service
 public class OriginacionService implements SimularCreditoUseCase, SolicitarCreditoUseCase {
-
     private final EvaluacionCrediticia evaluacion;
     private final ClientesCredito clientes;
     private final OfertaRepositoryPort ofertas;
@@ -48,8 +46,6 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
         this.ejecutor = ejecutor;
         this.clock = clock;
     }
-
-    // ------------------------------------------------------------------ CU-07
 
     @Override
     public Result<Opciones, ErrorCredito> opciones(UsuarioId usuarioId) {
@@ -80,15 +76,11 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
                 cronograma.cuota(), cronograma.interesTotal(), cronograma.totalAPagar(), cronograma.cuotas()));
     }
 
-    // ------------------------------------------------------------------ CU-08
-
     @Override
     public Result<ResultadoSolicitud, ErrorCredito> solicitar(UsuarioId usuarioId, Dinero monto, int cuotas,
                                                               Destino destino, boolean autorizaDatos) {
         if (!autorizaDatos) return Result.err(new ErrorCredito.ConsentimientoRequerido());
-        // RN-09: un solo préstamo activo.
         if (prestamos.activoDe(usuarioId).isPresent()) return Result.err(new ErrorCredito.PrestamoActivoExistente());
-        // Una solicitud a la vez: la anterior debe haber terminado o vencido.
         var anterior = ofertas.ultimaDe(usuarioId);
         if (anterior.isPresent() && anterior.get().getEstado().enCurso()) {
             var alDia = soporte.actualizada(anterior.get().getId(), usuarioId);
@@ -97,7 +89,6 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
             }
         }
 
-        // CU-08, paso 2: consentimientos; pasos 3 a 6: evaluación (la guarda Evaluación de forma inmutable).
         clientes.otorgarConsentimientosDeSolicitud(usuarioId);
         var evaluada = evaluacion.evaluar(usuarioId, monto, cuotas, destino);
         if (evaluada instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err) return Result.err(err.error());
@@ -112,7 +103,6 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
         var oferta = ejecutor.ejecutar(() -> ofertas.guardar(
                 Oferta.crear(ev.evaluacionId(), usuarioId, soporte.ahora(), clock.getZone(), vigencia)));
 
-        // Sin aval (nivel 3 o más), se pide la decisión de inmediato. Si la entidad no responde, queda pendiente.
         if (!ev.requiereAval()) decision.pedirSiEstaLista(oferta.getId());
         return Result.ok(new ResultadoSolicitud(oferta.getId(), ev.recomendacion(), ev.motivo(), ev.requiereAval()));
     }

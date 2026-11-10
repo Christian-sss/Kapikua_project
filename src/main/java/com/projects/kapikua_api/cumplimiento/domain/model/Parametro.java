@@ -12,17 +12,12 @@ import org.hibernate.annotations.Immutable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * Parámetro regulatorio o de la política de crédito con su vigencia (RNF-12).
- * La aplicación solo lo lee: un valor nuevo se agrega con un script de database/cambios/.
- */
 @Entity
 @Immutable
 @Table(schema = "cumplimiento", name = "parametro")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Parametro {
-
     @Id
     private Long id;
 
@@ -41,7 +36,6 @@ public class Parametro {
     @Column(nullable = false, length = 150)
     private String fuente;
 
-    /** Para el adaptador que lo lee con SQL. */
     public static Parametro reconstituir(Long id, String codigo, BigDecimal valor, LocalDate vigenteDesde,
                                          LocalDate vigenteHasta, String fuente) {
         var p = new Parametro();

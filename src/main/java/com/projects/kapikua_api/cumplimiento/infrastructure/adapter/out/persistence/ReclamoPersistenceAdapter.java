@@ -15,10 +15,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/** cumplimiento.reclamo con SQL (JdbcClient). Las escrituras son condicionales sobre el estado. */
 @Repository
 class ReclamoPersistenceAdapter implements ReclamoRepositoryPort {
-
     private static final String COLUMNAS = """
             id, codigo, usuario_id, motivo, detalle, estado, fecha_registro, fecha_limite, prorroga,
             respuesta, respondido_por, fecha_respuesta""";
@@ -38,7 +36,6 @@ class ReclamoPersistenceAdapter implements ReclamoRepositoryPort {
         this.jdbc = jdbc;
     }
 
-    /** El código usa el mismo número que el id (R-2026-000123), tomado de la secuencia antes de insertar. */
     @Override
     public Reclamo registrar(Reclamo reclamo) {
         return jdbc.sql("""

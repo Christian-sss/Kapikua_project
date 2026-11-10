@@ -16,13 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * cumplimiento.alerta con SQL (JdbcClient). La tabla no tiene versión: la revisión es una actualización
- * condicional (solo si sigue PENDIENTE), así dos administradores no pueden registrar dos decisiones.
- */
 @Repository
 class AlertaPersistenceAdapter implements AlertaRepositoryPort {
-
     private static final String COLUMNAS = """
             select id, billetera_id, transaccion_id, regla, detalle, estado, comentario, revisado_por, fecha, fecha_revision
             from cumplimiento.alerta""";

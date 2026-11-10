@@ -24,7 +24,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AutenticarServiceTest {
-
     private final RepositorioEnMemoria usuarios = new RepositorioEnMemoria();
     private final CifradorFalso cifrador = new CifradorFalso();
     private final EmisorToken emisor = (id, rol) -> "token-" + id.valor() + "-" + rol;
@@ -80,8 +79,6 @@ class AutenticarServiceTest {
                 .isInstanceOf(AutenticacionError.CredencialesInvalidas.class);
     }
 
-    // ---- apoyo ----
-
     private static SesionEmitida ok(Result<SesionEmitida, AutenticacionError> r) {
         assertThat(r).isInstanceOf(Result.Ok.class);
         return ((Result.Ok<SesionEmitida, AutenticacionError>) r).valor();
@@ -92,7 +89,6 @@ class AutenticarServiceTest {
         return ((Result.Err<SesionEmitida, AutenticacionError>) r).error();
     }
 
-    /** Crea un usuario registrado y simula que ya fue guardado (id asignado). */
     private Usuario usuario(Long id, String dni, String correo, String clave, boolean activo) throws Exception {
         var r = Usuario.registrar(dni, correo, cifrador.cifrar(clave), LocalDate.of(1990, 1, 1),
                 Optional.of(new IdentidadVerificada("Ana", "Quispe")), false, "1.0", "987654321", null,

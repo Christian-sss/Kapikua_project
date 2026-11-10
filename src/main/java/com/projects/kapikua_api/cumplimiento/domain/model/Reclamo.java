@@ -10,11 +10,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-/** CU-15, RN-29: reclamo con código y plazo de 15 días hábiles. */
 public final class Reclamo {
-
     public static final int PLAZO_DIAS_HABILES = 15;
-    /** Se destaca en la bandeja del Administrador cuando le quedan 3 días hábiles o menos (CU-15, 4a). */
     public static final int DIAS_ALERTA_PLAZO = 3;
     static final int MAX_DETALLE = 500;
 
@@ -48,10 +45,6 @@ public final class Reclamo {
         this.fechaRespuesta = fechaRespuesta;
     }
 
-    /**
-     * CU-15, 1-2. Si el reclamo es sobre una operación, su número va al inicio del detalle.
-     * El código lo asigna la persistencia al guardar.
-     */
     public static Result<Reclamo, ErrorCumplimiento> registrar(UsuarioId usuarioId, MotivoReclamo motivo, String detalle,
                                                                Long transaccionId, OffsetDateTime ahora) {
         if (motivo == null) return Result.err(new ErrorCumplimiento.MotivoRequerido());
@@ -73,7 +66,6 @@ public final class Reclamo {
                 respuesta, respondidoPor, fechaRespuesta);
     }
 
-    /** CU-15, 5. */
     public Result<Void, ErrorCumplimiento> responder(String texto, UsuarioId administrador, OffsetDateTime ahora) {
         if (estado == EstadoReclamo.ATENDIDO) return Result.err(new ErrorCumplimiento.ReclamoYaAtendido());
         var limpio = texto == null ? "" : texto.strip();
@@ -85,7 +77,6 @@ public final class Reclamo {
         return Result.ok();
     }
 
-    /** CU-15, 5a: caso excepcional, una sola vez; el plazo se amplía otros 15 días hábiles. */
     public Result<Void, ErrorCumplimiento> prorrogar(String justificacion) {
         if (estado == EstadoReclamo.ATENDIDO) return Result.err(new ErrorCumplimiento.ReclamoYaAtendido());
         if (prorroga != null) return Result.err(new ErrorCumplimiento.ProrrogaYaRegistrada());
@@ -98,7 +89,6 @@ public final class Reclamo {
 
     public boolean estaPendiente() { return estado == EstadoReclamo.REGISTRADO; }
 
-    /** Días hábiles que le quedan para responder; 0 si vence hoy o ya venció. */
     public int diasHabilesRestantes(LocalDate hoy) {
         return CalendarioHabil.diasHabilesHasta(hoy, fechaLimite);
     }

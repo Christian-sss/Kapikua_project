@@ -18,7 +18,6 @@ import java.util.Optional;
 
 @Repository
 class HistorialPersistenceAdapter implements HistorialRepositoryPort {
-
     private final HistorialJpaRepository repositorio;
     private final EntityManager em;
 
@@ -32,7 +31,6 @@ class HistorialPersistenceAdapter implements HistorialRepositoryPort {
         return repositorio.findById(usuarioId.valor()).map(HistorialJpa::aDominio);
     }
 
-    /** Igual que la billetera: si la versión leída ya no es la vigente, se lanza el conflicto (bloqueo optimista). */
     @Override
     public HistorialCrediticio guardar(HistorialCrediticio h) {
         var gestionado = repositorio.findById(h.getUsuarioId().valor());
@@ -66,11 +64,9 @@ class HistorialPersistenceAdapter implements HistorialRepositoryPort {
 
 interface HistorialJpaRepository extends JpaRepository<HistorialJpa, Long> {}
 
-/** evaluacion.historial_crediticio: una fila por cliente, creada con su primer crédito. */
 @Entity
 @Table(schema = "evaluacion", name = "historial_crediticio")
 class HistorialJpa {
-
     @Id
     @Column(name = "usuario_id")
     Long usuarioId;

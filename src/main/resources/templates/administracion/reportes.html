@@ -35,7 +35,6 @@
         </div>
     </section>
 
-    <!--/* CU-16, 3a */-->
     <section class="tarjeta" th:if="${r.vacio()}">
         <p class="aviso" style="margin:0">No hay datos para los filtros elegidos.</p>
     </section>
@@ -46,7 +45,6 @@
             <h3 th:text="${g.titulo()}"></h3>
             <p class="nota" th:if="${g.vacio()}">Sin datos.</p>
             <th:block th:unless="${g.vacio()}">
-                <!--/* Serie diaria: columnas (un día por columna; el valor aparece al pasar el cursor) */-->
                 <th:block th:if="${diario}">
                     <div class="columnas">
                         <div class="col" th:each="b : ${g.barras()}" th:classappend="${b.porcentaje() == 0} ? 'cero'"

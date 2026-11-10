@@ -18,10 +18,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-/** CU-03 Consultar billetera. */
 @Controller
 class BilleteraController {
-
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final ConsultarBilleteraUseCase consultar;
@@ -39,17 +37,12 @@ class BilleteraController {
                   @RequestParam(required = false) Long operacion,
                   Model model) {
         model.addAttribute("usuario", usuario);
-        // Comprobante de la operación recién hecha: solo si el usuario participó en ella.
         if (operacion != null) {
             consultar.comprobante(usuario.usuarioId(), operacion).ifPresent(c -> model.addAttribute("comprobante", c));
         }
         return poblar(usuario, desde, hasta, model) ? "billetera/inicio" : "billetera/error";
     }
 
-    /**
-     * RNF-17: la pantalla pide este fragmento al recibir un aviso SSE y lo reemplaza sin recargar.
-     * No renueva la sesión (ver JwtCookieFilter). Si algo falla, redirige y la pantalla se recarga completa.
-     */
     @GetMapping("/billetera/fragmentos/contenido")
     String fragmento(@AuthenticationPrincipal UsuarioAutenticado usuario,
                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -58,7 +51,6 @@ class BilleteraController {
         return poblar(usuario, desde, hasta, model) ? "billetera/inicio :: contenido" : "redirect:/billetera";
     }
 
-    /** Saldo, límites y movimientos. Guarda el filtro tal como llegó para que el fragmento use el mismo. */
     private boolean poblar(UsuarioAutenticado usuario, LocalDate desde, LocalDate hasta, Model model) {
         model.addAttribute("filtroDesde", desde);
         model.addAttribute("filtroHasta", hasta);
@@ -75,7 +67,6 @@ class BilleteraController {
         };
     }
 
-    /** Un movimiento listo para la pantalla, con la fecha en hora de Lima. */
     record MovimientoVista(String fecha, String etiqueta, String detalle, String monto, boolean entrada, String saldo) {}
 
     private MovimientoVista vista(LineaMovimiento m) {

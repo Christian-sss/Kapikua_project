@@ -14,9 +14,7 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** RN-01 a RN-04 con los topes de 2026 (UIT S/ 5 500). */
 class TopesSBSTest {
-
     private static final Topes TOPES = Topes.desdeUit(new BigDecimal("5500"), new BigDecimal("0.6"),
             new BigDecimal("1.9"), new BigDecimal("1.9"), new BigDecimal("2.8"));
     private static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));

@@ -25,10 +25,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Retención de ventas (RN-22, RN-25) y cobro diario automático (CU-13, RN-23 a RN-26). */
 @Service
 public class CobranzaService implements CobranzaUseCase {
-
     private static final Logger log = LoggerFactory.getLogger(CobranzaService.class);
 
     private final PrestamoRepositoryPort prestamos;
@@ -53,14 +51,11 @@ public class CobranzaService implements CobranzaUseCase {
         this.clock = clock;
     }
 
-    // ------------------------------------------------------------------ retención (RN-22, RN-25)
-
     @Override
     public void aplicarRetencion(UsuarioId usuarioId, Long transaccionVentaId, Dinero cobro) {
-        if (prestamos.ventaYaRetenida(transaccionVentaId)) return;   // una venta, una retención
+        if (prestamos.ventaYaRetenida(transaccionVentaId)) return;
         var ahora = soporte.ahora();
 
-        // Como deudor: aparta para su próxima cuota. Si ya la tiene cubierta, la venta puede ir a su garantía.
         var propio = prestamos.activoDe(usuarioId);
         if (propio.isPresent()) {
             var p = propio.get();
@@ -74,7 +69,6 @@ public class CobranzaService implements CobranzaUseCase {
             }
         }
 
-        // Como aval ACTIVADO (día 15 de atraso): retiene de su venta solo hasta cubrir las cuotas vencidas.
         for (var prestamoId : prestamos.idsConAvalActivadoDe(usuarioId)) {
             var p = prestamos.porId(prestamoId).orElseThrow();
             var vencido = p.totalVencido();
@@ -94,11 +88,9 @@ public class CobranzaService implements CobranzaUseCase {
                     Origen.AVAL, true, LocalDate.now(clock), ahora);
             p.registrarRetencionDeAval(primeraVencida, transaccionVentaId, ok.valor().cobrado(), ahora);
             cierre.cerrar(p, sobrante);
-            return;   // una venta se retiene una sola vez
+            return;
         }
     }
-
-    // ------------------------------------------------------------------ cobro diario (CU-13)
 
     private record Conteo(int cuotasCobradas, Dinero cobrado, boolean enMora, boolean avisoAval,
                           boolean avalActivado, boolean pagado) {}
@@ -112,7 +104,6 @@ public class CobranzaService implements CobranzaUseCase {
         }
         var reglas = okReglas.valor();
 
-        // RN-19 y RN-21: ofertas e invitaciones vencidas (cada una en su transacción).
         var ofertasActualizadas = 0;
         for (var id : ofertas.idsConVencimientos(hoy, soporte.ahora().minus(reglas.plazoRespuestaAval()))) {
             if (soporte.actualizada(id, null).esOk()) ofertasActualizadas++;
@@ -145,9 +136,8 @@ public class CobranzaService implements CobranzaUseCase {
         var p = prestamos.porId(prestamoId).orElseThrow();
         if (!p.estaActivo()) return new Conteo(0, Dinero.CERO, false, false, false, false);
         var ahora = soporte.ahora();
-        p.actualizarMora(hoy, reglas.tasaMoratoriaMaxima());                     // RN-24
+        p.actualizarMora(hoy, reglas.tasaMoratoriaMaxima());
 
-        // Pasos 3 a 5: lo apartado primero y la diferencia del saldo (RN-22). Sin autorización, no se cobra (3a).
         var cobradas = 0;
         var total = Dinero.CERO;
         var sobrante = Dinero.CERO;
@@ -166,9 +156,8 @@ public class CobranzaService implements CobranzaUseCase {
                 total = total.sumar(ok.valor().cobrado());
             }
         }
-        var dias = p.revisarAtraso(hoy);            // 5a: vence las impagas y registra AtrasoDetectado
+        var dias = p.revisarAtraso(hoy);
 
-        // 5b a 5d: escalamiento al aval (RN-25, RN-26).
         var escalamiento = Oferta.Escalamiento.NINGUNO;
         if (dias > 0) {
             var oferta = ofertas.porId(p.getOfertaId()).orElseThrow();

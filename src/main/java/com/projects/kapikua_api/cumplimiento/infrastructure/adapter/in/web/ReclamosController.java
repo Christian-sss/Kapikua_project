@@ -15,11 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** CU-15, lado del cliente: registrar un reclamo, ver su constancia y la respuesta. */
 @Controller
 @RequestMapping("/reclamos")
 class ReclamosController {
-
     private final ReclamosUseCase reclamos;
 
     ReclamosController(ReclamosUseCase reclamos) {
