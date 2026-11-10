@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Reclamos')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barraAdmin}"></div>
+    <p class="exito" th:if="${aviso == 'respondido'}">Respuesta registrada. El reclamo quedó atendido.</p>
+    <section class="tarjeta">
+        <h1>Reclamos por responder</h1>
+        <p class="nota">Ordenados por fecha límite. Se destacan los que vencen en 3 días hábiles o menos.</p>
+        <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay reclamos por responder.</p>
+        <ul class="lista">
+            <li th:each="r : ${pendientes}" th:classappend="${r.cercaDelLimite()} ? 'destacado'">
+                <a th:href="@{/admin/reclamos/{id}(id=${r.id()})}">
+                    <div class="titulo"><strong th:text="${r.codigo()}"></strong>
+                        <span th:class="${r.cercaDelLimite()} ? 'etiqueta urgente' : 'etiqueta'"
+                              th:text="${r.fueraDePlazo()} ? 'Fuera de plazo' : (${r.diasHabilesRestantes() == 0} ? 'Vence hoy' : ${r.diasHabilesRestantes()} + ' días hábiles')"></span></div>
+                    <div class="nota" th:text="${r.motivo().descripcion()} + ' · ' + ${r.cliente().nombre()} + ' · DNI ' + ${r.cliente().dniEnmascarado()}"></div>
+                    <div class="nota" th:text="'Límite: ' + ${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')} + (${r.prorroga()} ? ' (con prórroga)' : '')"></div>
+                </a>
+            </li>
+        </ul>
+    </section>
+    <section class="tarjeta" th:unless="${#lists.isEmpty(atendidos)}">
+        <h2>Atendidos recientemente</h2>
+        <ul class="lista">
+            <li th:each="r : ${atendidos}">
+                <a th:href="@{/admin/reclamos/{id}(id=${r.id()})}">
+                    <div class="titulo"><span th:text="${r.codigo()}"></span><span class="etiqueta listo">Atendido</span></div>
+                    <div class="nota" th:text="${r.cliente().nombre()} + ' · ' + ${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy')}"></div>
+                </a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

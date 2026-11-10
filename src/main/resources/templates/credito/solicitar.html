@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Solicitar crédito')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Solicitar crédito</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <form th:action="@{/credito/solicitar}" method="post">
+            <label for="monto">Monto (S/)</label>
+            <input id="monto" name="monto" type="number" step="0.01" min="1" th:value="${monto}" required>
+            <label for="cuotas">Cuotas semanales</label>
+            <input id="cuotas" name="cuotas" type="number"
+                   th:attr="min=${opciones != null ? opciones.cuotasMinimas() : 4},max=${opciones != null ? opciones.cuotasMaximas() : 24}"
+                   th:value="${cuotas != null ? cuotas : (opciones != null ? opciones.cuotasMaximas() : 8)}" required>
+            <label for="destino">¿Para qué es?</label>
+            <select id="destino" name="destino">
+                <option th:each="d : ${destinos}" th:value="${d}" th:text="${#strings.replace(#strings.capitalize(#strings.toLowerCase(d)), '_', ' ')}"></option>
+            </select>
+            <!-- RN-07: consentimiento previo, informado y separado -->
+            <label class="check" style="display:flex;gap:8px;margin-top:16px">
+                <input type="checkbox" name="autorizaDatos" value="true">
+                <span>Autorizo que Kapikua evalúe mi solicitud con los datos de mi billetera y los envíe a Financiera Ayni Sur,
+                      la entidad que decide y otorga el crédito.</span>
+            </label>
+            <button type="submit" class="principal">Evaluar mi solicitud</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

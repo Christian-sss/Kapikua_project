@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Reportes')}"></head>
+<body>
+<main class="ancho">
+    <div th:replace="~{fragmentos :: barraAdmin}"></div>
+    <nav class="pestanas">
+        <a th:each="t : ${tipos}" th:href="@{/admin/reportes/{r}(r=${t.ruta()},mes=${periodo.mes()},dia=${periodo.dia()})}"
+           th:classappend="${t == tipo} ? 'activa'" th:text="${t.nombre()}"></a>
+    </nav>
+
+    <section class="tarjeta">
+        <h1 th:text="${tipo.nombre()} + ' · ' + ${periodo.etiqueta()}">Reporte</h1>
+        <p class="aviso" th:if="${periodo.aviso()}" th:text="${periodo.aviso()}"></p>
+        <form class="filtros" method="get" th:action="@{/admin/reportes/{r}(r=${tipo.ruta()})}">
+            <div><label for="mes">Mes</label><input type="month" id="mes" name="mes" th:value="${periodo.mes()}"></div>
+            <div><label for="dia">Día (opcional)</label><input type="date" id="dia" name="dia" th:value="${periodo.dia()}"></div>
+            <div><label for="estado" th:text="${tipo.filtro()}">Estado</label>
+                <select id="estado" name="estado">
+                    <option value="">Todos</option>
+                    <option th:each="e : ${tipo.estados()}" th:value="${e}" th:text="${e}" th:selected="${e == estado}"></option>
+                </select></div>
+            <button type="submit">Ver reporte</button>
+        </form>
+        <p class="nota" style="margin-top:8px">Solo lectura. El DNI se muestra enmascarado (RN-30).</p>
+    </section>
+
+    <section class="tarjeta">
+        <div class="indicadores">
+            <div class="indicador" th:each="i : ${r.indicadores()}"><span th:text="${i.etiqueta()}"></span><strong th:text="${i.valor()}"></strong></div>
+        </div>
+    </section>
+
+    <!-- CU-16, 3a -->
+    <section class="tarjeta" th:if="${r.vacio()}">
+        <p class="aviso" style="margin:0">No hay datos para los filtros elegidos.</p>
+    </section>
+
+    <th:block th:unless="${r.vacio()}">
+    <section class="tarjeta graficos">
+        <div class="grafico" th:each="g : ${r.graficos()}" th:with="diario=${#lists.size(g.barras()) > 12}">
+            <h3 th:text="${g.titulo()}"></h3>
+            <p class="nota" th:if="${g.vacio()}">Sin datos.</p>
+            <th:block th:unless="${g.vacio()}">
+                <!-- Serie diaria: columnas (un día por columna; el valor aparece al pasar el cursor) -->
+                <th:block th:if="${diario}">
+                    <div class="columnas">
+                        <div class="col" th:each="b : ${g.barras()}" th:classappend="${b.porcentaje() == 0} ? 'cero'"
+                             th:title="'Día ' + ${b.etiqueta()} + ': ' + ${b.valor()}">
+                            <div th:style="'height:' + ${b.porcentaje()} + '%'"></div>
+                        </div>
+                    </div>
+                    <div class="eje"><span th:text="${g.barras()[0].etiqueta()}"></span><span>días del mes</span>
+                        <span th:text="${g.barras()[#lists.size(g.barras()) - 1].etiqueta()}"></span></div>
+                </th:block>
+                <div class="barra-fila" th:each="b : ${g.barras()}" th:unless="${diario}">
+                    <span class="etq" th:text="${b.etiqueta()}" th:title="${b.etiqueta()}"></span>
+                    <div class="pista"><div class="relleno" th:style="'width:' + ${b.porcentaje()} + '%'" th:if="${b.porcentaje() > 0}"></div></div>
+                    <span class="val" th:text="${b.valor()}"></span>
+                </div>
+            </th:block>
+        </div>
+    </section>
+
+    <section class="tarjeta">
+        <p class="aviso" th:if="${r.truncado()}">Se muestran las primeras 300 filas; filtra por día o estado para ver el resto. Los indicadores y gráficos sí cubren todo el período.</p>
+        <div class="tabla" th:switch="${tipo.name()}">
+            <table th:case="'CLIENTES'">
+                <thead><tr><th>DNI</th><th>Nombre</th><th>Negocio</th><th>Celular</th><th>Registro</th><th class="num">Nivel</th><th class="num">Saldo</th><th>Billetera</th></tr></thead>
+                <tbody><tr th:each="f : ${r.filas()}">
+                    <td th:text="${f.dni()}"></td><td th:text="${f.nombre()}"></td><td th:text="${f.negocio()} ?: '—'"></td>
+                    <td th:text="${f.celular()} ?: '—'"></td><td th:text="${#temporals.format(f.registro(), 'dd/MM/yyyy HH:mm')}"></td>
+                    <td class="num" th:text="${f.nivel()} ?: '—'"></td><td class="num" th:text="${f.saldo()}"></td>
+                    <td th:text="${f.estadoBilletera()} ?: '—'"></td></tr></tbody>
+            </table>
+            <table th:case="'TRANSACCIONES'">
+                <thead><tr><th class="num">N.°</th><th>Fecha</th><th>Tipo</th><th class="num">Monto</th><th>Origen</th><th>Destino</th></tr></thead>
+                <tbody><tr th:each="f : ${r.filas()}">
+                    <td class="num" th:text="${f.id()}"></td><td th:text="${#temporals.format(f.fecha(), 'dd/MM/yyyy HH:mm')}"></td>
+                    <td th:text="${f.tipo()}"></td><td class="num" th:text="${f.monto()}"></td>
+                    <td th:text="${f.origen()}"></td><td th:text="${f.destino()}"></td></tr></tbody>
+            </table>
+            <table th:case="'CREDITOS'">
+                <thead><tr><th>Código</th><th>DNI</th><th>Cliente</th><th class="num">Monto</th><th class="num">TEA</th><th class="num">Cuotas</th><th>Estado</th><th>Desembolso</th><th class="num">Por cobrar</th></tr></thead>
+                <tbody><tr th:each="f : ${r.filas()}">
+                    <td th:text="${f.codigo()}"></td><td th:text="${f.dni()}"></td><td th:text="${f.nombre()}"></td>
+                    <td class="num" th:text="${f.monto()}"></td><td class="num" th:text="${f.tea()} + ' %'"></td>
+                    <td class="num" th:text="${f.cuotas()}"></td><td th:text="${f.estado()}"></td>
+                    <td th:text="${#temporals.format(f.desembolso(), 'dd/MM/yyyy')}"></td><td class="num" th:text="${f.porCobrar()}"></td></tr></tbody>
+            </table>
+            <table th:case="'COBRANZA'">
+                <thead><tr><th class="num">Préstamo</th><th>DNI</th><th class="num">Cuota</th><th>Vence</th><th class="num">Total</th><th class="num">Pagado</th><th class="num">Moratorio</th><th>Estado</th><th class="num">Días de atraso</th></tr></thead>
+                <tbody><tr th:each="f : ${r.filas()}">
+                    <td class="num" th:text="${f.prestamoId()}"></td><td th:text="${f.dni()}"></td><td class="num" th:text="${f.numero()}"></td>
+                    <td th:text="${#temporals.format(f.vencimiento(), 'dd/MM/yyyy')}"></td><td class="num" th:text="${f.total()}"></td>
+                    <td class="num" th:text="${f.pagado()}"></td><td class="num" th:text="${f.moratorio()}"></td>
+                    <td th:text="${f.estado()}"></td><td class="num" th:text="${f.diasAtraso()}"></td></tr></tbody>
+            </table>
+        </div>
+    </section>
+    </th:block>
+</main>
+</body>
+</html>

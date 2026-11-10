@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Mis reclamos')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Mis reclamos</h1>
+        <p class="nota">Respondemos cada reclamo en 15 días hábiles o menos.</p>
+        <a class="principal" th:href="@{/reclamos/nuevo}" style="display:block;text-align:center;margin:12px 0">Nuevo reclamo</a>
+        <p th:if="${#lists.isEmpty(reclamos)}" class="nota">No has presentado reclamos.</p>
+        <ul class="lista">
+            <li th:each="r : ${reclamos}">
+                <a th:href="@{/reclamos/{id}(id=${r.id()})}">
+                    <div class="titulo"><strong th:text="${r.codigo()}"></strong>
+                        <span th:class="${r.estado().name() == 'ATENDIDO'} ? 'etiqueta listo' : 'etiqueta'"
+                              th:text="${r.estado().name() == 'ATENDIDO'} ? 'Respondido' : 'En atención'"></span></div>
+                    <div class="nota" th:text="${r.motivo().descripcion()} + ' · respuesta hasta el ' + ${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></div>
+                </a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

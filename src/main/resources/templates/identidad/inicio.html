@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inicio · Kapikua</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #f6f7f9;
+            color: #1d2433;
+        }
+
+        main {
+            max-width: 420px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin: 0 0 8px;
+        }
+
+        p.nota {
+            color: #5b6475;
+            font-size: .9rem;
+        }
+
+        .menu-admin a {
+            display: block;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #c8cdd6;
+            border-radius: 8px;
+            color: #1f5eff;
+            text-decoration: none;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            border: 1px solid #c8cdd6;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <!-- Panel del Administrador (el Cliente va directo a su billetera, CU-03). -->
+    <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
+    <p th:text="${usuario.rol() == 'ADMINISTRADOR'} ? 'Panel del Administrador' : 'Tu billetera estará aquí muy pronto.'"></p>
+    <!-- Cumplimiento (CU-14, CU-15) y Administración (CU-16) -->
+    <nav th:if="${usuario.rol() == 'ADMINISTRADOR'}" class="menu-admin">
+        <a th:href="@{/admin/alertas}">Alertas de operaciones inusuales</a>
+        <a th:href="@{/admin/reclamos}">Reclamos</a>
+        <a th:href="@{/admin/reportes}">Reportes</a>
+    </nav>
+    <p class="nota">Tu sesión se cierra sola tras 15 minutos sin actividad.</p>
+
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Cerrar sesión</button>
+    </form>
+</main>
+</body>
+</html>

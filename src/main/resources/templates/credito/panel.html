@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Mi crédito')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <p class="exito" th:if="${aviso == 'aval-aceptado'}">Aceptaste ser aval. Te avisaremos si la persona que respaldas se atrasa.</p>
+    <p class="aviso" th:if="${aviso == 'aval-rechazado'}">Rechazaste la invitación. No afecta tu historial.</p>
+
+    <!-- Invitaciones para ser aval (CU-09) -->
+    <section class="tarjeta" th:unless="${#lists.isEmpty(panel.invitaciones())}">
+        <h2>Te pidieron ser aval</h2>
+        <div class="fila" th:each="i : ${panel.invitaciones()}">
+            <span th:text="${i.deudor()} + ' · ' + ${i.monto()}"></span>
+            <a th:href="@{/credito/aval/{id}(id=${i.ofertaId()})}">Revisar</a>
+        </div>
+    </section>
+
+    <p class="exito" th:if="${aviso == 'pagado-total'}">¡Terminaste de pagar tu préstamo! Ya puedes solicitar otro.</p>
+
+    <!-- Garantías que respalda como aval (CU-12, 1b): sin datos de la billetera del deudor -->
+    <section class="tarjeta" th:unless="${#lists.isEmpty(panel.garantias())}">
+        <h2>Créditos que respaldas</h2>
+        <div th:each="g : ${panel.garantias()}" style="margin-bottom:8px">
+            <div class="fila"><span th:text="${g.deudor()} + ' · ' + ${g.monto()}"></span><strong th:text="${g.estadoAval()}"></strong></div>
+            <p class="nota" th:if="${g.cuotasVencidas() == 0}">Al día.</p>
+            <p class="error" th:if="${g.cuotasVencidas() > 0}"
+               th:text="${g.cuotasVencidas()} + ' cuota(s) vencida(s) por ' + ${g.vencido()}
+                        + (${g.estadoAval().name() == 'ACTIVADO'} ? '. Se está reteniendo de tus ventas hasta cubrirlas.' : '. Si llega a 15 días, se retendrá de tus ventas.')"></p>
+        </div>
+    </section>
+
+    <!-- Préstamo vigente (CU-12) -->
+    <section class="tarjeta" th:if="${panel.prestamo()}" th:with="p=${panel.prestamo()}">
+        <h1>Tu préstamo</h1>
+        <div class="fila"><span>Estado</span><strong th:text="${p.estado()}"></strong></div>
+        <div class="fila"><span>Monto</span><span th:text="${p.monto()}"></span></div>
+        <div class="fila"><span>Te falta pagar (capital)</span><span th:text="${p.capitalPendiente()}"></span></div>
+        <a class="principal" style="display:block;text-align:center;margin-top:16px" th:href="@{/credito/prestamo}">Ver cronograma</a>
+    </section>
+
+    <!-- Solicitud en curso o última solicitud -->
+    <section class="tarjeta" th:if="${panel.oferta()}" th:with="o=${panel.oferta()}">
+        <h2>Tu solicitud</h2>
+        <div class="fila"><span>Estado</span><strong th:text="${o.estado()}"></strong></div>
+        <div class="fila"><span>Monto</span><span th:text="${o.monto()}"></span></div>
+        <a th:href="@{/credito/ofertas/{id}(id=${o.id()})}">Ver detalle</a>
+    </section>
+
+    <section class="tarjeta" th:unless="${panel.prestamo()}">
+        <h2>Pide un crédito</h2>
+        <p class="nota">Tu cuota no supera el 30 % de lo que cobras por semana, y se paga sola con un porcentaje de tus ventas.</p>
+        <div class="acciones" style="grid-template-columns:1fr 1fr;margin-top:12px">
+            <a th:href="@{/credito/simular}">Simular</a>
+            <a th:href="@{/credito/solicitar}">Solicitar</a>
+        </div>
+        <p class="nota" style="margin-top:12px"><a th:href="@{/nivel}">Ver mi nivel de crédito</a></p>
+    </section>
+</main>
+</body>
+</html>

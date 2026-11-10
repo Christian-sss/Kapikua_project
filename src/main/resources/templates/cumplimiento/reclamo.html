@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Reclamo')}"></head>
+<body>
+<main>
+    <div class="barra">
+        <a th:href="@{/reclamos}">← Mis reclamos</a>
+        <form th:action="@{/logout}" method="post"><button type="submit" class="enlace-boton">Cerrar sesión</button></form>
+    </div>
+    <!-- CU-15, 3: constancia -->
+    <div class="tarjeta exito" th:if="${registrado}">
+        <strong>Registramos tu reclamo.</strong>
+        <p style="margin-top:6px">Guarda tu código; te responderemos a más tardar en la fecha límite.</p>
+    </div>
+    <section class="tarjeta">
+        <h1 th:text="'Reclamo ' + ${r.codigo()}">Reclamo</h1>
+        <div class="fila"><span>Código</span><strong th:text="${r.codigo()}"></strong></div>
+        <div class="fila"><span>Motivo</span><span th:text="${r.motivo().descripcion()}"></span></div>
+        <div class="fila"><span>Registrado</span><span th:text="${#temporals.format(r.fechaRegistro(), 'dd/MM/yyyy HH:mm')}"></span></div>
+        <div class="fila"><span>Fecha límite de respuesta</span><strong th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></strong></div>
+        <div class="fila"><span>Estado</span><span th:text="${r.estado().name() == 'ATENDIDO'} ? 'Respondido' : 'En atención'"></span></div>
+        <h2 style="margin-top:16px">Lo que nos contaste</h2>
+        <p class="texto-largo" th:text="${r.detalle()}"></p>
+        <div class="aviso" th:if="${r.prorroga()}" style="margin-top:12px">
+            <strong>Ampliamos el plazo de respuesta</strong> hasta el <span th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></span>.
+            <p class="texto-largo" style="margin:6px 0 0" th:text="${r.prorroga()}"></p>
+        </div>
+    </section>
+    <section class="tarjeta" th:if="${r.respuesta()}">
+        <h2>Nuestra respuesta</h2>
+        <p class="nota" th:text="${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy HH:mm')}"></p>
+        <p class="texto-largo" th:text="${r.respuesta()}"></p>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Mi solicitud')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Tu solicitud</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <p class="exito" th:if="${aviso == 'aval'}">Invitamos a tu aval. Tiene 48 horas para aceptar.</p>
+        <div class="fila"><span>Estado</span><strong th:text="${o.estado()}"></strong></div>
+        <div class="fila"><span>Recomendación de Kapikua</span><span th:text="${o.recomendacion()}"></span></div>
+        <p class="nota" th:if="${o.motivo()}" th:text="${o.motivo()}"></p>
+        <div class="fila"><span th:text="${o.condicionesConfirmadas()} ? 'Monto confirmado' : 'Monto sugerido'"></span><strong th:text="${o.monto()}"></strong></div>
+        <div class="fila"><span>Cuotas semanales</span><span th:text="${o.cuotas()} + ' de ' + ${o.cuota()}"></span></div>
+        <div class="fila"><span>TEA</span><span th:text="${o.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+        <div class="fila"><span>Vigente hasta</span><span th:text="${#temporals.format(o.vigenteHasta(), 'dd/MM/yyyy')}"></span></div>
+        <p class="aviso" th:if="${o.estado().name() == 'PENDIENTE_EFA' and o.requiereAval()}" style="margin-top:8px">
+            En tu nivel necesitas un aval: otro usuario de Kapikua que responde solo por las cuotas vencidas.
+        </p>
+        <p class="error" th:if="${o.motivoDenegacion()}" th:text="${o.motivoDenegacion()}"></p>
+    </section>
+
+    <section class="tarjeta" th:unless="${#lists.isEmpty(o.avales())}">
+        <h2>Avales</h2>
+        <div class="fila" th:each="a : ${o.avales()}">
+            <span th:text="${a.nombre()}"></span>
+            <span th:text="${a.estado()} + (${a.vence()} != null ? ' · vence ' + ${#temporals.format(a.vence(), 'dd/MM HH:mm')} : '')"></span>
+        </div>
+    </section>
+
+    <section class="tarjeta" th:if="${o.puedeDesignarAval()}">
+        <h2>Designa a tu aval</h2>
+        <form th:action="@{/credito/ofertas/{id}/aval(id=${o.id()})}" method="post">
+            <label for="celular">Celular de tu aval</label>
+            <input id="celular" name="celular" type="tel" inputmode="numeric" maxlength="9" required>
+            <button type="submit" class="principal">Invitar</button>
+        </form>
+    </section>
+
+    <section class="tarjeta" th:if="${o.puedeEnviarAEntidad()}">
+        <p class="aviso">La entidad aliada todavía no respondió.</p>
+        <form th:action="@{/credito/ofertas/{id}/enviar(id=${o.id()})}" method="post">
+            <button type="submit" class="principal">Enviar a la entidad aliada</button>
+        </form>
+    </section>
+
+    <section class="tarjeta" th:if="${o.puedeAceptar()}">
+        <p class="exito">Financiera Ayni Sur confirmó tu crédito.</p>
+        <a class="principal" style="display:block;text-align:center;margin-top:12px"
+           th:href="@{/credito/ofertas/{id}/hoja(id=${o.id()})}">Ver hoja resumen y aceptar</a>
+    </section>
+</main>
+</body>
+</html>

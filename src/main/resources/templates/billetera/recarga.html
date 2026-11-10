@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Recargar')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Recargar saldo</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+
+        <form th:action="@{/billetera/recargar}" th:object="${form}" method="post" novalidate>
+            <input type="hidden" th:field="*{referencia}">
+
+            <label for="monto">Monto (S/)</label>
+            <input id="monto" type="number" inputmode="decimal" step="0.01" min="0.01" th:field="*{monto}">
+            <span class="campo-error" th:errors="*{monto}"></span>
+
+            <!-- PROVISIONAL: con Culqi, aquí va Culqi Checkout y el token lo entrega Culqi en el navegador. -->
+            <label for="token">Tarjeta de prueba</label>
+            <select id="token" th:field="*{token}">
+                <option value="tok_aprobado">Visa de prueba · aprobada</option>
+                <option value="tok_rechazado">Visa de prueba · sin fondos</option>
+            </select>
+            <p class="nota" style="margin-top:6px">Pasarela simulada: no se mueve dinero real.</p>
+
+            <button type="submit" class="principal">Recargar</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

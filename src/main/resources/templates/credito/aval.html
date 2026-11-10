@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Ser aval')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1 th:text="${i.deudor()} + ' te pide ser su aval'">Invitación</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <div class="fila"><span>Crédito</span><strong th:text="${i.monto()}"></strong></div>
+        <div class="fila"><span>Cuotas semanales</span><span th:text="${i.cuotas()} + ' de ' + ${i.cuota()}"></span></div>
+        <div class="fila"><span>TEA</span><span th:text="${i.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+        <div class="fila"><span>Responde antes del</span><span th:text="${#temporals.format(i.vence(), 'dd/MM/yyyy HH:mm')}"></span></div>
+        <!-- CU-09, paso 4: su responsabilidad antes de aceptar -->
+        <p class="aviso" style="margin-top:12px">Si aceptas, respondes solo por las cuotas vencidas, sin penalidades.
+            Te avisaremos a los 9 días de atraso y, desde los 15 días, se retendrá
+            <span th:text="'el ' + ${i.porcentajeRetencion()} + ' %'"></span> de tus ventas hasta cubrir lo vencido.
+            Cuando el préstamo se pague, quedas liberado.</p>
+    </section>
+
+    <section class="tarjeta">
+        <form th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post">
+            <input type="hidden" name="acepta" value="true">
+            <label class="check" style="display:flex;gap:8px">
+                <input type="checkbox" name="autorizaGarantia" value="true">
+                <span>Autorizo el uso de mis datos para evaluarme como aval y la retención de mis ventas si la persona que respaldo no paga.</span>
+            </label>
+            <p class="aviso" style="margin-top:16px">Tu código de un solo uso (vence en 5 minutos):
+                <span class="codigo" style="display:block" th:text="${i.codigoMostrado()}"></span>
+                <span class="nota">En producción este código llegaría por SMS.</span></p>
+            <label for="codigo">Ingresa el código</label>
+            <input id="codigo" name="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+            <button type="submit" class="principal">Aceptar ser aval</button>
+        </form>
+        <form th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post" style="margin-top:8px">
+            <input type="hidden" name="acepta" value="false">
+            <button type="submit" class="enlace-boton">Rechazar la invitación</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

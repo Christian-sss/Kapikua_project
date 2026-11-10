@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Pago anticipado')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Pagar por adelantado</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <p class="aviso" th:if="${v.hayVencidas()}">Tienes cuotas vencidas: págalas primero.</p>
+        <div class="fila"><span>Capital pendiente</span><strong th:text="${v.capitalPendiente()}"></strong></div>
+        <div class="fila"><span>Cuotas por vencer</span><span th:text="${v.cuotasPendientes()}"></span></div>
+        <p class="nota" style="margin-top:8px">Sin penalidad: pagas solo capital y te ahorras los intereses de las semanas que adelantas.</p>
+        <form th:action="@{/credito/prestamo/anticipado}" method="post">
+            <input type="hidden" name="referencia" th:value="${v.referencia()}">
+            <label class="check" style="display:flex;gap:8px;margin-top:12px">
+                <input type="radio" name="modalidad" value="TOTAL" checked>
+                <span th:text="'Pagar todo: ' + ${v.capitalPendiente()}"></span></label>
+            <label class="check" style="display:flex;gap:8px">
+                <input type="radio" name="modalidad" value="REDUCIR_CUOTA">
+                <span>Pago parcial: mismas semanas, cuotas más bajas</span></label>
+            <label class="check" style="display:flex;gap:8px">
+                <input type="radio" name="modalidad" value="REDUCIR_PLAZO">
+                <span>Pago parcial: misma cuota, terminas antes</span></label>
+            <label for="monto">Monto del pago parcial (S/)</label>
+            <input id="monto" name="monto" type="number" step="0.01" min="0.01">
+            <button type="submit" class="principal">Pagar</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

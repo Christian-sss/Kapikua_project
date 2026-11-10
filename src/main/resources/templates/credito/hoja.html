@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Hoja resumen')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <!-- N6 (Res. SBS 3274-2017): la hoja resumen se muestra antes de aceptar -->
+    <section class="tarjeta" th:with="c=${h.condiciones()}">
+        <h1>Hoja resumen</h1>
+        <p class="nota" th:text="'Versión ' + ${h.version()} + ' · Financiera Ayni Sur S.A. otorga el crédito; Kapikua lo cobra por su encargo.'"></p>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <div class="fila"><span>Monto</span><strong th:text="${c.monto()}"></strong></div>
+        <div class="fila"><span>Cuotas semanales</span><span th:text="${c.cuotas()} + ' de ' + ${c.cuota()}"></span></div>
+        <div class="fila"><span>TEA</span><span th:text="${c.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+        <div class="fila"><span>TCEA</span><span th:text="${c.tcea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+        <div class="fila"><span>Intereses</span><span th:text="${h.interesTotal()}"></span></div>
+        <div class="fila"><span>Total a pagar</span><strong th:text="${h.totalAPagar()}"></strong></div>
+        <div class="fila"><span>Interés moratorio máximo por atraso</span>
+            <span th:text="${h.tasaMoratoriaMaxima().stripTrailingZeros().toPlainString()} + ' % anual, sin penalidades'"></span></div>
+        <div class="fila"><span>Retención de tus ventas</span><span th:text="${h.porcentajeRetencion()} + ' % de cada cobro'"></span></div>
+        <div class="fila" th:if="${h.aval()}"><span>Aval</span><span th:text="${h.aval()}"></span></div>
+        <p class="nota" style="margin-top:8px">Puedes pagar por adelantado, total o parcialmente, sin penalidad.</p>
+        <ul class="movimientos">
+            <li th:each="q : ${h.cronograma()}">
+                <div><div th:text="'Cuota ' + ${q.numero()}"></div><div class="detalle" th:text="${#temporals.format(q.vencimiento(), 'dd/MM/yyyy')}"></div></div>
+                <div class="monto"><div th:text="${q.total()}"></div><div class="detalle" th:text="'Capital ' + ${q.capital()} + ' · interés ' + ${q.interes()}"></div></div>
+            </li>
+        </ul>
+    </section>
+
+    <section class="tarjeta">
+        <form th:action="@{/credito/ofertas/{id}/aceptar(id=${h.ofertaId()})}" method="post">
+            <!-- RN-22: cargo automático expreso y revocable -->
+            <label class="check" style="display:flex;gap:8px">
+                <input type="checkbox" name="autorizaCargo" value="true">
+                <span th:text="'Autorizo que se aparte el ' + ${h.porcentajeRetencion()} + ' % de cada cobro para mi cuota y que, si no alcanza, '
+                              + 'la diferencia se cobre de mi saldo el día del vencimiento. Puedo revocarlo cuando quiera.'"></span>
+            </label>
+            <!-- RNF-04: en la v1 no hay SMS: el código se muestra aquí -->
+            <p class="aviso" style="margin-top:16px">Tu código de un solo uso (vence en 5 minutos):
+                <span class="codigo" style="display:block" th:text="${h.codigoMostrado()}"></span>
+                <span class="nota">En producción este código llegaría por SMS.</span></p>
+            <label for="codigo">Ingresa el código</label>
+            <input id="codigo" name="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+            <button type="submit" class="principal">Aceptar y recibir el dinero</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

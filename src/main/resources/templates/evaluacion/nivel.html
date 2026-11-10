@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Mi nivel')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+
+    <section class="tarjeta" th:if="${error}">
+        <h1>Mi nivel de crédito</h1>
+        <p class="error" th:text="${error}"></p>
+    </section>
+
+    <th:block th:if="${n}">
+        <section class="tarjeta">
+            <h1>Mi nivel de crédito</h1>
+            <p class="saldo" th:text="'Nivel ' + ${n.nivel()} + ' de ' + ${n.nivelMaximo()}">Nivel 1 de 4</p>
+            <p class="error" th:if="${n.bloqueado()}">
+                Tienes un bloqueo interno por atrasos en créditos anteriores. Comunícate con atención al cliente.
+            </p>
+            <div class="fila"><span>Parte de tu capacidad de pago que te confiamos</span>
+                <strong th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' %'"></strong></div>
+            <div class="fila"><span>Cuotas semanales</span>
+                <span th:text="'de ' + ${n.cuotasMinimas()} + ' a ' + ${n.maxCuotas()}"></span></div>
+            <div class="fila"><span>Tasa efectiva anual (TEA)</span>
+                <span th:text="${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+            <div class="fila"><span>Necesitas un aval</span>
+                <span th:text="${n.requiereAval()} ? 'Sí' : 'No'"></span></div>
+            <p class="nota" style="margin-top:8px">
+                La cuota de tu crédito no supera el 30 % de lo que cobras por semana con Kapikua.
+            </p>
+        </section>
+
+        <section class="tarjeta" th:if="${n.siguiente()}">
+            <h2 th:text="'Para subir al nivel ' + ${n.siguiente().nivel()}">Para subir</h2>
+            <p th:text="'Paga a tiempo ' + ${n.creditosParaSubir()} + (${n.creditosParaSubir() == 1} ? ' crédito' : ' créditos')
+                        + ' (sin cuotas con más de 8 días de atraso). Llevas ' + ${n.creditosPagadosEnNivel()} + '.'"></p>
+            <div class="fila"><span>Te confiaremos</span>
+                <span th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></span>
+            </div>
+            <div class="fila"><span>Hasta</span><span th:text="${n.siguiente().maxCuotas()} + ' cuotas'"></span></div>
+            <div class="fila"><span>TEA</span>
+                <span th:text="${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+            <div class="fila"><span>Aval</span>
+                <span th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></span></div>
+        </section>
+
+        <!-- RN-08: uso mínimo de la billetera para poder solicitar -->
+        <section class="tarjeta" th:with="u=${n.usoMinimo()}">
+            <h2>Uso de tu billetera</h2>
+            <p class="exito" th:if="${u.cumple()}">Ya cumples el uso mínimo para solicitar un crédito.</p>
+            <p class="aviso" th:unless="${u.cumple()}">Para solicitar un crédito necesitas:</p>
+            <div class="fila"><span>Días con tu billetera</span>
+                <span th:text="${u.dias()} + ' de ' + ${u.diasRequeridos()}"></span></div>
+            <div class="fila"><span>Semanas con cobros</span>
+                <span th:text="${u.semanasConCobros()} + ' de ' + ${u.semanasRequeridas()}"></span></div>
+            <div class="fila"><span>Cobros recibidos</span>
+                <span th:text="${u.cobros()} + ' de ' + ${u.cobrosRequeridos()}"></span></div>
+            <div class="fila"><span>Cobras en promedio por semana</span>
+                <span th:text="${u.promedioSemanal()}"></span></div>
+            <p class="nota" style="margin-top:8px">Cuentan los pagos de tus clientes y las transferencias que recibes;
+                las recargas no.</p>
+        </section>
+    </th:block>
+</main>
+</body>
+</html>

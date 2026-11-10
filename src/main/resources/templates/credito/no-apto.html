@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Resultado')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Por ahora no podemos ofrecerte un crédito</h1>
+        <p class="aviso" th:text="${r.motivo()}"></p>
+        <p class="nota" style="margin-top:8px">Sigue usando tu billetera: con más cobros y un buen historial, tu
+            evaluación mejora.</p>
+        <p style="margin-top:12px"><a th:href="@{/nivel}">Ver mi nivel de crédito</a></p>
+    </section>
+</main>
+</body>
+</html>

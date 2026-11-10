@@ -1,0 +1,492 @@
+/* Kapikua: estilos compartidos. Pensado para celulares desde 360 px (RNF-13). */
+:root {
+    --fondo: #f6f7f9;
+    --tarjeta: #ffffff;
+    --texto: #1d2433;
+    --suave: #5b6475;
+    --borde: #d9dde4;
+    --primario: #1f5eff;
+    --entrada: #067647;
+    --salida: #b42318;
+    --error-fondo: #fde8e7;
+    --aviso-fondo: #e7f0fd;
+    --exito-fondo: #e3f5ea;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    padding: 16px;
+    background: var(--fondo);
+    color: var(--texto);
+}
+
+main {
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.tarjeta {
+    background: var(--tarjeta);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+h1 {
+    font-size: 1.3rem;
+    margin: 0 0 12px;
+}
+
+h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+}
+
+p {
+    margin: 0 0 8px;
+}
+
+a {
+    color: var(--primario);
+}
+
+.barra {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.barra form {
+    margin: 0;
+}
+
+.enlace-boton {
+    background: none;
+    border: 0;
+    color: var(--primario);
+    font-size: .9rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.saldo {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 4px 0 12px;
+}
+
+.fila {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: .9rem;
+    padding: 4px 0;
+}
+
+.fila span:first-child {
+    color: var(--suave);
+}
+
+.acciones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.acciones a {
+    display: block;
+    text-align: center;
+    padding: 12px 4px;
+    border-radius: 8px;
+    background: var(--primario);
+    color: #fff;
+    text-decoration: none;
+    font-size: .9rem;
+}
+
+label {
+    display: block;
+    font-size: .9rem;
+    margin: 12px 0 4px;
+}
+
+input[type=text], input[type=tel], input[type=number], input[type=date], input[type=month], select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #fff;
+}
+
+button.principal {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--primario);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.campo-error {
+    color: var(--salida);
+    font-size: .8rem;
+}
+
+.error {
+    background: var(--error-fondo);
+    color: var(--salida);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.aviso {
+    background: var(--aviso-fondo);
+    color: #1849a9;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: .9rem;
+}
+
+.exito {
+    background: var(--exito-fondo);
+    color: var(--entrada);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.codigo {
+    font-size: 1.6rem;
+    letter-spacing: .3em;
+    font-weight: 700;
+    text-align: center;
+    margin: 8px 0;
+}
+
+.nota {
+    color: var(--suave);
+    font-size: .8rem;
+}
+
+.filtro {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+}
+
+.filtro label {
+    margin: 0 0 4px;
+}
+
+.filtro button {
+    padding: 10px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+ul.movimientos {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+ul.movimientos li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--borde);
+}
+
+ul.movimientos .detalle {
+    font-size: .8rem;
+    color: var(--suave);
+}
+
+ul.movimientos .monto {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.entrada {
+    color: var(--entrada);
+}
+
+.salida {
+    color: var(--salida);
+}
+
+a.principal {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--primario);
+    color: #fff;
+    text-decoration: none;
+}
+
+label.check {
+    font-size: .9rem;
+    align-items: flex-start;
+}
+
+/* Cumplimiento: reclamos y alertas (CU-14, CU-15) */
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 96px;
+}
+
+.etiqueta {
+    display: inline-block;
+    font-size: .75rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--fondo);
+    border: 1px solid var(--borde);
+    white-space: nowrap;
+}
+
+.etiqueta.urgente {
+    background: var(--error-fondo);
+    color: var(--salida);
+    border-color: transparent;
+}
+
+.etiqueta.listo {
+    background: var(--exito-fondo);
+    color: var(--entrada);
+    border-color: transparent;
+}
+
+ul.lista {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+ul.lista li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borde);
+}
+
+ul.lista li:last-child {
+    border-bottom: 0;
+}
+
+ul.lista li.destacado {
+    border-left: 3px solid var(--salida);
+    padding-left: 10px;
+}
+
+ul.lista a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+ul.lista .titulo {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.texto-largo {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: .9rem;
+}
+
+/* Administración: reportes (CU-16) */
+main.ancho {
+    max-width: 960px;
+}
+
+.pestanas {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.pestanas a {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--borde);
+    background: var(--tarjeta);
+    text-decoration: none;
+    font-size: .9rem;
+}
+
+.pestanas a.activa {
+    background: var(--primario);
+    color: #fff;
+    border-color: var(--primario);
+}
+
+.filtros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    align-items: end;
+}
+
+.filtros label {
+    margin: 0 0 4px;
+}
+
+.filtros button {
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--primario);
+    color: #fff;
+    font-size: .95rem;
+}
+
+.indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.indicador {
+    background: var(--fondo);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.indicador span {
+    display: block;
+    font-size: .8rem;
+    color: var(--suave);
+}
+
+.indicador strong {
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.graficos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.grafico h3 {
+    font-size: .95rem;
+    margin: 0 0 8px;
+}
+
+.grafico .barra-fila {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    font-size: .8rem;
+    margin: 3px 0;
+}
+
+.grafico .barra-fila .etq {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--suave);
+}
+
+.grafico .pista {
+    background: var(--fondo);
+    border-radius: 4px;
+    height: 12px;
+}
+
+.grafico .relleno {
+    background: var(--primario);
+    border-radius: 4px;
+    height: 12px;
+    min-width: 2px;
+}
+
+.grafico .val {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.columnas {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 140px;
+    border-bottom: 1px solid var(--borde);
+}
+
+.columnas .col {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+}
+
+.columnas .col div {
+    width: 100%;
+    background: var(--primario);
+    border-radius: 2px 2px 0 0;
+    min-height: 1px;
+}
+
+.columnas .col.cero div {
+    background: var(--borde);
+}
+
+.eje {
+    display: flex;
+    justify-content: space-between;
+    font-size: .75rem;
+    color: var(--suave);
+    margin-top: 4px;
+}
+
+.tabla {
+    overflow-x: auto;
+}
+
+.tabla table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .85rem;
+}
+
+.tabla th, .tabla td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--borde);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.tabla th {
+    color: var(--suave);
+    font-weight: 600;
+}
+
+.tabla td.num, .tabla th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

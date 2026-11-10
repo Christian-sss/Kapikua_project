@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Mi billetera')}"></head>
+<body>
+<main>
+    <div class="barra">
+        <strong th:text="'Hola, ' + ${usuario.nombres()}">Hola</strong>
+        <a th:href="@{/credito}">Mi crédito</a>
+        <a th:href="@{/reclamos}">Reclamos</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="enlace-boton">Cerrar sesión</button>
+        </form>
+    </div>
+
+    <!-- Comprobante de la operación recién hecha (CU-04, CU-05, CU-06) -->
+    <div class="tarjeta exito" th:if="${comprobante}">
+        <h2>Operación realizada</h2>
+        <div class="fila"><span>Monto</span><strong th:text="${comprobante.monto()}"></strong></div>
+        <div class="fila"><span>Para / desde</span><span th:text="${comprobante.contraparte()}"></span></div>
+        <div class="fila"><span>N.° de operación</span><span th:text="${comprobante.transaccionId()}"></span></div>
+        <div class="fila"><span>Saldo disponible</span><span th:text="${comprobante.saldoPosterior()}"></span></div>
+        <a class="nota" th:href="@{/reclamos/nuevo(operacion=${comprobante.transaccionId()})}">¿Un problema con esta
+            operación? Presenta un reclamo</a>
+    </div>
+
+    <!-- RNF-17: este bloque se reemplaza sin recargar la página cuando llega un aviso SSE -->
+    <div id="contenido" th:fragment="contenido"
+         th:data-fragmento="@{/billetera/fragmentos/contenido(desde=${filtroDesde},hasta=${filtroHasta})}"
+         th:data-eventos="@{/eventos}">
+        <section class="tarjeta">
+            <p class="nota"
+               th:text="${b.nombreNegocio() != null ? b.nombreNegocio() + ' · ' : ''} + 'Celular ' + ${b.celular()}"></p>
+            <p class="nota">Saldo disponible</p>
+            <p class="saldo" th:text="${b.saldoDisponible()}">S/ 0.00</p>
+            <div class="fila"><span>Saldo total</span><span th:text="${b.saldo()}"></span></div>
+            <div class="fila"><span>Apartado para tu cuota</span><span th:text="${b.saldoApartado()}"></span></div>
+            <div class="acciones" style="margin-top:16px">
+                <a th:href="@{/billetera/recargar}">Recargar</a>
+                <a th:href="@{/billetera/transferir}">Transferir</a>
+                <a th:href="@{/billetera/pagar}">Pagar</a>
+            </div>
+        </section>
+
+        <!-- Límites de la SBS (Res. SBS 00704-2026) -->
+        <section class="tarjeta">
+            <h2>Tus límites de este mes</h2>
+            <div class="fila"><span>Recargas: usado / disponible</span>
+                <span th:text="${b.recargasUsadas()} + ' / ' + ${b.recargasDisponibles()}"></span></div>
+            <div class="fila"><span>Pagos y transferencias: usado / disponible</span>
+                <span th:text="${b.pagosUsados()} + ' / ' + ${b.pagosDisponibles()}"></span></div>
+            <div class="fila"><span>Máximo por operación</span><span th:text="${b.topePorOperacion()}"></span></div>
+            <div class="fila"><span>Saldo máximo</span><span th:text="${b.saldoMaximo()}"></span></div>
+        </section>
+
+        <section class="tarjeta">
+            <h2>Movimientos</h2>
+            <form class="filtro" th:action="@{/billetera}" method="get">
+                <div><label for="desde">Desde</label><input id="desde" type="date" name="desde" th:value="${b.desde()}">
+                </div>
+                <div><label for="hasta">Hasta</label><input id="hasta" type="date" name="hasta" th:value="${b.hasta()}">
+                </div>
+                <button type="submit">Filtrar</button>
+            </form>
+
+            <p class="nota" th:if="${#lists.isEmpty(movimientos)}" style="margin-top:12px">
+                No tienes movimientos en estas fechas.
+            </p>
+            <ul class="movimientos" th:unless="${#lists.isEmpty(movimientos)}">
+                <li th:each="m : ${movimientos}">
+                    <div>
+                        <div th:text="${m.etiqueta()}"></div>
+                        <div class="detalle"
+                             th:text="${m.fecha()} + (${m.detalle()} != null ? ' · ' + ${m.detalle()} : '')"></div>
+                    </div>
+                    <div class="monto">
+                        <div th:text="${m.monto()}" th:classappend="${m.entrada()} ? 'entrada' : 'salida'"></div>
+                        <div class="detalle" th:text="'Saldo ' + ${m.saldo()}"></div>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </div>
+</main>
+<script th:src="@{/js/billetera-en-vivo.js}" defer></script>
+</body>
+</html>

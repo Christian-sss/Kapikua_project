@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Simular crédito')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1>Simular crédito</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <p class="nota" th:if="${opciones}"
+           th:text="'Nivel ' + ${opciones.nivel()} + ': de ' + ${opciones.cuotasMinimas()} + ' a ' + ${opciones.cuotasMaximas()}
+                    + ' cuotas semanales, TEA ' + ${opciones.tea().stripTrailingZeros().toPlainString()} + ' %.'"></p>
+        <form th:action="@{/credito/simular}" method="post" th:if="${opciones}">
+            <label for="monto">Monto (S/)</label>
+            <input id="monto" name="monto" type="number" step="0.01" min="1" th:attr="max=${opciones.montoMaximo().valor()}" th:value="${monto}" required>
+            <label for="cuotas">Cuotas semanales</label>
+            <input id="cuotas" name="cuotas" type="number" th:attr="min=${opciones.cuotasMinimas()},max=${opciones.cuotasMaximas()}"
+                   th:value="${cuotas != null ? cuotas : opciones.cuotasMaximas()}" required>
+            <button type="submit" class="principal">Simular</button>
+        </form>
+    </section>
+
+    <section class="tarjeta" th:if="${s}">
+        <h2>Resultado referencial</h2>
+        <div class="fila"><span>Cuota semanal</span><strong th:text="${s.cuota()}"></strong></div>
+        <div class="fila"><span>TEA / TCEA</span><span th:text="${s.tea().stripTrailingZeros().toPlainString()} + ' % / ' + ${s.tcea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
+        <div class="fila"><span>Intereses</span><span th:text="${s.interesTotal()}"></span></div>
+        <div class="fila"><span>Total a pagar</span><span th:text="${s.totalAPagar()}"></span></div>
+        <p class="nota" style="margin-top:8px">El monto final depende de tu evaluación y de la entidad aliada.</p>
+        <ul class="movimientos">
+            <li th:each="c : ${s.cronograma()}">
+                <div><div th:text="'Cuota ' + ${c.numero()}"></div><div class="detalle" th:text="${#temporals.format(c.vencimiento(), 'dd/MM/yyyy')}"></div></div>
+                <div class="monto" th:text="${c.total()}"></div>
+            </li>
+        </ul>
+        <a class="principal" style="display:block;text-align:center;margin-top:16px"
+           th:href="@{/credito/solicitar(monto=${s.monto().valor()},cuotas=${s.cuotas()})}">Solicitar con estos valores</a>
+    </section>
+</main>
+</body>
+</html>

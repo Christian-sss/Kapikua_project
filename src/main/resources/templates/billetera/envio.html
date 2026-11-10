@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera(${modo.titulo})}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <!-- Paso 1 de 3: datos de la operación (CU-05 / CU-06) -->
+        <h1 th:text="${modo.titulo}">Transferir</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+
+        <form th:action="@{${modo.ruta}}" th:object="${form}" method="post" novalidate>
+            <input type="hidden" th:field="*{referencia}">
+            <span class="campo-error" th:errors="*{referencia}"></span>
+
+            <label for="celular" th:text="${modo.etiquetaCelular}">Celular</label>
+            <input id="celular" type="tel" inputmode="numeric" maxlength="9" th:field="*{celular}" autocomplete="off">
+            <span class="campo-error" th:errors="*{celular}"></span>
+
+            <label for="monto">Monto (S/)</label>
+            <input id="monto" type="number" inputmode="decimal" step="0.01" min="0.01" th:field="*{monto}">
+            <span class="campo-error" th:errors="*{monto}"></span>
+
+            <button type="submit" class="principal">Continuar</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

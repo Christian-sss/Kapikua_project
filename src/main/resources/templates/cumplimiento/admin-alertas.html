@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Alertas')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barraAdmin}"></div>
+    <p class="exito" th:if="${aviso == 'revisada'}">Revisión registrada.</p>
+    <section class="tarjeta">
+        <h1>Alertas pendientes</h1>
+        <p class="nota">Operaciones inusuales (RN-28). En producción las revisa el oficial de cumplimiento.</p>
+        <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay alertas pendientes.</p>
+        <ul class="lista">
+            <li th:each="a : ${pendientes}">
+                <a th:href="@{/admin/alertas/{id}(id=${a.id()})}">
+                    <div class="titulo"><strong th:text="${a.regla().nombre()}"></strong>
+                        <span class="nota" th:text="${#temporals.format(a.fecha(), 'dd/MM HH:mm')}"></span></div>
+                    <div class="nota" th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()}"></div>
+                    <div style="font-size:.85rem" th:text="${a.detalle()}"></div>
+                </a>
+            </li>
+        </ul>
+    </section>
+    <section class="tarjeta" th:unless="${#lists.isEmpty(revisadas)}">
+        <h2>Revisadas recientemente</h2>
+        <ul class="lista">
+            <li th:each="a : ${revisadas}">
+                <a th:href="@{/admin/alertas/{id}(id=${a.id()})}">
+                    <div class="titulo"><span th:text="${a.regla().nombre()}"></span>
+                        <span th:class="${a.estado().name() == 'ESCALADA'} ? 'etiqueta urgente' : 'etiqueta'" th:text="${a.estado().name() == 'ESCALADA'} ? 'Escalada' : 'Descartada'"></span></div>
+                    <div class="nota" th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()}"></div>
+                </a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

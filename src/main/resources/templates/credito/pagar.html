@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabecera('Pagar cuota')}"></head>
+<body>
+<main>
+    <div th:replace="~{fragmentos :: barra}"></div>
+    <section class="tarjeta">
+        <h1 th:text="${#lists.size(v.cuotas()) == 1} ? 'Pagar la cuota ' + ${v.cuotas()[0]} : 'Pagar tus cuotas vencidas'">Pagar</h1>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+        <div class="fila"><span>Cuotas</span><span th:text="${#strings.listJoin(v.cuotas(), ', ')}"></span></div>
+        <div class="fila" th:unless="${v.moratorio().esCero()}"><span>Interés moratorio (incluido)</span><span th:text="${v.moratorio()}"></span></div>
+        <div class="fila"><span>Sale de lo apartado de tus ventas</span><span th:text="${v.deApartado()}"></span></div>
+        <div class="fila"><span>Total a pagar</span><strong th:text="${v.total()}"></strong></div>
+        <p class="nota" style="margin-top:8px">El pago se aplica primero al interés moratorio, luego al interés y al final al capital.</p>
+        <form th:action="@{/credito/prestamo/pagar}" method="post">
+            <input type="hidden" name="referencia" th:value="${v.referencia()}">
+            <button type="submit" class="principal">Pagar</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

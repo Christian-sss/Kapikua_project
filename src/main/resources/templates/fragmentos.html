@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!-- Fragmentos compartidos por las pantallas que usan kapikua.css -->
+<head th:fragment="cabecera(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' · Kapikua'">Kapikua</title>
+    <link rel="stylesheet" th:href="@{/css/kapikua.css}">
+</head>
+<body>
+<div th:fragment="barra" class="barra">
+    <a th:href="@{/billetera}">← Mi billetera</a>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="enlace-boton">Cerrar sesión</button>
+    </form>
+</div>
+<div th:fragment="barraAdmin" class="barra">
+    <a th:href="@{/admin}">← Panel del Administrador</a>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="enlace-boton">Cerrar sesión</button>
+    </form>
+</div>
+</body>
+</html>
