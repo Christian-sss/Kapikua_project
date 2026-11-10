@@ -11,7 +11,7 @@
         <div class="fila"><span>Cuotas semanales</span><span th:text="${i.cuotas()} + ' de ' + ${i.cuota()}"></span></div>
         <div class="fila"><span>TEA</span><span th:text="${i.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
         <div class="fila"><span>Responde antes del</span><span th:text="${#temporals.format(i.vence(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <!-- CU-09, paso 4: su responsabilidad antes de aceptar -->
+        <!--/* CU-09, paso 4: su responsabilidad antes de aceptar */-->
         <p class="aviso" style="margin-top:12px">Si aceptas, respondes solo por las cuotas vencidas, sin penalidades.
             Te avisaremos a los 9 días de atraso y, desde los 15 días, se retendrá
             <span th:text="'el ' + ${i.porcentajeRetencion()} + ' %'"></span> de tus ventas hasta cubrir lo vencido.

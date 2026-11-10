@@ -18,7 +18,7 @@
             <select id="destino" name="destino">
                 <option th:each="d : ${destinos}" th:value="${d}" th:text="${#strings.replace(#strings.capitalize(#strings.toLowerCase(d)), '_', ' ')}"></option>
             </select>
-            <!-- RN-07: consentimiento previo, informado y separado -->
+            <!--/* RN-07: consentimiento previo, informado y separado */-->
             <label class="check" style="display:flex;gap:8px;margin-top:16px">
                 <input type="checkbox" name="autorizaDatos" value="true">
                 <span>Autorizo que Kapikua evalúe mi solicitud con los datos de mi billetera y los envíe a Financiera Ayni Sur,

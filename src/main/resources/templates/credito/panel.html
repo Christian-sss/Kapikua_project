@@ -7,7 +7,7 @@
     <p class="exito" th:if="${aviso == 'aval-aceptado'}">Aceptaste ser aval. Te avisaremos si la persona que respaldas se atrasa.</p>
     <p class="aviso" th:if="${aviso == 'aval-rechazado'}">Rechazaste la invitación. No afecta tu historial.</p>
 
-    <!-- Invitaciones para ser aval (CU-09) -->
+    <!--/* Invitaciones para ser aval (CU-09) */-->
     <section class="tarjeta" th:unless="${#lists.isEmpty(panel.invitaciones())}">
         <h2>Te pidieron ser aval</h2>
         <div class="fila" th:each="i : ${panel.invitaciones()}">
@@ -18,7 +18,7 @@
 
     <p class="exito" th:if="${aviso == 'pagado-total'}">¡Terminaste de pagar tu préstamo! Ya puedes solicitar otro.</p>
 
-    <!-- Garantías que respalda como aval (CU-12, 1b): sin datos de la billetera del deudor -->
+    <!--/* Garantías que respalda como aval (CU-12, 1b): sin datos de la billetera del deudor */-->
     <section class="tarjeta" th:unless="${#lists.isEmpty(panel.garantias())}">
         <h2>Créditos que respaldas</h2>
         <div th:each="g : ${panel.garantias()}" style="margin-bottom:8px">
@@ -30,7 +30,7 @@
         </div>
     </section>
 
-    <!-- Préstamo vigente (CU-12) -->
+    <!--/* Préstamo vigente (CU-12) */-->
     <section class="tarjeta" th:if="${panel.prestamo()}" th:with="p=${panel.prestamo()}">
         <h1>Tu préstamo</h1>
         <div class="fila"><span>Estado</span><strong th:text="${p.estado()}"></strong></div>
@@ -39,7 +39,7 @@
         <a class="principal" style="display:block;text-align:center;margin-top:16px" th:href="@{/credito/prestamo}">Ver cronograma</a>
     </section>
 
-    <!-- Solicitud en curso o última solicitud -->
+    <!--/* Solicitud en curso o última solicitud */-->
     <section class="tarjeta" th:if="${panel.oferta()}" th:with="o=${panel.oferta()}">
         <h2>Tu solicitud</h2>
         <div class="fila"><span>Estado</span><strong th:text="${o.estado()}"></strong></div>

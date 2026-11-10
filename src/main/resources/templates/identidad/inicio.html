@@ -54,10 +54,10 @@
 </head>
 <body>
 <main>
-    <!-- Panel del Administrador (el Cliente va directo a su billetera, CU-03). -->
+    <!--/* Panel del Administrador (el Cliente va directo a su billetera, CU-03). */-->
     <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
     <p th:text="${usuario.rol() == 'ADMINISTRADOR'} ? 'Panel del Administrador' : 'Tu billetera estará aquí muy pronto.'"></p>
-    <!-- Cumplimiento (CU-14, CU-15) y Administración (CU-16) -->
+    <!--/* Cumplimiento (CU-14, CU-15) y Administración (CU-16) */-->
     <nav th:if="${usuario.rol() == 'ADMINISTRADOR'}" class="menu-admin">
         <a th:href="@{/admin/alertas}">Alertas de operaciones inusuales</a>
         <a th:href="@{/admin/reclamos}">Reclamos</a>

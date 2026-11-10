@@ -7,7 +7,7 @@
     <p class="exito" th:if="${aviso == 'revisada'}">Revisión registrada.</p>
     <section class="tarjeta">
         <h1>Alertas pendientes</h1>
-        <p class="nota">Operaciones inusuales (RN-28). En producción las revisa el oficial de cumplimiento.</p>
+        <p class="nota">Operaciones inusuales. En producción las revisa el oficial de cumplimiento.</p>
         <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay alertas pendientes.</p>
         <ul class="lista">
             <li th:each="a : ${pendientes}">

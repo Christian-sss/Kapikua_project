@@ -27,7 +27,7 @@
                th:href="@{/admin/reportes/{r}/excel(r=${tipo.ruta()},mes=${periodo.mes()},dia=${periodo.dia()},estado=${estado})}">Descargar Excel</a>
             <button type="button" class="boton-secundario" data-imprimir>Imprimir o guardar PDF</button>
         </div>
-        <p class="nota" style="margin-top:8px">Solo lectura. El DNI se muestra enmascarado (RN-30).
+        <p class="nota" style="margin-top:8px">Solo lectura. El DNI se muestra enmascarado.
             La descarga usa los filtros aplicados con «Ver reporte» e incluye hasta 10 000 filas.</p>
     </section>
 
@@ -37,7 +37,7 @@
         </div>
     </section>
 
-    <!-- CU-16, 3a -->
+    <!--/* CU-16, 3a */-->
     <section class="tarjeta" th:if="${r.vacio()}">
         <p class="aviso" style="margin:0">No hay datos para los filtros elegidos.</p>
     </section>
@@ -48,7 +48,7 @@
             <h3 th:text="${g.titulo()}"></h3>
             <p class="nota" th:if="${g.vacio()}">Sin datos.</p>
             <th:block th:unless="${g.vacio()}">
-                <!-- Serie diaria: columnas (un día por columna; el valor aparece al pasar el cursor) -->
+                <!--/* Serie diaria: columnas (un día por columna; el valor aparece al pasar el cursor) */-->
                 <th:block th:if="${diario}">
                     <div class="columnas">
                         <div class="col" th:each="b : ${g.barras()}" th:classappend="${b.porcentaje() == 0} ? 'cero'"

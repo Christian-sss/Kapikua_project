@@ -28,7 +28,7 @@
             </li>
         </ul>
     </section>
-    <!-- CU-14, 4-5: la decisión es definitiva -->
+    <!--/* CU-14, 4-5: la decisión es definitiva */-->
     <section class="tarjeta" th:if="${d.alerta().estado().name() == 'PENDIENTE'}">
         <h2>Registrar revisión</h2>
         <p class="error" th:if="${error}" th:text="${error}"></p>

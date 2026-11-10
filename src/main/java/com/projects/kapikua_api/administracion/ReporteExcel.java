@@ -95,7 +95,7 @@ final class ReporteExcel {
             hoja.style(fila, 0).bold().fontSize(14).set();
             fila++;
             hoja.value(fila++, 0, tipo.filtro() + ": " + (filtro == null ? "Todos" : filtro));
-            hoja.value(fila++, 0, "Generado el " + generado.format(GENERADO) + " (hora de Lima). Solo lectura; el DNI va enmascarado (RN-30).");
+            hoja.value(fila++, 0, "Generado el " + generado.format(GENERADO) + " (hora de Lima). Solo lectura; el DNI va enmascarado.");
             fila++;
 
             for (var indicador : reporte.indicadores()) {

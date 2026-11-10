@@ -12,7 +12,7 @@
         </form>
     </div>
 
-    <!-- Comprobante de la operación recién hecha (CU-04, CU-05, CU-06) -->
+    <!--/* Comprobante de la operación recién hecha (CU-04, CU-05, CU-06) */-->
     <div class="tarjeta exito" th:if="${comprobante}">
         <h2>Operación realizada</h2>
         <div class="fila"><span>Monto</span><strong th:text="${comprobante.monto()}"></strong></div>
@@ -23,7 +23,7 @@
             operación? Presenta un reclamo</a>
     </div>
 
-    <!-- RNF-17: este bloque se reemplaza sin recargar la página cuando llega un aviso SSE -->
+    <!--/* RNF-17: este bloque se reemplaza sin recargar la página cuando llega un aviso SSE */-->
     <div id="contenido" th:fragment="contenido"
          th:data-fragmento="@{/billetera/fragmentos/contenido(desde=${filtroDesde},hasta=${filtroHasta})}"
          th:data-eventos="@{/eventos}">
@@ -41,7 +41,7 @@
             </div>
         </section>
 
-        <!-- Límites de la SBS (Res. SBS 00704-2026) -->
+        <!--/* Límites de la SBS (Res. SBS 00704-2026) */-->
         <section class="tarjeta">
             <h2>Tus límites de este mes</h2>
             <div class="fila"><span>Recargas: usado / disponible</span>

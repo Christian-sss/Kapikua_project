@@ -7,7 +7,7 @@
         <a th:href="@{/reclamos}">← Mis reclamos</a>
         <form th:action="@{/logout}" method="post"><button type="submit" class="enlace-boton">Cerrar sesión</button></form>
     </div>
-    <!-- CU-15, 3: constancia -->
+    <!--/* CU-15, 3: constancia */-->
     <div class="tarjeta exito" th:if="${registrado}">
         <strong>Registramos tu reclamo.</strong>
         <p style="margin-top:6px">Guarda tu código; te responderemos a más tardar en la fecha límite.</p>

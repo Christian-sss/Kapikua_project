@@ -15,7 +15,7 @@
             <input id="monto" type="number" inputmode="decimal" step="0.01" min="0.01" th:field="*{monto}">
             <span class="campo-error" th:errors="*{monto}"></span>
 
-            <!-- PROVISIONAL: con Culqi, aquí va Culqi Checkout y el token lo entrega Culqi en el navegador. -->
+            <!--/* PROVISIONAL: con Culqi, aquí va Culqi Checkout y el token lo entrega Culqi en el navegador. */-->
             <label for="token">Tarjeta de prueba</label>
             <select id="token" th:field="*{token}">
                 <option value="tok_aprobado">Visa de prueba · aprobada</option>
