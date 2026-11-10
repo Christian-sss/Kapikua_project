@@ -31,6 +31,7 @@
         <jjwt.version>0.12.6</jjwt.version>
         <archunit.version>1.4.2</archunit.version>
         <jacoco.version>0.8.16</jacoco.version>
+        <fastexcel.version>0.20.2</fastexcel.version>
         <!-- SRS: cobertura mínima de pruebas sobre el dominio -->
         <cobertura.dominio.minima>0.70</cobertura.dominio.minima>
     </properties>
@@ -72,6 +73,13 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Descarga de reportes en Excel (CU-16): escribe .xlsx sin Apache POI -->
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel</artifactId>
+            <version>${fastexcel.version}</version>
         </dependency>
 
         <dependency>

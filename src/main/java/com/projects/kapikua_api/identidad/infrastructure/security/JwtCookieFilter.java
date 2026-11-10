@@ -51,11 +51,11 @@ class JwtCookieFilter extends OncePerRequestFilter {
                 // Se guarda en la petición para el despacho asíncrono de SSE, donde este filtro no vuelve a correr.
                 repositorioContexto.saveContext(contexto, request, response);
                 if (!esPeticionAutomatica(request)) {
-                    cookie.escribir(response, jwt.emitir(principal.usuarioId(), usuario.get().getRol()), jwt.duracion());
+                    cookie.escribir(request, response, jwt.emitir(principal.usuarioId(), usuario.get().getRol()), jwt.duracion());
                 }
             } else {
                 request.setAttribute(SESION_VENCIDA, Boolean.TRUE);
-                cookie.borrar(response);
+                cookie.borrar(request, response);
             }
         }
         chain.doFilter(request, response);

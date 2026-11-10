@@ -7,6 +7,7 @@ import com.projects.kapikua_api.identidad.domain.model.Rol;
 import com.projects.kapikua_api.identidad.infrastructure.security.CookieSesion;
 import com.projects.kapikua_api.identidad.infrastructure.security.JwtServicio;
 import com.projects.kapikua_api.shared.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -48,10 +49,11 @@ class LoginController {
     String ingresar(@RequestParam String usuario,
                     @RequestParam String contrasena,
                     Model model,
+                    HttpServletRequest request,
                     HttpServletResponse response) {
         return switch (autenticar.autenticar(usuario, contrasena)) {
             case Result.Ok<SesionEmitida, AutenticacionError> ok -> {
-                cookie.escribir(response, ok.valor().token(), jwt.duracion());
+                cookie.escribir(request, response, ok.valor().token(), jwt.duracion());
                 yield "redirect:" + inicioDe(ok.valor().rol());
             }
             case Result.Err<SesionEmitida, AutenticacionError> err -> {

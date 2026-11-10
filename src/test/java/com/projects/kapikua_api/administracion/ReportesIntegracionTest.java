@@ -109,6 +109,15 @@ class ReportesIntegracionTest {
         });
         assertThat(reportes.transacciones(mes, "RECARGA").filas())
                 .anySatisfy(f -> assertThat(f.origen()).isEqualTo("Pasarela de pagos"));
+        // La descarga pide su propio límite de filas; los indicadores siguen cubriendo todo el período.
+        var unaFila = reportes.transacciones(mes, null, 1);
+        assertThat(unaFila.filas()).hasSize(1);
+        assertThat(unaFila.truncado()).isTrue();
+        assertThat(unaFila.indicadores()).isEqualTo(reportes.transacciones(mes, null).indicadores());
+        // El driver entrega UTC: el reporte debe mostrar la hora de Lima, no 5 horas adelantada.
+        assertThat(pagos.filas()).allSatisfy(f -> assertThat(f.fecha().getOffset()).isEqualTo(java.time.ZoneOffset.ofHours(-5)));
+        assertThat(reportes.clientes(mes, null).filas())
+                .allSatisfy(f -> assertThat(f.registro().getOffset()).isEqualTo(java.time.ZoneOffset.ofHours(-5)));
     }
 
     @Test

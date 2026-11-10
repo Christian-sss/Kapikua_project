@@ -1,5 +1,6 @@
 package com.projects.kapikua_api.cumplimiento.infrastructure.adapter.out.persistence;
 
+import com.projects.kapikua_api.shared.infrastructure.HoraLocal;
 import com.projects.kapikua_api.cumplimiento.application.port.out.AlertaRepositoryPort;
 import com.projects.kapikua_api.cumplimiento.domain.model.Alerta;
 import com.projects.kapikua_api.cumplimiento.domain.model.EstadoAlerta;
@@ -30,9 +31,9 @@ class AlertaPersistenceAdapter implements AlertaRepositoryPort {
         var revisor = rs.getObject("revisado_por", Long.class);
         return Alerta.reconstituir(rs.getLong("id"), rs.getLong("billetera_id"), rs.getLong("transaccion_id"),
                 ReglaAlerta.valueOf(rs.getString("regla")), rs.getString("detalle"),
-                rs.getObject("fecha", OffsetDateTime.class), EstadoAlerta.valueOf(rs.getString("estado")),
+                HoraLocal.leer(rs, "fecha"), EstadoAlerta.valueOf(rs.getString("estado")),
                 rs.getString("comentario"), revisor == null ? null : new UsuarioId(revisor),
-                rs.getObject("fecha_revision", OffsetDateTime.class));
+                HoraLocal.leer(rs, "fecha_revision"));
     };
 
     private final JdbcClient jdbc;
@@ -60,7 +61,7 @@ class AlertaPersistenceAdapter implements AlertaRepositoryPort {
         var ultimas = new EnumMap<ReglaAlerta, OffsetDateTime>(ReglaAlerta.class);
         jdbc.sql("select regla, max(fecha) as fecha from cumplimiento.alerta where billetera_id = :b group by regla")
                 .param("b", billeteraId)
-                .query((rs, n) -> ultimas.put(ReglaAlerta.valueOf(rs.getString("regla")), rs.getObject("fecha", OffsetDateTime.class)))
+                .query((rs, n) -> ultimas.put(ReglaAlerta.valueOf(rs.getString("regla")), HoraLocal.leer(rs, "fecha")))
                 .list();
         return ultimas;
     }

@@ -1,5 +1,6 @@
 package com.projects.kapikua_api.billetera.infrastructure.adapter.out.persistence;
 
+import com.projects.kapikua_api.shared.infrastructure.HoraLocal;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort;
 import com.projects.kapikua_api.billetera.domain.model.AcumuladoMensual;
 import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
@@ -82,7 +83,7 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
                 .param("limite", limite)
                 .query((rs, n) -> new LineaMovimiento(rs.getLong("id"), TipoTransaccion.valueOf(rs.getString("tipo")),
                         rs.getString("descripcion"), rs.getBigDecimal("monto"), rs.getBigDecimal("saldo_posterior"),
-                        rs.getObject("fecha", OffsetDateTime.class)))
+                        HoraLocal.leer(rs, "fecha")))
                 .list();
     }
 
@@ -101,7 +102,7 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
                 .param("tipos", PAGOS_Y_TRANSFERENCIAS)
                 .param("desde", desde)
                 .param("hasta", hasta)
-                .query((rs, n) -> new LineaCobro(rs.getObject("fecha", OffsetDateTime.class), rs.getBigDecimal("monto"),
+                .query((rs, n) -> new LineaCobro(HoraLocal.leer(rs, "fecha"), rs.getBigDecimal("monto"),
                         rs.getLong("pagadora")))
                 .list();
     }

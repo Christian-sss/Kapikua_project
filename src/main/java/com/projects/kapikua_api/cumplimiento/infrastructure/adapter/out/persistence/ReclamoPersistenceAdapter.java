@@ -1,5 +1,6 @@
 package com.projects.kapikua_api.cumplimiento.infrastructure.adapter.out.persistence;
 
+import com.projects.kapikua_api.shared.infrastructure.HoraLocal;
 import com.projects.kapikua_api.cumplimiento.application.port.out.ReclamoRepositoryPort;
 import com.projects.kapikua_api.cumplimiento.domain.model.EstadoReclamo;
 import com.projects.kapikua_api.cumplimiento.domain.model.MotivoReclamo;
@@ -26,9 +27,9 @@ class ReclamoPersistenceAdapter implements ReclamoRepositoryPort {
         var respondio = rs.getObject("respondido_por", Long.class);
         return Reclamo.reconstituir(rs.getLong("id"), rs.getString("codigo"), new UsuarioId(rs.getLong("usuario_id")),
                 MotivoReclamo.valueOf(rs.getString("motivo")), rs.getString("detalle"),
-                rs.getObject("fecha_registro", OffsetDateTime.class), rs.getObject("fecha_limite", LocalDate.class),
+                HoraLocal.leer(rs, "fecha_registro"), rs.getObject("fecha_limite", LocalDate.class),
                 EstadoReclamo.valueOf(rs.getString("estado")), rs.getString("prorroga"), rs.getString("respuesta"),
-                respondio == null ? null : new UsuarioId(respondio), rs.getObject("fecha_respuesta", OffsetDateTime.class));
+                respondio == null ? null : new UsuarioId(respondio), HoraLocal.leer(rs, "fecha_respuesta"));
     };
 
     private final JdbcClient jdbc;

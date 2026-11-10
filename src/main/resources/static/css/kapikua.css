@@ -490,3 +490,72 @@ main.ancho {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
+
+/* Reportes: descargas e impresión (CU-16) */
+.descargas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.boton-secundario {
+    display: inline-block;
+    padding: 9px 12px;
+    border: 1px solid var(--primario);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--primario);
+    font-size: .9rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.boton-secundario:hover {
+    background: var(--aviso-fondo);
+}
+
+@media print {
+    body {
+        background: #fff;
+        padding: 0;
+        font-size: 10pt;
+    }
+
+    main, main.ancho {
+        max-width: none;
+    }
+
+    .barra, .pestanas, .filtros, .descargas, .nota {
+        display: none !important;
+    }
+
+    .tarjeta {
+        box-shadow: none;
+        border: 0;
+        padding: 0;
+        margin: 0 0 12px;
+        break-inside: avoid;
+    }
+
+    .tabla {
+        overflow: visible;
+    }
+
+    .tabla table {
+        font-size: 8.5pt;
+    }
+
+    .tabla th, .tabla td {
+        white-space: normal;
+        padding: 3px 5px;
+    }
+
+    .tabla thead {
+        display: table-header-group;   /* repite los títulos en cada página */
+    }
+
+    .tabla tr {
+        break-inside: avoid;
+    }
+}

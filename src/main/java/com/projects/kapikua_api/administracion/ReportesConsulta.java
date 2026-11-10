@@ -1,5 +1,6 @@
 package com.projects.kapikua_api.administracion;
 
+import com.projects.kapikua_api.shared.infrastructure.HoraLocal;
 import com.projects.kapikua_api.shared.Dinero;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -17,13 +18,14 @@ import java.util.function.Function;
 /**
  * CU-16: consultas de SOLO LECTURA sobre los esquemas de todos los contextos. Administración no es un bounded
  * context: no tiene modelo propio ni escribe nada. El DNI se enmascara en el SQL (RN-30, RNF-11): el número
- * completo nunca llega a la aplicación. Cada reporte muestra hasta {@link #MAX_FILAS} filas; los indicadores
- * y gráficos se calculan sobre todo el período.
+ * completo nunca llega a la aplicación. En pantalla cada reporte muestra hasta {@link #MAX_FILAS} filas y la
+ * descarga en Excel hasta {@link #MAX_FILAS_DESCARGA}; los indicadores y gráficos se calculan sobre todo el período.
  */
 @Repository
 public class ReportesConsulta {
 
     public static final int MAX_FILAS = 300;
+    public static final int MAX_FILAS_DESCARGA = 10_000;
 
     private static final String DNI = "'****' || right(u.dni, 4)";
     private static final String DIA_LIMA = "(%s at time zone 'America/Lima')::date";
@@ -56,6 +58,10 @@ public class ReportesConsulta {
     // ---------------------------------------------------------------- clientes
 
     public Reporte<FilaCliente> clientes(Periodo p, String estado) {
+        return clientes(p, estado, MAX_FILAS);
+    }
+
+    public Reporte<FilaCliente> clientes(Periodo p, String estado, int limite) {
         var filtro = """
                 from identidad.usuario u
                 left join billetera.billetera b on b.usuario_id = u.id
@@ -66,9 +72,9 @@ public class ReportesConsulta {
                 select %s as dni, u.nombres || ' ' || u.apellidos as nombre, b.nombre_negocio,
                        left(b.numero_celular, 3) || ' *** ' || right(b.numero_celular, 3) as celular,
                        u.fecha_creacion, h.nivel, b.saldo, b.estado, u.activo
-                %s order by u.fecha_creacion desc limit %d""".formatted(DNI, filtro, MAX_FILAS + 1)), p, estado)
+                %s order by u.fecha_creacion desc limit %d""".formatted(DNI, filtro, limite + 1)), p, estado)
                 .query((rs, n) -> new FilaCliente(rs.getString("dni"), rs.getString("nombre"), rs.getString("nombre_negocio"),
-                        rs.getString("celular"), rs.getObject("fecha_creacion", OffsetDateTime.class),
+                        rs.getString("celular"), HoraLocal.leer(rs, "fecha_creacion"),
                         rs.getObject("nivel", Integer.class), dinero(rs.getBigDecimal("saldo")), rs.getString("estado"),
                         rs.getBoolean("activo")))
                 .list();
@@ -89,12 +95,16 @@ public class ReportesConsulta {
         var graficos = List.of(
                 Grafico.de(p.porDia() ? "Registros del día" : "Registros por día", porDia(p, "u.fecha_creacion", "count(*)", filtro, estado), cantidad()),
                 Grafico.de("Clientes por nivel crediticio", porNivel, cantidad()));
-        return reporte(filas, indicadores, graficos);
+        return reporte(filas, limite, indicadores, graficos);
     }
 
     // ---------------------------------------------------------------- transacciones
 
     public Reporte<FilaTransaccion> transacciones(Periodo p, String tipo) {
+        return transacciones(p, tipo, MAX_FILAS);
+    }
+
+    public Reporte<FilaTransaccion> transacciones(Periodo p, String tipo, int limite) {
         var filtro = """
                 from billetera.transaccion t
                 where t.fecha >= :desde and t.fecha < :hasta and (cast(:estado as varchar) is null or t.tipo = :estado)""";
@@ -104,10 +114,10 @@ public class ReportesConsulta {
         var filas = parametros(jdbc.sql("""
                 select t.id, t.fecha, t.tipo, t.monto, %s as origen, %s as destino
                 %s order by t.fecha desc, t.id desc limit %d""".formatted(
-                        titular.formatted(DNI, "<"), titular.formatted(DNI, ">"), filtro, MAX_FILAS + 1)), p, tipo)
+                        titular.formatted(DNI, "<"), titular.formatted(DNI, ">"), filtro, limite + 1)), p, tipo)
                 .query((rs, n) -> {
                     var t = rs.getString("tipo");
-                    return new FilaTransaccion(rs.getLong("id"), rs.getObject("fecha", OffsetDateTime.class), t,
+                    return new FilaTransaccion(rs.getLong("id"), HoraLocal.leer(rs, "fecha"), t,
                             dinero(rs.getBigDecimal("monto")),
                             contraparte(rs.getString("origen"), t.equals("RECARGA") ? "Pasarela de pagos" : t.equals("DESEMBOLSO") ? "Entidad aliada" : "—"),
                             contraparte(rs.getString("destino"), t.startsWith("PAGO_CUOTA") || t.equals("PAGO_ANTICIPADO") ? "Entidad aliada" : "—"));
@@ -123,12 +133,16 @@ public class ReportesConsulta {
         var graficos = List.of(
                 Grafico.de("Monto por tipo", porTipo, montos()),
                 Grafico.de(p.porDia() ? "Monto del día" : "Monto por día", porDia(p, "t.fecha", "sum(t.monto)", filtro, tipo), montos()));
-        return reporte(filas, indicadores, graficos);
+        return reporte(filas, limite, indicadores, graficos);
     }
 
     // ---------------------------------------------------------------- créditos
 
     public Reporte<FilaCredito> creditos(Periodo p, String estado) {
+        return creditos(p, estado, MAX_FILAS);
+    }
+
+    public Reporte<FilaCredito> creditos(Periodo p, String estado, int limite) {
         var filtro = """
                 from credito.prestamo p join identidad.usuario u on u.id = p.usuario_id
                 where p.fecha_desembolso >= :desde and p.fecha_desembolso < :hasta
@@ -139,10 +153,10 @@ public class ReportesConsulta {
                        (select count(*) from credito.cuota c where c.prestamo_id = p.id and c.estado <> 'ANULADA') as cuotas,
                        (select coalesce(sum(c.capital + c.interes + c.interes_moratorio - c.monto_pagado), 0)
                         from credito.cuota c where c.prestamo_id = p.id and c.estado in ('PENDIENTE', 'VENCIDA')) as por_cobrar
-                %s order by p.fecha_desembolso desc limit %d""".formatted(DNI, filtro, MAX_FILAS + 1)), p, estado)
+                %s order by p.fecha_desembolso desc limit %d""".formatted(DNI, filtro, limite + 1)), p, estado)
                 .query((rs, n) -> new FilaCredito(rs.getLong("id"), rs.getString("codigo_credito_efa"), rs.getString("dni"),
                         rs.getString("nombre"), dinero(rs.getBigDecimal("monto")), rs.getBigDecimal("tea"), rs.getInt("cuotas"),
-                        rs.getString("estado"), rs.getObject("fecha_desembolso", OffsetDateTime.class),
+                        rs.getString("estado"), HoraLocal.leer(rs, "fecha_desembolso"),
                         dinero(rs.getBigDecimal("por_cobrar"))))
                 .list();
 
@@ -161,12 +175,16 @@ public class ReportesConsulta {
                 Grafico.de("Préstamos por estado", mapa(parametros(jdbc.sql(
                         "select p.estado as etiqueta, count(*) as valor " + filtro + " group by 1 order by 2 desc"), p, estado)), cantidad()),
                 Grafico.de("Solicitudes del período por estado", mapa(solicitudes), cantidad()));
-        return reporte(filas, indicadores, graficos);
+        return reporte(filas, limite, indicadores, graficos);
     }
 
     // ---------------------------------------------------------------- cobranza
 
     public Reporte<FilaCuota> cobranza(Periodo p, String estado) {
+        return cobranza(p, estado, MAX_FILAS);
+    }
+
+    public Reporte<FilaCuota> cobranza(Periodo p, String estado, int limite) {
         var filtro = """
                 from credito.cuota c join credito.prestamo p on p.id = c.prestamo_id join identidad.usuario u on u.id = p.usuario_id
                 where c.fecha_vencimiento >= :dia_desde and c.fecha_vencimiento < :dia_hasta and c.estado <> 'ANULADA'
@@ -175,7 +193,7 @@ public class ReportesConsulta {
         var filas = cuotas(jdbc.sql("""
                 select p.id as prestamo, %s as dni, c.numero, c.fecha_vencimiento,
                        c.capital + c.interes + c.interes_moratorio as total, c.monto_pagado, c.interes_moratorio, c.estado, c.fecha_pago
-                %s order by c.fecha_vencimiento, p.id, c.numero limit %d""".formatted(DNI, filtro, MAX_FILAS + 1)), p, estado)
+                %s order by c.fecha_vencimiento, p.id, c.numero limit %d""".formatted(DNI, filtro, limite + 1)), p, estado)
                 .query((rs, n) -> {
                     var venc = rs.getObject("fecha_vencimiento", LocalDate.class);
                     var pago = rs.getObject("fecha_pago", LocalDate.class);
@@ -215,7 +233,7 @@ public class ReportesConsulta {
                 Grafico.de("Cuotas por estado", mapa(cuotas(jdbc.sql(
                         "select c.estado as etiqueta, count(*) as valor " + filtro + " group by 1 order by 2 desc"), p, estado)), cantidad()),
                 Grafico.de("Pagos del período por origen", mapa(pagosPorOrigen), montos()));
-        return reporte(filas, indicadores, graficos);
+        return reporte(filas, limite, indicadores, graficos);
     }
 
     // ---------------------------------------------------------------- apoyo
@@ -248,9 +266,9 @@ public class ReportesConsulta {
         return datos;
     }
 
-    private static <T> Reporte<T> reporte(List<T> filas, List<Indicador> indicadores, List<Grafico> graficos) {
-        var truncado = filas.size() > MAX_FILAS;
-        return new Reporte<>(truncado ? filas.subList(0, MAX_FILAS) : filas, truncado, indicadores, graficos);
+    private static <T> Reporte<T> reporte(List<T> filas, int limite, List<Indicador> indicadores, List<Grafico> graficos) {
+        var truncado = filas.size() > limite;
+        return new Reporte<>(truncado ? filas.subList(0, limite) : filas, truncado, indicadores, graficos);
     }
 
     private static String contraparte(String dni, String porDefecto) {

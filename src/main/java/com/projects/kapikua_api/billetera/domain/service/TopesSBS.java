@@ -13,13 +13,15 @@ import com.projects.kapikua_api.shared.Result;
  */
 public final class TopesSBS {
 
-    private TopesSBS() {}
+    private TopesSBS() {
+    }
 
     public static Result<Void, ErrorBilletera> validarRecarga(Billetera destino, Dinero monto,
                                                               AcumuladoMensual acumulado, Topes topes) {
         if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
         if (!destino.estaActiva()) return Result.err(new ErrorBilletera.BilleteraBloqueada());
-        if (monto.mayorQue(topes.porOperacion())) return Result.err(new ErrorBilletera.TopePorOperacion(topes.porOperacion()));
+        if (monto.mayorQue(topes.porOperacion()))
+            return Result.err(new ErrorBilletera.TopePorOperacion(topes.porOperacion()));
         if (acumulado.recargas().sumar(monto).mayorQue(topes.recargasMes())) {
             return Result.err(new ErrorBilletera.TopeRecargasMes(acumulado.recargas().faltaPara(topes.recargasMes())));
         }
@@ -29,7 +31,9 @@ public final class TopesSBS {
         return Result.ok();
     }
 
-    /** Transferencia o pago a negocio: lo que sale del origen y entra al destino. */
+    /**
+     * Transferencia o pago a negocio: lo que sale del origen y entra al destino.
+     */
     public static Result<Void, ErrorBilletera> validarEnvio(Billetera origen, Billetera destino, Dinero monto,
                                                             AcumuladoMensual acumuladoOrigen, Topes topes) {
         if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
@@ -38,7 +42,8 @@ public final class TopesSBS {
         if (origen.getId() != null && origen.getId().equals(destino.getId())) {
             return Result.err(new ErrorBilletera.OperacionConSiMismo());
         }
-        if (monto.mayorQue(topes.porOperacion())) return Result.err(new ErrorBilletera.TopePorOperacion(topes.porOperacion()));
+        if (monto.mayorQue(topes.porOperacion()))
+            return Result.err(new ErrorBilletera.TopePorOperacion(topes.porOperacion()));
         if (acumuladoOrigen.pagosYTransferencias().sumar(monto).mayorQue(topes.pagosMes())) {
             return Result.err(new ErrorBilletera.TopePagosMes(
                     acumuladoOrigen.pagosYTransferencias().faltaPara(topes.pagosMes())));

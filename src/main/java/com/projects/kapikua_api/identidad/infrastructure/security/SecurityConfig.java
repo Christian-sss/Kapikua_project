@@ -53,7 +53,7 @@ public class SecurityConfig {
                                 ? "/login?vencida" : "/login"))))
                 .logout(l -> l
                         .logoutUrl("/logout")
-                        .addLogoutHandler((request, response, auth) -> cookie.borrar(response))
+                        .addLogoutHandler((request, response, auth) -> cookie.borrar(request, response))
                         .logoutSuccessUrl("/login?salir"))
                 .build();
     }
