@@ -1,6 +1,7 @@
 package com.projects.kapikua_api.identidad.infrastructure.security;
 
 import com.projects.kapikua_api.identidad.domain.model.Usuario;
+import com.projects.kapikua_api.shared.UsuarioAutenticado;
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,7 +13,7 @@ import java.util.List;
  * Usuario autenticado de la petición. Los controladores de otros contextos lo reciben con
  * {@code @AuthenticationPrincipal SecurityUser} y solo deberían usar {@link #usuarioId()}.
  */
-public class SecurityUser {
+public class SecurityUser implements UsuarioAutenticado {
 
     private final UsuarioId usuarioId;
     private final String nombres;
@@ -24,6 +25,7 @@ public class SecurityUser {
         this.rol = usuario.getRol().name();
     }
 
+    @Override
     public UsuarioId usuarioId() {
         return usuarioId;
     }

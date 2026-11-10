@@ -7,11 +7,10 @@ import com.projects.kapikua_api.identidad.application.port.out.CifradorContrasen
 import com.projects.kapikua_api.identidad.application.port.out.UsuarioRepositoryPort;
 import com.projects.kapikua_api.identidad.application.port.out.ValidadorIdentidad;
 import com.projects.kapikua_api.identidad.domain.error.RegistroError;
-import com.projects.kapikua_api.identidad.domain.model.PoliticaContrasena;
+import com.projects.kapikua_api.identidad.domain.service.PoliticaContrasena;
 import com.projects.kapikua_api.identidad.domain.model.Usuario;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
-import com.projects.kapikua_api.shared.evento.UsuarioRegistrado;
 import com.projects.kapikua_api.shared.puerto.PublicadorEventos;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -83,14 +82,14 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
 
         // 7 y 8. El dominio aplica RN-06 y registra el consentimiento de términos.
         var registro = Usuario.registrar(c.dni(), c.correo(), cifrador.cifrar(c.contrasena()),
-                c.fechaNacimiento(), identidad, enListas, versionTerminos, OffsetDateTime.now(clock));
+                c.fechaNacimiento(), identidad, enListas, versionTerminos, c.celular(), c.nombreNegocio(),
+                OffsetDateTime.now(clock));
 
         return switch (registro) {
             case Result.Err<Usuario, RegistroError> err -> Result.err(err.error());
             case Result.Ok<Usuario, RegistroError> ok -> Result.ok(transaccion.execute(estado -> {
                 var guardado = usuarios.guardar(ok.valor());
-                publicador.publicar(new UsuarioRegistrado(
-                        guardado.usuarioId(), c.celular(), c.nombreNegocio()));
+                publicador.publicarDe(guardado);   // UsuarioRegistrado: Billetera abre la cuenta
                 return guardado.usuarioId();
             }));
         };

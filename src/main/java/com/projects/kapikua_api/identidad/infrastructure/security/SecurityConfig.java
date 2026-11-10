@@ -4,8 +4,9 @@ import com.projects.kapikua_api.identidad.application.port.out.UsuarioRepository
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -31,15 +32,21 @@ public class SecurityConfig {
                                          JwtServicio jwt,
                                          CookieSesion cookie,
                                          UsuarioRepositoryPort usuarios) throws Exception {
+        var repositorioContexto = new RequestAttributeSecurityContextRepository();
         return http
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Sin HttpSession: el contexto de seguridad vive solo durante la petición (lo arma JwtCookieFilter).
+                // Se desactiva sessionManagement porque, sin sesión, creería que en cada petición hay un login nuevo
+                // y renovaría el token CSRF siempre: un formulario abierto en otra pestaña daría 403.
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .securityContext(c -> c.securityContextRepository(repositorioContexto))
                 .requestCache(RequestCacheConfigurer::disable)
                 .csrf(c -> c.csrfTokenRepository(new CookieCsrfTokenRepository()))
                 .authorizeHttpRequests(c -> c
                         .requestMatchers("/registro", "/login", "/css/**", "/js/**", "/error").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")   // 403 para otro rol (RNF-05)
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtCookieFilter(jwt, cookie, usuarios), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtCookieFilter(jwt, cookie, usuarios, repositorioContexto),
+                        UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e.authenticationEntryPoint((request, response, ex) ->
                         response.sendRedirect(request.getContextPath()
                                 + (request.getAttribute(JwtCookieFilter.SESION_VENCIDA) != null

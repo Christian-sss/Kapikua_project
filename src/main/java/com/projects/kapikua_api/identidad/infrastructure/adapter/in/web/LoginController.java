@@ -36,9 +36,11 @@ class LoginController {
     @GetMapping("/login")
     String formulario(@RequestParam(required = false) String vencida,
                       @RequestParam(required = false) String salir,
+                      @RequestParam(required = false) String registrado,
                       Model model) {
         if (vencida != null) model.addAttribute("aviso", "Tu sesión venció por inactividad. Ingresa de nuevo.");
         if (salir != null) model.addAttribute("aviso", "Cerraste tu sesión.");
+        if (registrado != null) model.addAttribute("aviso", "Tu cuenta fue creada. Ya puedes iniciar sesión.");
         return VISTA;
     }
 
