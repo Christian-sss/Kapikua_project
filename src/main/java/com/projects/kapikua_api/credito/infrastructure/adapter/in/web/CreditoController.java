@@ -7,7 +7,6 @@ import com.projects.kapikua_api.credito.application.port.in.SimularCreditoUseCas
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioAutenticado;
@@ -99,7 +98,7 @@ class CreditoController {
         }
         return switch (solicitar.solicitar(u.usuarioId(), Dinero.de(monto), cuotas, destino, autorizaDatos)) {
             case Result.Ok<SolicitarCreditoUseCase.ResultadoSolicitud, ErrorCredito> ok -> {
-                if (ok.valor().recomendacion() == Recomendacion.NO_APTO) {
+                if (!ok.valor().tieneOferta()) {
                     model.addAttribute("r", ok.valor());
                     yield "credito/no-apto";
                 }

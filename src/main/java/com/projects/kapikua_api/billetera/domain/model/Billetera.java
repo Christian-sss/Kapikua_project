@@ -74,12 +74,12 @@ public final class Billetera {
     public Result<Void, ErrorBilletera> acreditar(Dinero monto, Dinero saldoMaximo, boolean esDestinoAjeno) {
         if (!estaActiva()) {
             return Result.err(esDestinoAjeno ? new ErrorBilletera.DestinatarioNoEncontrado()
-                                             : new ErrorBilletera.BilleteraBloqueada());
+                    : new ErrorBilletera.BilleteraBloqueada());
         }
         if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
         if (saldo.sumar(monto).mayorQue(saldoMaximo)) {
             return Result.err(esDestinoAjeno ? new ErrorBilletera.DestinoNoPuedeRecibir()
-                                             : new ErrorBilletera.TopeSaldoPropio(puedeRecibir(saldoMaximo)));
+                    : new ErrorBilletera.TopeSaldoPropio(puedeRecibir(saldoMaximo)));
         }
         saldo = saldo.sumar(monto);
         return Result.ok();
@@ -109,14 +109,43 @@ public final class Billetera {
         motivoBloqueo = texto.length() > 150 ? texto.substring(0, 150) : texto;
     }
 
-    public Long getId() { return id; }
-    public UsuarioId getUsuarioId() { return usuarioId; }
-    public Celular getCelular() { return celular; }
-    public String getNombreNegocio() { return nombreNegocio; }
-    public Dinero getSaldo() { return saldo; }
-    public Dinero getSaldoApartado() { return saldoApartado; }
-    public EstadoBilletera getEstado() { return estado; }
-    public String getMotivoBloqueo() { return motivoBloqueo; }
-    public OffsetDateTime getFechaApertura() { return fechaApertura; }
-    public Long getVersion() { return version; }
+    public Long getId() {
+        return id;
+    }
+
+    public UsuarioId getUsuarioId() {
+        return usuarioId;
+    }
+
+    public Celular getCelular() {
+        return celular;
+    }
+
+    public String getNombreNegocio() {
+        return nombreNegocio;
+    }
+
+    public Dinero getSaldo() {
+        return saldo;
+    }
+
+    public Dinero getSaldoApartado() {
+        return saldoApartado;
+    }
+
+    public EstadoBilletera getEstado() {
+        return estado;
+    }
+
+    public String getMotivoBloqueo() {
+        return motivoBloqueo;
+    }
+
+    public OffsetDateTime getFechaApertura() {
+        return fechaApertura;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
 }

@@ -15,7 +15,6 @@ import com.projects.kapikua_api.credito.domain.model.EstadoAval;
 import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
 import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
@@ -111,7 +110,7 @@ class CreditoIntegracionTest {
         var luis = datos.cliente('5');
 
         var r = solicitar(ana.id(), "3000", 8);
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.APTO);
+        assertThat(r.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(r.requiereAval()).isTrue();
         var o = oferta(ana.id(), r.ofertaId());
         assertThat(o.estado()).isEqualTo(EstadoOferta.PENDIENTE_EFA);
@@ -169,7 +168,7 @@ class CreditoIntegracionTest {
     void noAptoNoCreaOferta() {
         var deficiente = clienteElegible('8');
         var r = solicitar(deficiente.id(), "1000", 8);
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(r.recomendacion()).isEqualTo("NO_APTO");
         assertThat(r.ofertaId()).isNull();
         assertThat(r.motivo()).contains("DEFICIENTE");
     }

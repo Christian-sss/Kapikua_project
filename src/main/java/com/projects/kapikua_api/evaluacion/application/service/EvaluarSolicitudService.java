@@ -71,7 +71,7 @@ public class EvaluarSolicitudService implements EvaluarSolicitudUseCase {
         var politica = ((Result.Ok<ParametrosCredito, ErrorEvaluacion>) p).valor();
 
         var historial = historiales.porUsuario(usuarioId).orElseGet(() -> HistorialCrediticio.nuevo(usuarioId));
-        var periodo = cobros.delPeriodo(usuarioId, hoy, politica.periodoCobrosSemanas());
+        var periodo = cobros.delPeriodo(usuarioId, hoy, politica.usoMinimo().periodoCobrosSemanas());
         if (periodo.isEmpty()) return Result.err(new ErrorEvaluacion.UsuarioNoEncontrado());
 
         var elegible = PoliticaCredito.verificarElegibilidad(solicitud, periodo.get(), historial, politica);

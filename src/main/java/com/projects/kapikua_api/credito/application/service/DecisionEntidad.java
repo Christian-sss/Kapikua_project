@@ -44,7 +44,7 @@ class DecisionEntidad {
 
         var c = evaluacion.condiciones();
         var solicitud = new SolicitudEfa(clientes.dni(oferta.getUsuarioId()).orElseThrow(), c.monto(), c.cuotas(),
-                c.tea(), c.cuota(), evaluacion.score(), evaluacion.recomendacion().name(),
+                c.tea(), c.cuota(), evaluacion.score(), evaluacion.recomendacion(),
                 oferta.avalAceptado().flatMap(a -> clientes.dni(a.getUsuarioAvalId())).orElse(null));
         var respuesta = entidad.solicitarDecision(solicitud);
         if (respuesta instanceof Result.Err<RespuestaEfa, ErrorCredito> err) {

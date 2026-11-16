@@ -2,7 +2,6 @@ package com.projects.kapikua_api.evaluacion.infrastructure.adapter.out.persisten
 
 import com.projects.kapikua_api.evaluacion.domain.model.ClasificacionSbs;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -48,9 +47,8 @@ class EvaluacionJpa {
 
     Integer score;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
-    Recomendacion recomendacion;
+    String recomendacion;
 
     @Column(name = "monto_sugerido", precision = 12, scale = 2)
     BigDecimal montoSugerido;

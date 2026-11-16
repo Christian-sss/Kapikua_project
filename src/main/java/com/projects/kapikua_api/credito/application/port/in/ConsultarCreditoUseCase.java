@@ -7,7 +7,6 @@ import com.projects.kapikua_api.credito.domain.model.Cuota;
 import com.projects.kapikua_api.credito.domain.model.EstadoAval;
 import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
 import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -29,7 +28,7 @@ public interface ConsultarCreditoUseCase {
 
     record Invitacion(Long ofertaId, String deudor, Dinero monto, OffsetDateTime vence) {}
 
-    record DetalleOferta(Long id, EstadoOferta estado, Recomendacion recomendacion, String motivo,
+    record DetalleOferta(Long id, EstadoOferta estado, String recomendacion, String motivo,
                          Dinero monto, int cuotas, BigDecimal tea, Dinero cuota, boolean condicionesConfirmadas,
                          boolean requiereAval, List<AvalVista> avales, LocalDate vigenteHasta, String motivoDenegacion,
                          boolean puedeDesignarAval, boolean puedeEnviarAEntidad, boolean puedeAceptar,

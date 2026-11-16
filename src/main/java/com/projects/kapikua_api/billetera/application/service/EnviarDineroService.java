@@ -97,7 +97,8 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         return enviar(TipoTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto, referencia);
     }
 
-    private record Partes(Billetera origen, Billetera destino, Topes topes) {}
+    private record Partes(Billetera origen, Billetera destino, Topes topes) {
+    }
 
     private Result<Partes, ErrorBilletera> validar(TipoTransaccion tipo, UsuarioId usuarioOrigen,
                                                    String celularDestino, Dinero monto) {
@@ -108,7 +109,7 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         var destino = billeteras.porCelular(celular.get());
         if (destino.isEmpty()) {
             return Result.err(tipo == TipoTransaccion.PAGO_NEGOCIO ? new ErrorBilletera.NoEsNegocio()
-                                                                   : new ErrorBilletera.DestinatarioNoEncontrado());
+                    : new ErrorBilletera.DestinatarioNoEncontrado());
         }
         if (origen.get().getId().equals(destino.get().getId())) {
             return Result.err(new ErrorBilletera.OperacionConSiMismo());

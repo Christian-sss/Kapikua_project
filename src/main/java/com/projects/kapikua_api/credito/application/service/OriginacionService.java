@@ -13,7 +13,6 @@ import com.projects.kapikua_api.credito.domain.model.Oferta;
 import com.projects.kapikua_api.evaluacion.application.port.in.ConsultarEvaluacionUseCase.NivelCliente;
 import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -93,7 +92,7 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
         var evaluada = evaluacion.evaluar(usuarioId, monto, cuotas, destino);
         if (evaluada instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err) return Result.err(err.error());
         var ev = ((Result.Ok<ResultadoEvaluacion, ErrorCredito>) evaluada).valor();
-        if (ev.recomendacion() == Recomendacion.NO_APTO) {
+        if (!ev.esApta()) {
             return Result.ok(new ResultadoSolicitud(null, ev.recomendacion(), ev.motivo(), false));
         }
 

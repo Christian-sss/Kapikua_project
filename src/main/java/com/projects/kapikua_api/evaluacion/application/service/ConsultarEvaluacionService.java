@@ -46,24 +46,30 @@ public class ConsultarEvaluacionService implements ConsultarEvaluacionUseCase {
         var hoy = LocalDate.now(clock);
         var resultado = parametros.vigentes(hoy);
         if (resultado instanceof Result.Err<ParametrosCredito, ErrorEvaluacion> err) return Result.err(err.error());
-        var p = ((Result.Ok<ParametrosCredito, ErrorEvaluacion>) resultado).valor();
+        var politica = ((Result.Ok<ParametrosCredito, ErrorEvaluacion>) resultado).valor();
+        var usoMinimo = politica.usoMinimo();
+        var limites = politica.limitesCredito();
+        var reglasNivel = politica.reglasNivel();
 
         var h = historiales.porUsuario(usuarioId).orElseGet(() -> HistorialCrediticio.nuevo(usuarioId));
-        var actual = p.nivel(h.getNivel());
-        var periodo = cobros.delPeriodo(usuarioId, hoy, p.periodoCobrosSemanas());
+        var actual = reglasNivel.nivel(h.getNivel());
+        var periodo = cobros.delPeriodo(usuarioId, hoy, usoMinimo.periodoCobrosSemanas());
         if (periodo.isEmpty()) return Result.err(new ErrorEvaluacion.UsuarioNoEncontrado());
         var c = periodo.get();
 
-        var uso = new UsoMinimo(c.diasAntiguedad(), p.usoMinDias(), c.semanasConCobros(), p.usoMinSemanasConCobro(),
-                c.cantidadCobros(), p.usoMinCobros(), Dinero.de(c.promedioSemanal()));
+        var uso = new UsoMinimo(c.diasAntiguedad(), usoMinimo.usoMinDias(), c.semanasConCobros(),
+                usoMinimo.usoMinSemanasConCobro(), c.cantidadCobros(), usoMinimo.usoMinCobros(),
+                Dinero.de(c.promedioSemanal()));
         Siguiente siguiente = null;
-        if (h.getNivel() < p.nivelMaximo()) {
-            var s = p.nivel(h.getNivel() + 1);
+        var nivelMaximo = reglasNivel.nivelMaximo();
+        if (h.getNivel() < nivelMaximo) {
+            var s = reglasNivel.nivel(h.getNivel() + 1);
             siguiente = new Siguiente(s.nivel(), s.porcentajeCapacidad(), s.maxCuotas(),
-                    s.tea().min(p.tasaMaxima()), s.nivel() <= p.nivelMaxConAval());
+                    s.tea().min(limites.tasaMaxima()), s.nivel() <= reglasNivel.nivelMaxConAval());
         }
-        return Result.ok(new NivelCliente(h.getNivel(), p.nivelMaximo(), actual.porcentajeCapacidad(),
-                p.cuotasMinimas(), actual.maxCuotas(), actual.tea().min(p.tasaMaxima()), h.getCreditosPagadosEnNivel(),
-                actual.creditosParaSubir(), h.getNivel() <= p.nivelMaxConAval(), h.isBloqueadoInterno(), uso, siguiente));
+        return Result.ok(new NivelCliente(h.getNivel(), nivelMaximo, actual.porcentajeCapacidad(),
+                limites.cuotasMinimas(), actual.maxCuotas(), actual.tea().min(limites.tasaMaxima()),
+                h.getCreditosPagadosEnNivel(), actual.creditosParaSubir(), h.getNivel() <= reglasNivel.nivelMaxConAval(),
+                h.isBloqueadoInterno(), uso, siguiente));
     }
 }

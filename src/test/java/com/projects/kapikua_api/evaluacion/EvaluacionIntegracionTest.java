@@ -6,7 +6,6 @@ import com.projects.kapikua_api.evaluacion.application.port.in.EvaluarSolicitudU
 import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.evaluacion.domain.model.Recomendacion;
 import com.projects.kapikua_api.evaluacion.domain.model.SolicitudCredito;
 import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
 import com.projects.kapikua_api.identidad.application.port.in.GestionarConsentimientosUseCase;
@@ -131,7 +130,7 @@ class EvaluacionIntegracionTest {
     }
 
     @Test
-    void anaRecibeUnaRecomendacionAptaQueQuedaGuardada() {
+    void anaRecibeUnaRecomendacionConAjusteQueQuedaGuardada() {
         var u = cliente('0', true);
         conHistoriaDeCobros(u);
         var inicio = System.nanoTime();
@@ -139,7 +138,7 @@ class EvaluacionIntegracionTest {
         var milisegundos = (System.nanoTime() - inicio) / 1_000_000;
 
         assertThat(milisegundos).isLessThan(3000);
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.APTO);
+        assertThat(r.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(r.condiciones().monto().valor()).isCloseTo(new BigDecimal("850"), within(new BigDecimal("3")));
         assertThat(r.condiciones().tea()).isEqualByComparingTo("95");
         assertThat(r.requiereAval()).isTrue();
@@ -156,8 +155,10 @@ class EvaluacionIntegracionTest {
         var u = cliente('8', true);
         conHistoriaDeCobros(u);
         var r = ok(evaluar.evaluar(u, solicitud("1000", 8)));
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(r.recomendacion()).isEqualTo("NO_APTO");
         assertThat(r.score()).isNull();
+        assertThat(r.esApta()).isFalse();
+        assertThat(consultar.porId(r.evaluacionId()).orElseThrow().condiciones().hayOferta()).isFalse();
         assertThat(r.motivo()).contains("DEFICIENTE");
         assertThat(evaluacionesDe(u)).isEqualTo(1);
     }
@@ -167,7 +168,7 @@ class EvaluacionIntegracionTest {
         var u = cliente('7', true);
         conHistoriaDeCobros(u);
         var r = ok(evaluar.evaluar(u, solicitud("1000", 8)));
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.APTO_CON_AJUSTE);
+        assertThat(r.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(r.condiciones().monto().valor()).isLessThanOrEqualTo(new BigDecimal("600"));
     }
 
@@ -209,7 +210,7 @@ class EvaluacionIntegracionTest {
             eventos.publishEvent(new EventosCredito.PrestamoPagado(u, 2L, true));
         });
         var r = ok(evaluar.evaluar(u, solicitud("500", 8)));
-        assertThat(r.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(r.recomendacion()).isEqualTo("NO_APTO");
         assertThat(r.motivo()).contains("bloqueo interno");
         assertThat(err(evaluar.evaluarAval(u))).isInstanceOf(ErrorEvaluacion.AvalClasificacionNoNormal.class);
     }

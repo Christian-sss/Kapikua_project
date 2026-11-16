@@ -5,6 +5,7 @@ import com.projects.kapikua_api.evaluacion.application.port.out.HistorialReposit
 import com.projects.kapikua_api.evaluacion.application.port.out.ParametrosPolitica;
 import com.projects.kapikua_api.evaluacion.domain.model.HistorialCrediticio;
 import com.projects.kapikua_api.evaluacion.domain.model.ParametrosCredito;
+import com.projects.kapikua_api.evaluacion.domain.model.ReglasNivel;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.stereotype.Service;
@@ -43,13 +44,13 @@ public class ActualizarHistorialService implements ActualizarHistorialUseCase {
         aplicar(usuarioId, (h, p) -> h.registrarCreditoPagado(pagadoPorAval, p));
     }
 
-    private void aplicar(UsuarioId usuarioId, BiConsumer<HistorialCrediticio, ParametrosCredito> cambio) {
+    private void aplicar(UsuarioId usuarioId, BiConsumer<HistorialCrediticio, ReglasNivel> cambio) {
         var resultado = parametros.vigentes(LocalDate.now(clock));
         if (!(resultado instanceof Result.Ok<ParametrosCredito, ?> ok)) {
             throw new IllegalStateException("No hay política de crédito vigente para actualizar el historial");
         }
         var historial = historiales.porUsuario(usuarioId).orElseGet(() -> HistorialCrediticio.nuevo(usuarioId));
-        cambio.accept(historial, ok.valor());
+        cambio.accept(historial, ok.valor().reglasNivel());
         historiales.guardar(historial);
     }
 }

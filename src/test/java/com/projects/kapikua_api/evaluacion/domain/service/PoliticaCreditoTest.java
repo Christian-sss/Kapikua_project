@@ -3,6 +3,10 @@ package com.projects.kapikua_api.evaluacion.domain.service;
 import com.projects.kapikua_api.evaluacion.domain.model.*;
 
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
+import com.projects.kapikua_api.evaluacion.domain.model.ConfiguracionFactoresScore.PonderacionesScore;
+import com.projects.kapikua_api.evaluacion.domain.model.ConfiguracionFactoresScore.PuntajesClasificacionSbs;
+import com.projects.kapikua_api.evaluacion.domain.model.ConfiguracionFactoresScore.ReferenciasScore;
+import com.projects.kapikua_api.evaluacion.domain.model.ReglasScore.ReglasRecomendacion;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -23,20 +27,29 @@ public class PoliticaCreditoTest {
     static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
     static final InformeCentral SIN_HISTORIAL = new InformeCentral(null, Dinero.CERO);
 
-    static final ParametrosCredito.PesosScore PESOS = new ParametrosCredito.PesosScore(
-            bd(250), bd(200), bd(200), bd(150), bd(100), bd(100), 15, 180, bd(50), bd(5), bd(100), bd(70), bd(40));
+    static final ConfiguracionFactoresScore FACTORES = new ConfiguracionFactoresScore(
+            new PonderacionesScore(bd(250), bd(200), bd(200), bd(150), bd(100), bd(100)),
+            new ReferenciasScore(15, 180, bd(50), bd(5)), new PuntajesClasificacionSbs(bd(100), bd(70), bd(40)));
 
-    static ParametrosCredito parametros(ParametrosCredito.PesosScore pesos) {
-        return new ParametrosCredito(30, 3, 20, bd(30), Dinero.de("20000"), Dinero.de("3300"), new BigDecimal("114.68"),
-                Dinero.de("20"), 4, Map.of(
+    static ParametrosCredito parametros(ConfiguracionFactoresScore factores) {
+        return new ParametrosCredito(new UsoMinimo(30, 3, 20, 12),
+                new LimitesCredito(bd(30), Dinero.de("20000"), Dinero.de("3300"), new BigDecimal("114.68"),
+                        Dinero.de("20"), 4),
+                new ReglasScore(new ReglasRecomendacion(650, 500, bd(60)), factores),
+                new ReglasRetencion(5, 15, 10), new ReglasNivel(Map.of(
                         1, new CondicionesNivel(1, bd(25), 8, bd(95), 1),
                         2, new CondicionesNivel(2, bd(50), 12, bd(90), 1),
                         3, new CondicionesNivel(3, bd(75), 16, bd(80), 2),
-                        4, new CondicionesNivel(4, bd(100), 24, bd(70), 0)),
-                650, 500, bd(60), pesos, 5, 15, 10, 2, 8, 9, 31, 12);
+                        4, new CondicionesNivel(4, bd(100), 24, bd(70), 0)), 2, 8, 9, 31));
     }
 
-    public static final ParametrosCredito P = parametros(PESOS);
+    public static final ParametrosCredito P = parametros(FACTORES);
+
+    private static ParametrosCredito politicaSoloAntiguedad() {
+        return parametros(new ConfiguracionFactoresScore(
+                new PonderacionesScore(bd(0), bd(0), bd(0), bd(0), bd(1000), bd(0)),
+                new ReferenciasScore(15, 1000, bd(50), bd(5)), FACTORES.puntajesSbs()));
+    }
 
     static BigDecimal bd(int v) { return BigDecimal.valueOf(v); }
 
@@ -61,10 +74,11 @@ public class PoliticaCreditoTest {
     }
 
     @Test
-    void ana() {
+    void anaRecibeUnAjusteAlMontoViable() {
         var e = ok(evaluar("3000", 8, cobrosSemanales("1500"), SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), P));
 
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.APTO);
+        assertThat(e.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
+        assertThat(e.esApta()).isTrue();
         assertThat(e.condiciones().monto().valor()).isCloseTo(new BigDecimal("850"), within(new BigDecimal("2")));
         assertThat(e.condiciones().tea()).isEqualByComparingTo("95");
         assertThat(e.condiciones().cuotas()).isEqualTo(8);
@@ -75,12 +89,12 @@ public class PoliticaCreditoTest {
     }
 
     @Test
-    void pedro() {
+    void pedroRecibeAjusteSinRequerirAval() {
         var pedro = HistorialCrediticio.reconstituir(CLIENTE, 3, 0, 2, false, 0L);
         var e = ok(evaluar("1500", 16, cobrosSemanales("300"), new InformeCentral(ClasificacionSbs.NORMAL, Dinero.CERO),
                 pedro, P));
 
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.APTO);
+        assertThat(e.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(e.condiciones().monto().valor()).isCloseTo(new BigDecimal("982"), within(new BigDecimal("3")));
         assertThat(e.condiciones().tea()).isEqualByComparingTo("80");
         assertThat(e.requiereAval()).isFalse();
@@ -105,8 +119,10 @@ public class PoliticaCreditoTest {
 
     @Test
     void laTeaNuncaSuperaLaTasaMaxima() {
-        var bajaTasa = new ParametrosCredito(30, 3, 20, bd(30), Dinero.de("20000"), Dinero.de("3300"), bd(85),
-                Dinero.de("20"), 4, P.niveles(), 650, 500, bd(60), PESOS, 5, 15, 10, 2, 8, 9, 31, 12);
+        var limites = P.limitesCredito();
+        var bajaTasa = new ParametrosCredito(P.usoMinimo(), new LimitesCredito(limites.porcentajeCapacidadPago(),
+                limites.deudaMaxima(), limites.topePorOperacion(), bd(85), limites.cuotaMinima(), limites.cuotasMinimas()),
+                P.score(), P.retencion(), P.reglasNivel());
         var e = ok(evaluar("800", 8, cobrosSemanales("1500"), SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), bajaTasa));
         assertThat(e.condiciones().tea()).isEqualByComparingTo("85");
     }
@@ -131,10 +147,12 @@ public class PoliticaCreditoTest {
     void clasificacionDeficienteEsNoAptoSinScore() {
         var e = ok(evaluar("500", 8, cobrosSemanales("1500"), new InformeCentral(ClasificacionSbs.DEFICIENTE, Dinero.de("3000")),
                 HistorialCrediticio.nuevo(CLIENTE), P));
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(e.recomendacion()).isEqualTo("NO_APTO");
         assertThat(e.score()).isNull();
         assertThat(e.motivo()).contains("DEFICIENTE");
-        assertThat(e.condiciones()).isNull();
+        assertThat(e.condiciones().hayOferta()).isFalse();
+        assertThat(e.condiciones()).isEqualTo(CondicionesSugeridas.ninguna());
+        assertThat(e.esApta()).isFalse();
         assertThat(e.requiereAval()).isFalse();
     }
 
@@ -142,16 +160,16 @@ public class PoliticaCreditoTest {
     void deudaTotalMasElCreditoMayorQueVeinteMilEsNoApto() {
         var central = new InformeCentral(ClasificacionSbs.NORMAL, Dinero.de("19500"));
         assertThat(ok(evaluar("500", 8, cobrosSemanales("1500"), central, HistorialCrediticio.nuevo(CLIENTE), P)).recomendacion())
-                .isEqualTo(Recomendacion.APTO);
+                .isEqualTo("APTO");
         assertThat(ok(evaluar("500.01", 8, cobrosSemanales("1500"), central, HistorialCrediticio.nuevo(CLIENTE), P)).recomendacion())
-                .isEqualTo(Recomendacion.NO_APTO);
+                .isEqualTo("NO_APTO");
     }
 
     @Test
     void conBloqueoInternoEsNoApto() {
         var bloqueado = HistorialCrediticio.reconstituir(CLIENTE, 1, 0, 35, true, 0L);
         var e = ok(evaluar("500", 8, cobrosSemanales("1500"), SIN_HISTORIAL, bloqueado, P));
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(e.recomendacion()).isEqualTo("NO_APTO");
         assertThat(e.motivo()).contains("bloqueo interno");
     }
 
@@ -159,30 +177,26 @@ public class PoliticaCreditoTest {
     void sinCapacidadParaLaCuotaMinimaEsNoApto() {
         var pocos = new CobrosDelPeriodo(12, Dinero.de("480"), 12, 60, 15, 200);
         var e = ok(evaluar("500", 8, pocos, SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), P));
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.NO_APTO);
+        assertThat(e.recomendacion()).isEqualTo("NO_APTO");
         assertThat(e.motivo()).contains("cuota mínima");
         assertThat(e.score()).isNotNull();
     }
 
     @ParameterizedTest
     @CsvSource({"499, NO_APTO", "500, APTO_CON_AJUSTE", "649, APTO_CON_AJUSTE", "650, APTO"})
-    void bordesDelScore(int dias, Recomendacion esperada) {
-        var soloAntiguedad = new ParametrosCredito.PesosScore(bd(0), bd(0), bd(0), bd(0), bd(1000), bd(0),
-                15, 1000, bd(50), bd(5), bd(100), bd(70), bd(40));
+    void bordesDelScore(int dias, String esperada) {
         var cobros = new CobrosDelPeriodo(12, Dinero.de("18000"), 12, 60, 15, dias);
-        var e = ok(evaluar("1000", 8, cobros, SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), parametros(soloAntiguedad)));
+        var e = ok(evaluar("800", 8, cobros, SIN_HISTORIAL, HistorialCrediticio.nuevo(CLIENTE), politicaSoloAntiguedad()));
         assertThat(e.score()).isEqualTo(dias);
         assertThat(e.recomendacion()).isEqualTo(esperada);
     }
 
     @Test
     void elAjusteOfreceComoMaximoElSesentaPorCientoDeLoPedido() {
-        var soloAntiguedad = new ParametrosCredito.PesosScore(bd(0), bd(0), bd(0), bd(0), bd(1000), bd(0),
-                15, 1000, bd(50), bd(5), bd(100), bd(70), bd(40));
         var cobros = new CobrosDelPeriodo(12, Dinero.de("18000"), 12, 60, 15, 600);
         var nivel4 = HistorialCrediticio.reconstituir(CLIENTE, 4, 0, 0, false, 0L);
-        var e = ok(evaluar("1000", 8, cobros, SIN_HISTORIAL, nivel4, parametros(soloAntiguedad)));
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.APTO_CON_AJUSTE);
+        var e = ok(evaluar("1000", 8, cobros, SIN_HISTORIAL, nivel4, politicaSoloAntiguedad()));
+        assertThat(e.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(e.condiciones().monto()).isEqualTo(Dinero.de("600"));
         assertThat(e.motivo()).contains("60 %");
     }
@@ -192,9 +206,36 @@ public class PoliticaCreditoTest {
         var e = ok(evaluar("1000", 8, cobrosSemanales("1500"), new InformeCentral(ClasificacionSbs.CPP, Dinero.de("500")),
                 HistorialCrediticio.nuevo(CLIENTE), P));
         assertThat(e.score()).isGreaterThanOrEqualTo(650);
-        assertThat(e.recomendacion()).isEqualTo(Recomendacion.APTO_CON_AJUSTE);
+        assertThat(e.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(e.condiciones().monto().valor()).isLessThanOrEqualTo(new BigDecimal("600"));
         assertThat(e.motivo()).contains("CPP");
+    }
+
+    @Test
+    void elScoreBajoPrevaleceSobreElAjustePorCpp() {
+        var cobros = new CobrosDelPeriodo(12, Dinero.de("18000"), 12, 60, 15, 499);
+        var cpp = new InformeCentral(ClasificacionSbs.CPP, Dinero.CERO);
+        var e = ok(evaluar("1000", 8, cobros, cpp, HistorialCrediticio.nuevo(CLIENTE), politicaSoloAntiguedad()));
+
+        assertThat(e.score()).isEqualTo(499);
+        assertThat(e.recomendacion()).isEqualTo("NO_APTO");
+        assertThat(e.motivo()).contains("Score de 499");
+        assertThat(e.condiciones().hayOferta()).isFalse();
+    }
+
+    @Test
+    void seVerificaLaCuotaMinimaSobreElMontoAjustado() {
+        var cobros = new CobrosDelPeriodo(12, Dinero.de("18000"), 12, 60, 15, 650);
+        var historial = HistorialCrediticio.nuevo(CLIENTE);
+        var politica = politicaSoloAntiguedad();
+        var sinAjuste = ok(evaluar("200", 8, cobros, SIN_HISTORIAL, historial, politica));
+        var conAjuste = ok(evaluar("200", 8, cobros, new InformeCentral(ClasificacionSbs.CPP, Dinero.CERO),
+                historial, politica));
+
+        assertThat(sinAjuste.recomendacion()).isEqualTo("APTO");
+        assertThat(conAjuste.recomendacion()).isEqualTo("NO_APTO");
+        assertThat(conAjuste.motivo()).contains("cuota mínima");
+        assertThat(conAjuste.condiciones().hayOferta()).isFalse();
     }
 
     @Test

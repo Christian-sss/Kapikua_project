@@ -1,7 +1,6 @@
 package com.projects.kapikua_api;
 
 import com.projects.kapikua_api.evaluacion.domain.model.Evaluacion;
-import com.projects.kapikua_api.evaluacion.domain.service.PoliticaCredito;
 import com.projects.kapikua_api.shared.ErrorDominio;
 import com.projects.kapikua_api.shared.domain.EventoDominio;
 import com.tngtech.archunit.core.domain.Dependency;
@@ -38,7 +37,6 @@ class ArquitecturaTest {
 
     private static final Set<String> LENGUAJE_PUBLICADO = Set.of(
             RAIZ + "evaluacion.domain.model.Destino",
-            RAIZ + "evaluacion.domain.model.Recomendacion",
             RAIZ + "evaluacion.domain.model.CondicionesSugeridas");
 
     @ArchTest
@@ -148,11 +146,11 @@ class ArquitecturaTest {
             .because("los errores de negocio viajan en Result, no como excepciones");
 
     @ArchTest
-    static final ArchRule soloLaPoliticaEmiteEvaluaciones = methods()
+    static final ArchRule soloLasEstrategiasCreanEvaluaciones = methods()
             .that().areDeclaredIn(Evaluacion.class)
-            .and().haveName("emitir").or().haveName("noApto")
-            .should().onlyBeCalled().byClassesThat().belongToAnyOf(PoliticaCredito.class)
-            .because("el resultado de una evaluación lo decide la política de crédito (servicio de dominio)");
+            .and().haveNameMatching("apto|aptoConAjuste|noApto")
+            .should().onlyBeCalled().byClassesThat().implement(RAIZ + "evaluacion.domain.service.EstrategiaRecomendacion")
+            .because("la estrategia seleccionada construye el resultado de la evaluación");
 
     @ArchTest
     static final ArchRule entidadesJpaEnPersistencia = classes()

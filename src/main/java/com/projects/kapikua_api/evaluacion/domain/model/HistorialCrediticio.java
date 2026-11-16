@@ -1,6 +1,7 @@
 package com.projects.kapikua_api.evaluacion.domain.model;
 
 import com.projects.kapikua_api.shared.UsuarioId;
+import lombok.Getter;
 
 import java.util.Objects;
 
@@ -27,8 +28,14 @@ public final class HistorialCrediticio {
         return new HistorialCrediticio(usuarioId, 1, 0, 0, false, null);
     }
 
-    public static HistorialCrediticio reconstituir(UsuarioId usuarioId, int nivel, int creditosPagadosEnNivel,
-                                                   int maxDiasAtraso, boolean bloqueadoInterno, Long version) {
+    public static HistorialCrediticio reconstituir(
+            UsuarioId usuarioId,
+            int nivel,
+            int creditosPagadosEnNivel,
+            int maxDiasAtraso,
+            boolean bloqueadoInterno,
+            Long version
+    ) {
         return new HistorialCrediticio(usuarioId, nivel, creditosPagadosEnNivel, maxDiasAtraso, bloqueadoInterno, version);
     }
 
@@ -40,36 +47,29 @@ public final class HistorialCrediticio {
         maxDiasAtraso = 0;
     }
 
-    public void registrarAtraso(int dias, ParametrosCredito p) {
+    public void registrarAtraso(int dias, ReglasNivel reglas) {
         var anterior = maxDiasAtraso;
         maxDiasAtraso = Math.max(maxDiasAtraso, dias);
-        if (anterior < p.diasAtrasoBajaNivel() && dias >= p.diasAtrasoBajaNivel()) {
+        if (anterior < reglas.diasAtrasoBajaNivel() && dias >= reglas.diasAtrasoBajaNivel()) {
             nivel = Math.max(1, nivel - 1);
             creditosPagadosEnNivel = 0;
         }
-        if (dias >= p.diasAtrasoBloqueo()) {
+        if (dias >= reglas.diasAtrasoBloqueo()) {
             bloqueadoInterno = true;
         }
     }
 
-    public void registrarCreditoPagado(boolean pagadoPorAval, ParametrosCredito p) {
+    public void registrarCreditoPagado(boolean pagadoPorAval, ReglasNivel reglas) {
         if (pagadoPorAval) {
             bloqueadoInterno = true;
             return;
         }
-        if (maxDiasAtraso > p.diasAtrasoMaxParaSubir()) return;
+        if (maxDiasAtraso > reglas.diasAtrasoMaxParaSubir()) return;
         creditosPagadosEnNivel++;
-        var condiciones = p.nivel(nivel);
-        if (nivel < p.nivelMaximo() && creditosPagadosEnNivel >= condiciones.creditosParaSubir()) {
+        var condiciones = reglas.nivel(nivel);
+        if (nivel < reglas.nivelMaximo() && creditosPagadosEnNivel >= condiciones.creditosParaSubir()) {
             nivel++;
             creditosPagadosEnNivel = 0;
         }
     }
-
-    public UsuarioId getUsuarioId() { return usuarioId; }
-    public int getNivel() { return nivel; }
-    public int getCreditosPagadosEnNivel() { return creditosPagadosEnNivel; }
-    public int getMaxDiasAtraso() { return maxDiasAtraso; }
-    public boolean isBloqueadoInterno() { return bloqueadoInterno; }
-    public Long getVersion() { return version; }
 }

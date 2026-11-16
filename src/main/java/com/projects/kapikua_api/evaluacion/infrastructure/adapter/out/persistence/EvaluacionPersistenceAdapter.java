@@ -2,6 +2,7 @@ package com.projects.kapikua_api.evaluacion.infrastructure.adapter.out.persisten
 
 import com.projects.kapikua_api.evaluacion.application.port.out.EvaluacionRepositoryPort;
 import com.projects.kapikua_api.evaluacion.domain.model.CondicionesSugeridas;
+import com.projects.kapikua_api.evaluacion.domain.model.DecisionRecomendacion;
 import com.projects.kapikua_api.evaluacion.domain.model.Evaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.FactorEvaluado;
 import com.projects.kapikua_api.evaluacion.domain.model.SolicitudCredito;
@@ -39,7 +40,7 @@ class EvaluacionPersistenceAdapter implements EvaluacionRepositoryPort {
         j.deudaTotalSistema = e.deudaTotalSistema() == null ? null : e.deudaTotalSistema().valor();
         j.score = e.score();
         j.recomendacion = e.recomendacion();
-        if (e.condiciones() != null) {
+        if (e.esApta()) {
             var c = e.condiciones();
             j.montoSugerido = c.monto().valor();
             j.cuotasSugeridas = c.cuotas();
@@ -48,7 +49,7 @@ class EvaluacionPersistenceAdapter implements EvaluacionRepositoryPort {
             j.porcentajeRetencion = BigDecimal.valueOf(c.porcentajeRetencion());
         }
         j.requiereAval = e.requiereAval();
-        j.motivo = e.motivo();
+        j.motivo = e.motivo().isEmpty() ? null : e.motivo();
         j.factores = JSON.writeValueAsString(e.factores());
         j.fecha = e.fecha();
         return e.conId(repositorio.saveAndFlush(j).id);
@@ -60,12 +61,14 @@ class EvaluacionPersistenceAdapter implements EvaluacionRepositoryPort {
     }
 
     private static Evaluacion aDominio(EvaluacionJpa j) {
-        var condiciones = j.montoSugerido == null ? null : new CondicionesSugeridas(Dinero.de(j.montoSugerido),
-                j.cuotasSugeridas, j.teaPropuesta, Dinero.de(j.cuotaSugerida), j.porcentajeRetencion.intValue());
-        return new Evaluacion(j.id, new UsuarioId(j.usuarioId),
-                new SolicitudCredito(Dinero.de(j.montoSolicitado), j.cuotasSolicitadas, j.destino),
-                j.clasificacionSbs, j.deudaTotalSistema == null ? null : Dinero.de(j.deudaTotalSistema), j.score,
-                j.recomendacion, condiciones, j.requiereAval, j.motivo, JSON.readValue(j.factores, FACTORES), j.fecha);
+        var condiciones = j.montoSugerido == null ? CondicionesSugeridas.ninguna()
+                : new CondicionesSugeridas(Dinero.de(j.montoSugerido), j.cuotasSugeridas, j.teaPropuesta,
+                        Dinero.de(j.cuotaSugerida), j.porcentajeRetencion.intValue());
+        var solicitud = new SolicitudCredito(Dinero.de(j.montoSolicitado), j.cuotasSolicitadas, j.destino);
+        var detalleScore = new Evaluacion.DetalleScore(j.score, JSON.readValue(j.factores, FACTORES));
+        var decision = new DecisionRecomendacion(j.recomendacion, condiciones, j.requiereAval, j.motivo);
+        return new Evaluacion(j.id, new UsuarioId(j.usuarioId), solicitud, j.clasificacionSbs,
+                j.deudaTotalSistema == null ? null : Dinero.de(j.deudaTotalSistema), detalleScore, decision, j.fecha);
     }
 }
 

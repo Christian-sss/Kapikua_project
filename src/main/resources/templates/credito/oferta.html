@@ -10,7 +10,7 @@
         <p class="exito" th:if="${aviso == 'aval'}">Invitamos a tu aval. Tiene 48 horas para aceptar.</p>
         <div class="fila"><span>Estado</span><strong th:text="${o.estado()}"></strong></div>
         <div class="fila"><span>Recomendación de Kapikua</span><span th:text="${o.recomendacion()}"></span></div>
-        <p class="nota" th:if="${o.motivo()}" th:text="${o.motivo()}"></p>
+        <p class="nota" th:unless="${#strings.isEmpty(o.motivo())}" th:text="${o.motivo()}"></p>
         <div class="fila"><span th:text="${o.condicionesConfirmadas()} ? 'Monto confirmado' : 'Monto sugerido'"></span><strong th:text="${o.monto()}"></strong></div>
         <div class="fila"><span>Cuotas semanales</span><span th:text="${o.cuotas()} + ' de ' + ${o.cuota()}"></span></div>
         <div class="fila"><span>TEA</span><span th:text="${o.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>

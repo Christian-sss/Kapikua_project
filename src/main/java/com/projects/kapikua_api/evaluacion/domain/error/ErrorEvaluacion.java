@@ -38,6 +38,11 @@ public sealed interface ErrorEvaluacion extends ErrorDominio {
         public String mensaje() { return "No es posible evaluar en este momento. Intenta más tarde."; }
     }
 
+    record ParametrosInvalidos() implements ErrorEvaluacion {
+        public String codigo()  { return "EV-07"; }
+        public String mensaje() { return "No es posible evaluar en este momento. Intenta más tarde."; }
+    }
+
     record AvalIdentidadNoValidada() implements ErrorEvaluacion {
         public String codigo()  { return "EV-08"; }
         public String mensaje() { return "Esa persona no puede ser tu aval. Designa a otra."; }

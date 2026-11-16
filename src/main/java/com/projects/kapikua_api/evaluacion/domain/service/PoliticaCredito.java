@@ -1,8 +1,19 @@
 package com.projects.kapikua_api.evaluacion.domain.service;
 
-import com.projects.kapikua_api.evaluacion.domain.model.*;
-
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
+import com.projects.kapikua_api.evaluacion.domain.model.ClasificacionSbs;
+import com.projects.kapikua_api.evaluacion.domain.model.CobrosDelPeriodo;
+import com.projects.kapikua_api.evaluacion.domain.model.CondicionesSugeridas;
+import com.projects.kapikua_api.evaluacion.domain.model.ConfiguracionFactoresScore;
+import com.projects.kapikua_api.evaluacion.domain.model.ContextoEvaluacion;
+import com.projects.kapikua_api.evaluacion.domain.model.ContextoEvaluacion.OfertaViable;
+import com.projects.kapikua_api.evaluacion.domain.model.Evaluacion;
+import com.projects.kapikua_api.evaluacion.domain.model.FactorEvaluado;
+import com.projects.kapikua_api.evaluacion.domain.model.HistorialCrediticio;
+import com.projects.kapikua_api.evaluacion.domain.model.InformeCentral;
+import com.projects.kapikua_api.evaluacion.domain.model.ParametrosCredito;
+import com.projects.kapikua_api.evaluacion.domain.model.SolicitudCredito;
+import com.projects.kapikua_api.evaluacion.domain.model.UsoMinimo;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.MatematicaFinanciera;
 import com.projects.kapikua_api.shared.Result;
@@ -13,90 +24,98 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public final class PoliticaCredito {
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+    private static final List<EstrategiaRecomendacion> ESTRATEGIAS = List.of(
+            new RecomendacionNoApto(),
+            new RecomendacionApto(),
+            new RecomendacionAptoConAjuste());
 
     private PoliticaCredito() {
     }
 
-    public static Result<Void, ErrorEvaluacion> verificarElegibilidad(SolicitudCredito solicitud, CobrosDelPeriodo cobros,
-                                                                      HistorialCrediticio historial, ParametrosCredito p) {
-        var nivel = p.nivel(historial.getNivel());
+    public static Result<Void, ErrorEvaluacion> verificarElegibilidad(
+            SolicitudCredito solicitud,
+            CobrosDelPeriodo cobros,
+            HistorialCrediticio historial,
+            ParametrosCredito p
+    ) {
+        var nivel = p.reglasNivel().nivel(historial.getNivel());
         if (solicitud.monto().esCero()) return Result.err(new ErrorEvaluacion.MontoInvalido());
-        if (solicitud.cuotas() < p.cuotasMinimas() || solicitud.cuotas() > nivel.maxCuotas()) {
-            return Result.err(new ErrorEvaluacion.CuotasFueraDeRango(p.cuotasMinimas(), nivel.maxCuotas()));
+        var cuotasMinimas = p.limitesCredito().cuotasMinimas();
+        if (solicitud.cuotas() < cuotasMinimas || solicitud.cuotas() > nivel.maxCuotas()) {
+            return Result.err(new ErrorEvaluacion.CuotasFueraDeRango(cuotasMinimas, nivel.maxCuotas()));
         }
-        var falta = faltaUsoMinimo(cobros, p);
+        var falta = faltaUsoMinimo(cobros, p.usoMinimo());
         if (falta != null) return Result.err(new ErrorEvaluacion.BilleteraSinUsoMinimo(falta));
         return Result.ok();
     }
 
-    public static Result<Evaluacion, ErrorEvaluacion> evaluar(UsuarioId usuarioId, SolicitudCredito solicitud,
-                                                              CobrosDelPeriodo cobros, InformeCentral central,
-                                                              HistorialCrediticio historial, ParametrosCredito p,
-                                                              OffsetDateTime ahora) {
-        var nivel = p.nivel(historial.getNivel());
-
+    public static Result<Evaluacion, ErrorEvaluacion> evaluar(
+            UsuarioId usuarioId,
+            SolicitudCredito solicitud,
+            CobrosDelPeriodo cobros,
+            InformeCentral central,
+            HistorialCrediticio historial,
+            ParametrosCredito p,
+            OffsetDateTime ahora
+    ) {
         var elegibilidad = verificarElegibilidad(solicitud, cobros, historial, p);
         if (elegibilidad instanceof Result.Err<Void, ErrorEvaluacion> err) return Result.err(err.error());
 
-        var eliminatoria = reglaEliminatoria(solicitud, central, historial, p);
-        if (eliminatoria != null) {
-            return Result.ok(Evaluacion.noApto(usuarioId, solicitud, central, null, eliminatoria, List.of(), ahora));
+        var limites = p.limitesCredito();
+        var reglasScore = p.score();
+        var eliminatoria = reglaEliminatoria(solicitud, central, historial, limites.deudaMaxima());
+        if (eliminatoria.isPresent()) {
+            var contexto = new ContextoEvaluacion(usuarioId, solicitud, central, new Evaluacion.DetalleScore(null, List.of()),
+                    reglasScore.recomendacion(), ahora, Optional.empty(), eliminatoria);
+            return Result.ok(recomendar(contexto));
         }
 
-        var tea = nivel.tea().min(p.tasaMaxima());
+        var nivel = p.reglasNivel().nivel(historial.getNivel());
+        var tea = nivel.tea().min(limites.tasaMaxima());
         var i = MatematicaFinanciera.tasaSemanal(tea);
         var promedio = cobros.promedioSemanal();
-        var cuotaMaxima = promedio.multiply(p.porcentajeCapacidadPago()).divide(CIEN, 10, RoundingMode.HALF_EVEN);
+        var cuotaMaxima = promedio.multiply(limites.porcentajeCapacidadPago())
+                .divide(CIEN, 10, RoundingMode.HALF_EVEN);
         var capacidadNivel = MatematicaFinanciera.valorPresente(cuotaMaxima, i, nivel.maxCuotas())
                 .multiply(nivel.porcentajeCapacidad()).divide(CIEN, 10, RoundingMode.HALF_EVEN);
         var capacidadConSusCuotas = MatematicaFinanciera.valorPresente(cuotaMaxima, i, solicitud.cuotas());
         var montoPosible = Stream.of(solicitud.monto().valor(), capacidadNivel, capacidadConSusCuotas,
-                        p.topePorOperacion().valor())
+                        limites.topePorOperacion().valor())
                 .min(BigDecimal::compareTo).orElseThrow()
                 .setScale(2, RoundingMode.DOWN);
 
         var cuotaPedida = MatematicaFinanciera.cuota(solicitud.monto(), i, solicitud.cuotas());
-        var factores = factores(cobros, central, historial, cuotaPedida, cuotaMaxima, p.pesos());
+        var factores = factores(cobros, central, historial, cuotaPedida, cuotaMaxima, reglasScore.factores());
         var score = factores.stream().map(FactorEvaluado::aporte).reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(0, RoundingMode.HALF_UP).intValueExact();
 
-        if (score < p.scoreAjuste()) {
-            return Result.ok(Evaluacion.noApto(usuarioId, solicitud, central, score,
-                    "Score de " + score + ", menor que " + p.scoreAjuste() + ".", factores, ahora));
+        var reglas = reglasScore.recomendacion();
+        if (score >= reglas.scoreAjuste()
+                && ContextoEvaluacion.requiereAjustePorRiesgo(score, central.clasificacion(), reglas)) {
+            var montoAjustado = solicitud.monto().valor().multiply(reglas.porcentajeAjuste())
+                    .divide(CIEN, 2, RoundingMode.DOWN);
+            montoPosible = montoPosible.min(montoAjustado);
         }
-        var recomendacion = Recomendacion.APTO;
-        String motivo = null;
-        var monto = montoPosible;
-        if (score < p.scoreApto()) {
-            recomendacion = Recomendacion.APTO_CON_AJUSTE;
-            motivo = "Score de " + score + ": se ofrece hasta el " + p.porcentajeAjuste().stripTrailingZeros().toPlainString()
-                    + " % de lo pedido.";
-        } else if (central.clasificacion() == ClasificacionSbs.CPP) {
-            recomendacion = Recomendacion.APTO_CON_AJUSTE;
-            motivo = "Clasificación CPP en el sistema financiero: se ofrece hasta el "
-                    + p.porcentajeAjuste().stripTrailingZeros().toPlainString() + " % de lo pedido.";
-        }
-        if (recomendacion == Recomendacion.APTO_CON_AJUSTE) {
-            var ajustado = solicitud.monto().valor().multiply(p.porcentajeAjuste()).divide(CIEN, 2, RoundingMode.DOWN);
-            monto = monto.min(ajustado);
-        }
+        var monto = Dinero.de(montoPosible);
+        var cuota = MatematicaFinanciera.cuota(monto, i, solicitud.cuotas());
+        var condiciones = new CondicionesSugeridas(monto, solicitud.cuotas(), tea, cuota,
+                p.retencion().porcentaje(cuota, promedio));
+        var requiereAval = historial.getNivel() <= p.reglasNivel().nivelMaxConAval();
+        var oferta = new OfertaViable(condiciones, limites.cuotaMinima(), requiereAval);
+        var contexto = new ContextoEvaluacion(usuarioId, solicitud, central, new Evaluacion.DetalleScore(score, factores),
+                reglas, ahora, Optional.of(oferta), Optional.empty());
+        return Result.ok(recomendar(contexto));
+    }
 
-        var montoOfrecido = Dinero.de(monto);
-        var cuota = montoOfrecido.esCero() ? Dinero.CERO : MatematicaFinanciera.cuota(montoOfrecido, i, solicitud.cuotas());
-        if (cuota.menorQue(p.cuotaMinima())) {
-            return Result.ok(Evaluacion.noApto(usuarioId, solicitud, central, score,
-                    "Tu capacidad de pago permite una cuota de " + cuota + ", menor que la cuota mínima de "
-                            + p.cuotaMinima() + ".", factores, ahora));
-        }
-        var condiciones = new CondicionesSugeridas(montoOfrecido, solicitud.cuotas(), tea, cuota,
-                porcentajeRetencion(cuota, promedio, p));
-        var requiereAval = historial.getNivel() <= p.nivelMaxConAval();
-        return Result.ok(Evaluacion.emitir(usuarioId, solicitud, central, score, recomendacion, condiciones,
-                requiereAval, motivo, factores, ahora));
+    private static Evaluacion recomendar(ContextoEvaluacion contexto) {
+        return ESTRATEGIAS.stream()
+                .filter(estrategia -> estrategia.aplica(contexto))
+                .findFirst().orElseThrow().evaluar(contexto);
     }
 
     public static Result<Void, ErrorEvaluacion> evaluarAval(boolean identidadValidada, InformeCentral central,
@@ -108,7 +127,7 @@ public final class PoliticaCredito {
         return Result.ok();
     }
 
-    private static String faltaUsoMinimo(CobrosDelPeriodo c, ParametrosCredito p) {
+    private static String faltaUsoMinimo(CobrosDelPeriodo c, UsoMinimo p) {
         var faltas = new ArrayList<String>();
         if (c.diasAntiguedad() < p.usoMinDias()) {
             faltas.add("tu billetera debe tener al menos " + p.usoMinDias() + " días (tiene " + c.diasAntiguedad() + ")");
@@ -123,54 +142,54 @@ public final class PoliticaCredito {
         return faltas.isEmpty() ? null : String.join("; ", faltas);
     }
 
-    private static String reglaEliminatoria(SolicitudCredito s, InformeCentral central, HistorialCrediticio h,
-                                            ParametrosCredito p) {
-        if (h.isBloqueadoInterno()) return "Tienes un bloqueo interno por atrasos en créditos anteriores.";
+    private static Optional<String> reglaEliminatoria(SolicitudCredito s, InformeCentral central, HistorialCrediticio h,
+                                                       Dinero deudaMaxima) {
+        if (h.isBloqueadoInterno()) return Optional.of("Tienes un bloqueo interno por atrasos en créditos anteriores.");
         if (central.clasificacion() != null && central.clasificacion().esEliminatoria()) {
-            return "Tu clasificación en el sistema financiero es " + central.clasificacion() + ".";
+            return Optional.of("Tu clasificación en el sistema financiero es " + central.clasificacion() + ".");
         }
-        if (central.deudaTotal().sumar(s.monto()).mayorQue(p.deudaMaxima())) {
-            return "Tu deuda total en el sistema financiero más este crédito superaría " + p.deudaMaxima() + ".";
+        if (central.deudaTotal().sumar(s.monto()).mayorQue(deudaMaxima)) {
+            return Optional.of("Tu deuda total en el sistema financiero más este crédito superaría " + deudaMaxima + ".");
         }
-        return null;
+        return Optional.empty();
     }
 
     private static List<FactorEvaluado> factores(CobrosDelPeriodo c, InformeCentral central, HistorialCrediticio h,
                                                  Dinero cuotaPedida, BigDecimal cuotaMaxima,
-                                                 ParametrosCredito.PesosScore w) {
+                                                 ConfiguracionFactoresScore configuracion) {
+        var ponderaciones = configuracion.ponderaciones();
+        var referencias = configuracion.referencias();
+        var puntajesSbs = configuracion.puntajesSbs();
         var regularidad = c.semanas() == 0 ? BigDecimal.ZERO
                 : porcentaje(BigDecimal.valueOf(c.semanasConCobros()), BigDecimal.valueOf(c.semanas()));
         var holgura = cuotaMaxima.signum() == 0 ? BigDecimal.ZERO
                 : acotar(CIEN.subtract(porcentaje(cuotaPedida.valor(), cuotaMaxima)));
-        var historial = h.esNuevo() ? w.historialNuevo()
-                : acotar(CIEN.subtract(w.historialMenosPorDia().multiply(BigDecimal.valueOf(h.getMaxDiasAtraso()))));
-        var pagadores = acotar(porcentaje(BigDecimal.valueOf(c.pagadoresDistintos()), BigDecimal.valueOf(w.refPagadores())));
-        var antiguedad = acotar(porcentaje(BigDecimal.valueOf(c.diasAntiguedad()), BigDecimal.valueOf(w.refAntiguedadDias())));
-        var clasificacion = central.clasificacion() == null ? w.sbsSinHistorial()
+        var historial = h.esNuevo() ? referencias.historialNuevo()
+                : acotar(CIEN.subtract(referencias.historialMenosPorDia()
+                        .multiply(BigDecimal.valueOf(h.getMaxDiasAtraso()))));
+        var pagadores = acotar(porcentaje(BigDecimal.valueOf(c.pagadoresDistintos()),
+                BigDecimal.valueOf(referencias.refPagadores())));
+        var antiguedad = acotar(porcentaje(BigDecimal.valueOf(c.diasAntiguedad()),
+                BigDecimal.valueOf(referencias.refAntiguedadDias())));
+        var clasificacion = central.clasificacion() == null ? puntajesSbs.sinHistorial()
                 : switch (central.clasificacion()) {
-            case NORMAL -> w.sbsNormal();
-            case CPP -> w.sbsCpp();
+            case NORMAL -> puntajesSbs.normal();
+            case CPP -> puntajesSbs.cpp();
             default -> BigDecimal.ZERO;
         };
         return List.of(
                 new FactorEvaluado("regularidad_cobros", c.semanasConCobros() + "/" + c.semanas() + " semanas",
-                        redondear(regularidad), w.regularidad()),
+                        redondear(regularidad), ponderaciones.regularidad()),
                 new FactorEvaluado("holgura_cuota", cuotaPedida + " de " + Dinero.de(cuotaMaxima) + " posibles",
-                        redondear(holgura), w.holgura()),
+                        redondear(holgura), ponderaciones.holgura()),
                 new FactorEvaluado("historial_kapikua", h.esNuevo() ? "sin créditos previos"
-                        : h.getMaxDiasAtraso() + " días de mayor atraso", redondear(historial), w.historial()),
+                        : h.getMaxDiasAtraso() + " días de mayor atraso", redondear(historial), ponderaciones.historial()),
                 new FactorEvaluado("pagadores_distintos", String.valueOf(c.pagadoresDistintos()),
-                        redondear(pagadores), w.pagadores()),
+                        redondear(pagadores), ponderaciones.pagadores()),
                 new FactorEvaluado("antiguedad_billetera", c.diasAntiguedad() + " días",
-                        redondear(antiguedad), w.antiguedad()),
+                        redondear(antiguedad), ponderaciones.antiguedad()),
                 new FactorEvaluado("clasificacion_sbs", central.clasificacion() == null ? "sin historial"
-                        : central.clasificacion().name(), redondear(clasificacion), w.clasificacion()));
-    }
-
-    private static int porcentajeRetencion(Dinero cuota, BigDecimal promedioSemanal, ParametrosCredito p) {
-        if (promedioSemanal.signum() == 0) return p.retencionDefecto();
-        var porcentaje = cuota.valor().multiply(CIEN).divide(promedioSemanal, 0, RoundingMode.CEILING).intValue();
-        return Math.max(p.retencionMin(), Math.min(p.retencionMax(), porcentaje));
+                        : central.clasificacion().name(), redondear(clasificacion), ponderaciones.clasificacion()));
     }
 
     private static BigDecimal porcentaje(BigDecimal parte, BigDecimal total) {
