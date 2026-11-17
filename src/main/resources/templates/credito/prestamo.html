@@ -5,7 +5,7 @@
 <header th:replace="~{fragmentos :: barra('prestamo')}"></header>
 
 <main class="app-main" id="contenido">
-    <div class="container stack-lg"
+    <div class="container stack-lg" th:attr="data-en-vivo=@{/eventos}"
          th:with="pagadas=${#lists.size(p.cuotas().?[estado == 'PAGADA'])}, total=${#lists.size(p.cuotas())}">
         <div class="page-head page-head-row" style="margin-bottom:0">
             <div class="stack-sm">
@@ -98,5 +98,6 @@
     </div>
 </main>
 
+<script th:src="@{/js/credito-en-vivo.js}" defer></script>
 </body>
 </html>

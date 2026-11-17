@@ -15,7 +15,7 @@
         <section class="card receipt op-card" th:if="${comprobante}" style="margin-bottom: var(--space-6)"
                  aria-labelledby="t-comprobante">
             <div class="receipt-ico"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></div>
-            <h2 id="t-comprobante">Operación realizada</h2>
+            <h2 id="t-comprobante" th:text="${param.detalle != null} ? 'Detalle del movimiento' : 'Operación realizada'">Operación realizada</h2>
             <div class="receipt-amount" th:text="${comprobante.monto()}">S/ 0.00</div>
             <dl class="kv">
                 <div><dt>Para / desde</dt><dd th:text="${comprobante.contraparte()}"></dd></div>
@@ -25,6 +25,7 @@
             <p class="small" style="margin-top: var(--space-4)">
                 <a th:href="@{/reclamos/nuevo(operacion=${comprobante.transaccionId()})}">¿Un problema con esta operación? Presenta un reclamo</a>
             </p>
+            <a class="btn btn-outline btn-block" th:if="${param.detalle != null}" th:href="@{/billetera}" style="margin-top: var(--space-4)">Cerrar detalle</a>
         </section>
 
         <div id="contenido" th:fragment="contenido"
@@ -74,7 +75,8 @@
                                     : (${#strings.contains(m.etiqueta(), 'cuota') or #strings.contains(m.etiqueta(), 'anticipado')} ? 'i-calendar'
                                     : (${#strings.contains(m.etiqueta(), 'Desembolso')} ? 'i-coins'
                                     : (${#strings.contains(m.etiqueta(), 'Carga')} ? 'i-card' : 'i-store')))">
-                                <div class="row-item">
+                                <a class="row-item" th:href="@{/billetera(operacion=${m.transaccionId()},detalle=true)}"
+                                   th:attr="aria-label='Ver el detalle: ' + ${m.etiqueta()} + ' ' + ${m.monto()}">
                                     <span class="mov-ico" th:classappend="${m.entrada()} ? 'in' : 'out'"><svg th:replace="~{fragmentos :: icono(${ico})}"></svg></span>
                                     <span class="row-txt">
                                         <b th:text="${m.etiqueta()}">Movimiento</b>
@@ -84,7 +86,7 @@
                                         <span class="mov-amt" th:classappend="${m.entrada()} ? 'in'" th:text="${m.monto()}"></span>
                                         <small class="muted xs" th:text="'Saldo ' + ${m.saldo()}"></small>
                                     </span>
-                                </div>
+                                </a>
                             </li>
                         </ul>
 

@@ -8,6 +8,8 @@
     <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png}">
     <script>
         (function () { try { var t = localStorage.getItem("kapikua-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
+        // Dirección de entrada de la página al venir desde el menú (derecha o izquierda)
+        (function () { try { var d = sessionStorage.getItem("kapikua-entrada"); if (d === "derecha" || d === "izquierda") document.documentElement.setAttribute("data-entrada", d); sessionStorage.removeItem("kapikua-entrada"); } catch (e) {} })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
