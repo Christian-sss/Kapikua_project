@@ -69,6 +69,12 @@ public final class DatosDePrueba {
         }
     }
 
+    /** Saldo inicial de prueba: el sistema no tiene recarga, así que se carga directo en la base. */
+    public void fondear(UsuarioId cliente, String monto) {
+        assertThat(jdbc.update("update billetera.billetera set saldo = saldo + ? where usuario_id = ?",
+                new java.math.BigDecimal(monto), cliente.valor())).isEqualTo(1);
+    }
+
     public java.math.BigDecimal saldo(UsuarioId u) {
         return jdbc.queryForObject("select saldo from billetera.billetera where usuario_id = ?", java.math.BigDecimal.class, u.valor());
     }

@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TopesSBSTest {
     private static final Topes TOPES = Topes.desdeUit(new BigDecimal("5500"), new BigDecimal("0.6"),
-            new BigDecimal("1.9"), new BigDecimal("1.9"), new BigDecimal("2.8"));
+            new BigDecimal("1.9"), new BigDecimal("2.8"));
     private static final OffsetDateTime AHORA = OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5));
 
     private static Billetera billetera(long id, String saldo, String apartado, String negocio) {
@@ -24,8 +24,8 @@ class TopesSBSTest {
                 Dinero.de(saldo), Dinero.de(apartado), "ACTIVA", null, AHORA, 0L);
     }
 
-    private static AcumuladoMensual acumulado(String recargas, String pagos) {
-        return new AcumuladoMensual(Dinero.de(recargas), Dinero.de(pagos));
+    private static AcumuladoMensual acumulado(String pagos) {
+        return new AcumuladoMensual(Dinero.de(pagos));
     }
 
     private static ErrorBilletera error(Result<Void, ErrorBilletera> r) {
@@ -37,22 +37,21 @@ class TopesSBSTest {
     void losTopesSeCalculanConLaUit() {
         assertThat(TOPES.porOperacion()).isEqualTo(Dinero.de("3300"));
         assertThat(TOPES.saldoMaximo()).isEqualTo(Dinero.de("10450"));
-        assertThat(TOPES.recargasMes()).isEqualTo(Dinero.de("10450"));
         assertThat(TOPES.pagosMes()).isEqualTo(Dinero.de("15400"));
     }
 
     @Test
     void rn01AceptaJustoElTopeYRechazaUnCentimoMas() {
         var b = billetera(1, "0", "0", null);
-        assertThat(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("3300"), AcumuladoMensual.VACIO, TOPES)).isInstanceOf(Result.Ok.class);
-        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("3300.01"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("3300"), AcumuladoMensual.VACIO, TOPES)).isInstanceOf(Result.Ok.class);
+        assertThat(error(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("3300.01"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.TopePorOperacion.class);
     }
 
     @Test
     void rn02ElSaldoNoPuedeSuperarElMaximo() {
         var casiLlena = billetera(1, "10000", "0", null);
-        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, casiLlena, Dinero.de("450.01"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(error(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, casiLlena, Dinero.de("450.01"), AcumuladoMensual.VACIO, TOPES)))
                 .isEqualTo(new ErrorBilletera.TopeSaldoPropio(Dinero.de("450")));
 
         var origen = billetera(2, "1000", "0", null);
@@ -61,27 +60,20 @@ class TopesSBSTest {
     }
 
     @Test
-    void rn03TopeMensualDeRecargas() {
-        var b = billetera(1, "0", "0", null);
-        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("500"), acumulado("10000", "0"), TOPES)))
-                .isEqualTo(new ErrorBilletera.TopeRecargasMes(Dinero.de("450")));
-    }
-
-    @Test
     void rn04TopeMensualDePagosYTransferencias() {
         var origen = billetera(1, "3000", "0", null);
         var destino = billetera(2, "0", "0", "Bodega");
         assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.PAGO_NEGOCIO, origen, destino, Dinero.de("200"),
-                acumulado("0", "15300"), TOPES)))
+                acumulado("15300"), TOPES)))
                 .isEqualTo(new ErrorBilletera.TopePagosMes(Dinero.de("100")));
-        assertThat(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("100"), acumulado("0", "15300"), TOPES))
+        assertThat(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("100"), acumulado("15300"), TOPES))
                 .isInstanceOf(Result.Ok.class);
     }
 
     @Test
-    void elDesembolsoValidaElSaldoSinConsumirElTopeMensualDeRecargas() {
+    void elDesembolsoValidaElSaldoSinConsumirElTopeMensual() {
         var b = billetera(1, "10000", "0", null);
-        var topesDelMesAgotados = acumulado("10450", "15400");
+        var topesDelMesAgotados = acumulado("15400");
         assertThat(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("450"), topesDelMesAgotados, TOPES).esOk())
                 .isTrue();
         assertThat(error(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("450.01"),
@@ -91,7 +83,7 @@ class TopesSBSTest {
     @Test
     void losPagosDeCreditoRespetanElTopePorOperacionSinConsumirLosTopesDelMes() {
         var b = billetera(1, "5000", "0", null);
-        var topesDelMesAgotados = acumulado("10450", "15400");
+        var topesDelMesAgotados = acumulado("15400");
         assertThat(TopesSBS.validar(TiposTransaccion.PAGO_CUOTA, b, Dinero.de("3300"), topesDelMesAgotados, TOPES).esOk())
                 .isTrue();
         assertThat(error(TopesSBS.validar(TiposTransaccion.PAGO_ANTICIPADO, b, Dinero.de("3300.01"),

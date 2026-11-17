@@ -108,7 +108,7 @@ public class ReportesConsulta {
                     var t = rs.getString("tipo");
                     return new FilaTransaccion(rs.getLong("id"), HoraLocal.leer(rs, "fecha"), t,
                             dinero(rs.getBigDecimal("monto")),
-                            contraparte(rs.getString("origen"), t.equals("RECARGA") ? "Pasarela de pagos" : t.equals("DESEMBOLSO") ? "Entidad aliada" : "—"),
+                            contraparte(rs.getString("origen"), t.equals("RECARGA") ? "Carga inicial" : t.equals("DESEMBOLSO") ? "Entidad aliada" : "—"),
                             contraparte(rs.getString("destino"), t.startsWith("PAGO_CUOTA") || t.equals("PAGO_ANTICIPADO") ? "Entidad aliada" : "—"));
                 })
                 .list();

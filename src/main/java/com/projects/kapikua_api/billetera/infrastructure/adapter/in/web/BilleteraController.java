@@ -77,7 +77,7 @@ class BilleteraController {
 
     static String etiqueta(String tipo, boolean entrada) {
         return switch (tipo) {
-            case "RECARGA" -> "Recarga con tarjeta";
+            case "RECARGA" -> "Carga inicial de saldo";
             case "TRANSFERENCIA" -> entrada ? "Transferencia recibida" : "Transferencia enviada";
             case "PAGO_NEGOCIO" -> entrada ? "Cobro de un cliente" : "Pago a negocio";
             case "DESEMBOLSO" -> "Desembolso de crédito";

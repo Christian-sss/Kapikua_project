@@ -2,7 +2,6 @@ package com.projects.kapikua_api.administracion;
 
 import com.projects.kapikua_api.DatosDePrueba;
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.RecargarSaldoUseCase;
 import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
 import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase;
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
@@ -35,7 +34,6 @@ class ReportesIntegracionTest {
     }
 
     @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired RecargarSaldoUseCase recargar;
     @Autowired EnviarDineroUseCase enviar;
     @Autowired SolicitarCreditoUseCase solicitar;
     @Autowired GestionarAvalUseCase avales;
@@ -95,7 +93,7 @@ class ReportesIntegracionTest {
     void elReporteDeTransaccionesMuestraOrigenYDestinoEnmascarados() {
         var ana = datos.cliente('0');
         var luis = datos.cliente('1');
-        assertThat(recargar.recargar(ana.id(), Dinero.de("200"), "tok_aprobado", UUID.randomUUID().toString()).esOk()).isTrue();
+        datos.fondear(ana.id(), "200");
         assertThat(enviar.pagarNegocio(ana.id(), luis.celular(), Dinero.de("50"), UUID.randomUUID().toString()).esOk()).isTrue();
 
         var pagos = reportes.transacciones(mes, "PAGO_NEGOCIO");
@@ -105,8 +103,6 @@ class ReportesIntegracionTest {
             assertThat(f.destino()).isEqualTo("DNI " + enmascarado(luis));
             assertThat(f.monto()).isEqualTo(Dinero.de("50"));
         });
-        assertThat(reportes.transacciones(mes, "RECARGA").filas())
-                .anySatisfy(f -> assertThat(f.origen()).isEqualTo("Pasarela de pagos"));
         var unaFila = reportes.transacciones(mes, null, 1);
         assertThat(unaFila.filas()).hasSize(1);
         assertThat(unaFila.truncado()).isTrue();

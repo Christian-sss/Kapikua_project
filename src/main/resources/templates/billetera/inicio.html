@@ -33,7 +33,6 @@
             <div class="fila"><span>Saldo total</span><span th:text="${b.saldo()}"></span></div>
             <div class="fila"><span>Apartado para tu cuota</span><span th:text="${b.saldoApartado()}"></span></div>
             <div class="acciones" style="margin-top:16px">
-                <a th:href="@{/billetera/recargar}">Recargar</a>
                 <a th:href="@{/billetera/transferir}">Transferir</a>
                 <a th:href="@{/billetera/pagar}">Pagar</a>
             </div>
@@ -41,8 +40,6 @@
 
         <section class="tarjeta">
             <h2>Tus límites de este mes</h2>
-            <div class="fila"><span>Recargas: usado / disponible</span>
-                <span th:text="${b.recargasUsadas()} + ' / ' + ${b.recargasDisponibles()}"></span></div>
             <div class="fila"><span>Pagos y transferencias: usado / disponible</span>
                 <span th:text="${b.pagosUsados()} + ' / ' + ${b.pagosDisponibles()}"></span></div>
             <div class="fila"><span>Máximo por operación</span><span th:text="${b.topePorOperacion()}"></span></div>

@@ -17,7 +17,7 @@ import java.util.Set;
 
 @Service
 public class GenerarAlertasService implements GenerarAlertasUseCase {
-    private static final Set<String> TIPOS_OBSERVADOS = Set.of("RECARGA", "TRANSFERENCIA", "PAGO_NEGOCIO");
+    private static final Set<String> TIPOS_OBSERVADOS = Set.of("TRANSFERENCIA", "PAGO_NEGOCIO");
 
     private final AlertaRepositoryPort alertas;
     private final ContextosCumplimiento contextos;
@@ -33,7 +33,7 @@ public class GenerarAlertasService implements GenerarAlertasUseCase {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int evaluar(TransaccionRegistrada operacion) {
         if (!TIPOS_OBSERVADOS.contains(operacion.tipo())) return 0;
-        var billeteraId = "RECARGA".equals(operacion.tipo()) ? operacion.billeteraDestinoId() : operacion.billeteraOrigenId();
+        var billeteraId = operacion.billeteraOrigenId();
         if (billeteraId == null) return 0;
 
         var actual = new OperacionObservada(operacion.transaccionId(), operacion.tipo(), operacion.monto(), operacion.fecha());

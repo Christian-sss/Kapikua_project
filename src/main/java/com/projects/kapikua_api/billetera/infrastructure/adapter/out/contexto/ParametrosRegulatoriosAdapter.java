@@ -19,7 +19,7 @@ import java.util.List;
 class ParametrosRegulatoriosAdapter implements ParametrosRegulatorios {
     private static final Logger log = LoggerFactory.getLogger(ParametrosRegulatoriosAdapter.class);
     private static final List<String> CODIGOS = List.of(
-            "UIT", "TOPE_OPERACION_UIT", "TOPE_SALDO_UIT", "TOPE_RECARGAS_MES_UIT", "TOPE_PAGOS_MES_UIT");
+            "UIT", "TOPE_OPERACION_UIT", "TOPE_SALDO_UIT", "TOPE_PAGOS_MES_UIT");
 
     private final ConsultarParametrosUseCase parametros;
 
@@ -39,6 +39,6 @@ class ParametrosRegulatoriosAdapter implements ParametrosRegulatorios {
                 }
             }
         }
-        return Result.ok(Topes.desdeUit(valores.get(0), valores.get(1), valores.get(2), valores.get(3), valores.get(4)));
+        return Result.ok(Topes.desdeUit(valores.get(0), valores.get(1), valores.get(2), valores.get(3)));
     }
 }

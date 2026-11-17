@@ -2,7 +2,6 @@ package com.projects.kapikua_api.credito;
 
 import com.projects.kapikua_api.DatosDePrueba;
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.RecargarSaldoUseCase;
 import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
 import com.projects.kapikua_api.credito.application.port.in.CobranzaUseCase;
 import com.projects.kapikua_api.credito.application.port.in.ConsultarCreditoUseCase;
@@ -47,7 +46,6 @@ class CobranzaIntegracionTest {
     @Autowired ConsultarCreditoUseCase consultar;
     @Autowired CobranzaUseCase cobranza;
     @Autowired PagarPrestamoUseCase pagos;
-    @Autowired RecargarSaldoUseCase recargar;
     @Autowired EnviarDineroUseCase enviar;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
@@ -79,8 +77,7 @@ class CobranzaIntegracionTest {
 
     private void leCompran(DatosDePrueba.Cliente destino, String monto) {
         var comprador = datos.cliente('1');
-        var rec = recargar.recargar(comprador.id(), Dinero.de("3000"), "tok_aprobado", UUID.randomUUID().toString());
-        assertThat(rec.esOk()).isTrue();
+        datos.fondear(comprador.id(), "3000");
         assertThat(enviar.pagarNegocio(comprador.id(), destino.celular(), Dinero.de(monto), UUID.randomUUID().toString()).esOk()).isTrue();
     }
 

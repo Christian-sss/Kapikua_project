@@ -54,19 +54,9 @@ public sealed interface ErrorBilletera extends ErrorDominio {
         public String mensaje() { return "El destinatario no puede recibir ese monto por el límite de saldo de la SBS."; }
     }
 
-    record TopeRecargasMes(Dinero disponible) implements ErrorBilletera {
-        public String codigo()  { return "BI-11"; }
-        public String mensaje() { return "Superas el límite de recargas del mes. Te quedan " + disponible + "."; }
-    }
-
     record TopePagosMes(Dinero disponible) implements ErrorBilletera {
         public String codigo()  { return "BI-12"; }
         public String mensaje() { return "Superas el límite mensual de pagos y transferencias. Te quedan " + disponible + "."; }
-    }
-
-    record PagoRechazado(String motivo) implements ErrorBilletera {
-        public String codigo()  { return "BI-13"; }
-        public String mensaje() { return "La pasarela rechazó el pago: " + motivo; }
     }
 
     record CodigoNoValido(String detalle) implements ErrorBilletera {

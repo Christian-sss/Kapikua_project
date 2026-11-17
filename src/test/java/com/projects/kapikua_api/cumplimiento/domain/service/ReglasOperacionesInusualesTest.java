@@ -32,29 +32,29 @@ class ReglasOperacionesInusualesTest {
     @Test
     void unaOperacionDel90PorCientoDelTopeEstaCercaDelTope() {
         assertThat(reglas(op("TRANSFERENCIA", "2970", AHORA), List.of(), Map.of())).containsExactly(ReglaAlerta.CERCA_DEL_TOPE);
-        assertThat(reglas(op("RECARGA", "2969.99", AHORA), List.of(), Map.of())).isEmpty();
+        assertThat(reglas(op("PAGO_NEGOCIO", "2969.99", AHORA), List.of(), Map.of())).isEmpty();
     }
 
     @Test
     void tresOperacionesEn24HorasQueSuperanElTopeSonFraccionamiento() {
-        var previas = List.of(op("RECARGA", "1200", AHORA.minusHours(20)), op("TRANSFERENCIA", "1200", AHORA.minusHours(3)));
+        var previas = List.of(op("PAGO_NEGOCIO", "1200", AHORA.minusHours(20)), op("TRANSFERENCIA", "1200", AHORA.minusHours(3)));
         assertThat(reglas(op("PAGO_NEGOCIO", "1200", AHORA), previas, Map.of())).containsExactly(ReglaAlerta.FRACCIONAMIENTO);
     }
 
     @Test
     void sinTresOperacionesOSinSuperarElTopeNoHayFraccionamiento() {
-        assertThat(reglas(op("RECARGA", "2000", AHORA), List.of(op("RECARGA", "2000", AHORA.minusHours(1))), Map.of())).isEmpty();
-        var bajo = List.of(op("RECARGA", "1000", AHORA.minusHours(2)), op("RECARGA", "1000", AHORA.minusHours(1)));
-        assertThat(reglas(op("RECARGA", "1300", AHORA), bajo, Map.of())).isEmpty();
-        var viejas = List.of(op("RECARGA", "2000", AHORA.minusHours(25)), op("RECARGA", "1000", AHORA.minusHours(1)));
-        assertThat(reglas(op("RECARGA", "1000", AHORA), viejas, Map.of())).isEmpty();
+        assertThat(reglas(op("PAGO_NEGOCIO", "2000", AHORA), List.of(op("PAGO_NEGOCIO", "2000", AHORA.minusHours(1))), Map.of())).isEmpty();
+        var bajo = List.of(op("PAGO_NEGOCIO", "1000", AHORA.minusHours(2)), op("PAGO_NEGOCIO", "1000", AHORA.minusHours(1)));
+        assertThat(reglas(op("PAGO_NEGOCIO", "1300", AHORA), bajo, Map.of())).isEmpty();
+        var viejas = List.of(op("PAGO_NEGOCIO", "2000", AHORA.minusHours(25)), op("PAGO_NEGOCIO", "1000", AHORA.minusHours(1)));
+        assertThat(reglas(op("PAGO_NEGOCIO", "1000", AHORA), viejas, Map.of())).isEmpty();
     }
 
     @Test
     void elFraccionamientoNoSeRepiteEnLas24HorasSiguientes() {
-        var previas = List.of(op("RECARGA", "1200", AHORA.minusHours(5)), op("RECARGA", "1200", AHORA.minusHours(4)));
-        assertThat(reglas(op("RECARGA", "1200", AHORA), previas, Map.of(ReglaAlerta.FRACCIONAMIENTO, AHORA.minusHours(2)))).isEmpty();
-        assertThat(reglas(op("RECARGA", "1200", AHORA), previas, Map.of(ReglaAlerta.FRACCIONAMIENTO, AHORA.minusHours(25))))
+        var previas = List.of(op("PAGO_NEGOCIO", "1200", AHORA.minusHours(5)), op("PAGO_NEGOCIO", "1200", AHORA.minusHours(4)));
+        assertThat(reglas(op("PAGO_NEGOCIO", "1200", AHORA), previas, Map.of(ReglaAlerta.FRACCIONAMIENTO, AHORA.minusHours(2)))).isEmpty();
+        assertThat(reglas(op("PAGO_NEGOCIO", "1200", AHORA), previas, Map.of(ReglaAlerta.FRACCIONAMIENTO, AHORA.minusHours(25))))
                 .containsExactly(ReglaAlerta.FRACCIONAMIENTO);
     }
 
@@ -68,9 +68,9 @@ class ReglasOperacionesInusualesTest {
     }
 
     @Test
-    void lasRecargasYLosEnviosViejosNoCuentanComoTransferenciasSeguidas() {
+    void losDesembolsosYLosEnviosViejosNoCuentanComoTransferenciasSeguidas() {
         var previas = List.of(op("TRANSFERENCIA", "10", AHORA.minusMinutes(11)), op("TRANSFERENCIA", "10", AHORA.minusMinutes(6)),
-                op("RECARGA", "10", AHORA.minusMinutes(5)), op("TRANSFERENCIA", "10", AHORA.minusMinutes(4)),
+                op("DESEMBOLSO", "10", AHORA.minusMinutes(5)), op("TRANSFERENCIA", "10", AHORA.minusMinutes(4)),
                 op("TRANSFERENCIA", "10", AHORA.minusMinutes(3)));
         assertThat(reglas(op("TRANSFERENCIA", "10", AHORA), previas, Map.of())).isEmpty();
     }

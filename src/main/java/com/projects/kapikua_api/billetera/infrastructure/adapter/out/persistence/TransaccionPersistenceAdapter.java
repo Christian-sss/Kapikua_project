@@ -52,19 +52,16 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
     @Override
     public AcumuladoMensual acumulado(Long billeteraId, OffsetDateTime desde, OffsetDateTime hasta) {
         return jdbc.sql("""
-                        select coalesce(sum(m.monto) filter (where t.tipo = :recarga and m.monto > 0), 0)      as recargas,
-                               coalesce(-sum(m.monto) filter (where t.tipo in (:pagos) and m.monto < 0), 0)    as enviados
+                        select coalesce(-sum(m.monto) filter (where t.tipo in (:pagos) and m.monto < 0), 0) as enviados
                         from billetera.movimiento m
                         join billetera.transaccion t on t.id = m.transaccion_id
                         where m.billetera_id = :billetera and m.fecha >= :desde and m.fecha < :hasta
                         """)
-                .param("recarga", TiposTransaccion.RECARGA.codigo())
                 .param("pagos", PAGOS_Y_TRANSFERENCIAS)
                 .param("billetera", billeteraId)
                 .param("desde", desde)
                 .param("hasta", hasta)
-                .query((rs, n) -> new AcumuladoMensual(Dinero.de(rs.getBigDecimal("recargas")),
-                        Dinero.de(rs.getBigDecimal("enviados"))))
+                .query((rs, n) -> new AcumuladoMensual(Dinero.de(rs.getBigDecimal("enviados"))))
                 .single();
     }
 

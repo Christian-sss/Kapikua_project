@@ -21,7 +21,7 @@
         <ul class="movimientos">
             <li th:each="o : ${d.operaciones()}">
                 <div>
-                    <div th:text="${o.tipo() == 'RECARGA'} ? 'Recarga' : (${o.tipo() == 'TRANSFERENCIA'} ? 'Transferencia' : 'Pago a negocio')"></div>
+                    <div th:text="${o.tipo() == 'RECARGA'} ? 'Carga inicial' : (${o.tipo() == 'TRANSFERENCIA'} ? 'Transferencia' : 'Pago a negocio')"></div>
                     <div class="detalle" th:text="'N.° ' + ${o.transaccionId()} + ' · ' + ${#temporals.format(o.fecha(), 'dd/MM HH:mm:ss')}"></div>
                 </div>
                 <div class="monto" th:classappend="${o.transaccionId() == d.transaccionId()} ? 'salida'" th:text="${o.monto()}"></div>

@@ -6,7 +6,6 @@ import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCas
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase.VistaPrevia;
 import com.projects.kapikua_api.billetera.application.port.in.GestionarEstadoBilleteraUseCase;
 import com.projects.kapikua_api.billetera.application.port.in.OperacionesCreditoUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.RecargarSaldoUseCase;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
 import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
@@ -42,7 +41,6 @@ class BilleteraIntegracionTest {
     }
 
     @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired RecargarSaldoUseCase recargar;
     @Autowired EnviarDineroUseCase enviar;
     @Autowired ConsultarBilleteraUseCase consultar;
     @Autowired GestionarEstadoBilleteraUseCase gestionarEstado;
@@ -61,6 +59,12 @@ class BilleteraIntegracionTest {
                 "c" + dni + "@prueba.pe", celular, negocio, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), celular);
+    }
+
+    /** Saldo inicial de prueba: el sistema no tiene recarga, así que se carga directo en la base. */
+    private void fondear(Cliente c, String monto) {
+        assertThat(jdbc.update("update billetera.billetera set saldo = saldo + ? where usuario_id = ?",
+                new java.math.BigDecimal(monto), c.id().valor())).isEqualTo(1);
     }
 
     private Dinero saldo(Cliente c) {
@@ -129,26 +133,10 @@ class BilleteraIntegracionTest {
     }
 
     @Test
-    void laRecargaRepetidaConLaMismaReferenciaNoDuplicaElSaldo() {
-        var luis = registrarCliente(null);
-        var referencia = UUID.randomUUID().toString();
-        var primera = ok(recargar.recargar(luis.id(), Dinero.de("500"), "tok_aprobado", referencia));
-        var segunda = ok(recargar.recargar(luis.id(), Dinero.de("500"), "tok_aprobado", referencia));
-
-        assertThat(segunda.transaccionId()).isEqualTo(primera.transaccionId());
-        assertThat(saldo(luis)).isEqualTo(Dinero.de("500"));
-        assertThat(movimientos(luis)).isEqualTo(1);
-        assertThat(err(recargar.recargar(luis.id(), Dinero.de("3300.01"), "tok_aprobado", UUID.randomUUID().toString())))
-                .isInstanceOf(ErrorBilletera.TopePorOperacion.class);
-        assertThat(err(recargar.recargar(luis.id(), Dinero.de("10"), "tok_rechazado", UUID.randomUUID().toString())))
-                .isInstanceOf(ErrorBilletera.PagoRechazado.class);
-    }
-
-    @Test
     void laTransferenciaExigeElCodigoYNoSeRepiteConLaMismaReferencia() {
         var luis = registrarCliente(null);
         var ana = registrarCliente(null);
-        ok(recargar.recargar(luis.id(), Dinero.de("300"), "tok_aprobado", UUID.randomUUID().toString()));
+        fondear(luis, "300");
 
         var referencia = UUID.randomUUID().toString();
         VistaPrevia vista = ok(enviar.prepararTransferencia(luis.id(), ana.celular(), Dinero.de("120"), referencia));
@@ -170,7 +158,7 @@ class BilleteraIntegracionTest {
     void soloSePagaANegociosRegistrados() {
         var luis = registrarCliente(null);
         var ana = registrarCliente(null);
-        ok(recargar.recargar(luis.id(), Dinero.de("100"), "tok_aprobado", UUID.randomUUID().toString()));
+        fondear(luis, "100");
         assertThat(err(enviar.prepararPagoNegocio(luis.id(), ana.celular(), Dinero.de("10"), UUID.randomUUID().toString())))
                 .isInstanceOf(ErrorBilletera.NoEsNegocio.class);
     }
@@ -186,7 +174,11 @@ class BilleteraIntegracionTest {
         assertThat(jdbc.queryForObject("select estado from billetera.billetera where id = ?", String.class, billeteraId))
                 .isEqualTo("RETENIDA");
         assertThat(consultar.bloqueada(billeteraId)).isFalse();
-        ok(recargar.recargar(titular.id(), Dinero.de("100"), "tok_aprobado", UUID.randomUUID().toString()));
+        var pagador = registrarCliente(null);
+        fondear(pagador, "100");
+        var referencia = UUID.randomUUID().toString();
+        var vista = ok(enviar.prepararTransferencia(pagador.id(), titular.celular(), Dinero.de("100"), referencia));
+        ok(enviar.transferir(pagador.id(), titular.celular(), Dinero.de("100"), referencia, vista.codigoMostrado()));
         assertThat(err(enviar.pagarNegocio(titular.id(), negocio.celular(), Dinero.de("25"), UUID.randomUUID().toString())))
                 .isInstanceOf(ErrorBilletera.BilleteraRetenida.class);
         assertThat(saldo(titular)).isEqualTo(Dinero.de("100"));
@@ -200,7 +192,7 @@ class BilleteraIntegracionTest {
     @Test
     void losDosPagosDeCreditoConservanSuCodigoEnLosMovimientos() {
         var titular = registrarCliente(null);
-        ok(recargar.recargar(titular.id(), Dinero.de("200"), "tok_aprobado", UUID.randomUUID().toString()));
+        fondear(titular, "200");
 
         var cuota = ok(ejecutor.ejecutarResultado(() -> credito.cobrar(titular.id(), Dinero.de("25"), Dinero.CERO,
                 true, false, UUID.randomUUID().toString(), "Pago de cuota")));
@@ -227,7 +219,7 @@ class BilleteraIntegracionTest {
     void pagosSimultaneosNoDejanElSaldoNegativo() throws Exception {
         var luis = registrarCliente(null);
         var bodega = registrarCliente("Bodega concurrente");
-        ok(recargar.recargar(luis.id(), Dinero.de("500"), "tok_aprobado", UUID.randomUUID().toString()));
+        fondear(luis, "500");
 
         var tareas = new ArrayList<Callable<Boolean>>();
         for (int i = 0; i < 10; i++) {
@@ -250,6 +242,6 @@ class BilleteraIntegracionTest {
         assertThat(exitosos).isBetween(1, 5);
         assertThat(saldo(luis)).isEqualTo(Dinero.de("500").restar(Dinero.de(String.valueOf(100 * exitosos))));
         assertThat(saldo(bodega)).isEqualTo(Dinero.de(String.valueOf(100 * exitosos)));
-        assertThat(movimientos(luis)).isEqualTo(1 + exitosos);
+        assertThat(movimientos(luis)).isEqualTo(exitosos);
     }
 }

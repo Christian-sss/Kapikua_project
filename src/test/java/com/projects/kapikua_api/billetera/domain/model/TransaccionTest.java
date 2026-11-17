@@ -33,12 +33,12 @@ class TransaccionTest {
     }
 
     static List<TipoTransaccion> tiposQueNoSonPagosDeCredito() {
-        return List.of(TiposTransaccion.RECARGA, TiposTransaccion.DESEMBOLSO,
+        return List.of(TiposTransaccion.CARGA_INICIAL, TiposTransaccion.DESEMBOLSO,
                 TiposTransaccion.TRANSFERENCIA, TiposTransaccion.PAGO_NEGOCIO);
     }
 
     static List<TipoTransaccion> tiposQueNoSonEnvios() {
-        return List.of(TiposTransaccion.RECARGA, TiposTransaccion.DESEMBOLSO,
+        return List.of(TiposTransaccion.CARGA_INICIAL, TiposTransaccion.DESEMBOLSO,
                 TiposTransaccion.PAGO_CUOTA, TiposTransaccion.PAGO_ANTICIPADO);
     }
 
@@ -63,13 +63,10 @@ class TransaccionTest {
     }
 
     @Test
-    void recargaYDesembolsoSoloTienenElMovimientoDeEntrada() {
-        var recarga = Transaccion.recarga(billetera(2, "50"), CINCUENTA, "ref-r", AHORA);
+    void elDesembolsoSoloTieneElMovimientoDeEntrada() {
         var desembolso = Transaccion.desembolso(billetera(2, "50"), CINCUENTA, "ref-d", "Crédito EFA-C-1", AHORA);
-        assertThat(recarga.tipo()).isEqualTo(TiposTransaccion.RECARGA);
         assertThat(desembolso.tipo()).isEqualTo(TiposTransaccion.DESEMBOLSO);
-        assertThat(List.of(recarga, desembolso)).allSatisfy(tx -> assertThat(tx.movimientos()).singleElement()
-                .satisfies(m -> assertThat(m.monto()).isPositive()));
+        assertThat(desembolso.movimientos()).singleElement().satisfies(m -> assertThat(m.monto()).isPositive());
     }
 
     @ParameterizedTest
@@ -97,7 +94,7 @@ class TransaccionTest {
     @Test
     void losMovimientosNoSePuedenModificarDesdeAfuera() {
         var lista = new ArrayList<>(List.of(new Transaccion.Movimiento(1L, BigDecimal.TEN, Dinero.de("10"))));
-        var tx = new Transaccion(null, TiposTransaccion.RECARGA, Dinero.de("10"), "r", null, AHORA, lista);
+        var tx = new Transaccion(null, TiposTransaccion.DESEMBOLSO, Dinero.de("10"), "r", null, AHORA, lista);
         lista.clear();
         assertThat(tx.movimientos()).hasSize(1);
         assertThatThrownBy(() -> tx.movimientos().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -105,7 +102,7 @@ class TransaccionTest {
 
     @Test
     void conIdConservaTodoLoDemas() {
-        var tx = Transaccion.recarga(billetera(2, "50"), CINCUENTA, "ref-r", AHORA);
+        var tx = Transaccion.desembolso(billetera(2, "50"), CINCUENTA, "ref-r", null, AHORA);
         var guardada = tx.conId(77L);
         assertThat(guardada.id()).isEqualTo(77L);
         assertThat(guardada).usingRecursiveComparison().ignoringFields("id").isEqualTo(tx);
@@ -114,18 +111,18 @@ class TransaccionTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "   "})
     void laReferenciaEsObligatoria(String referencia) {
-        assertThatThrownBy(() -> Transaccion.recarga(billetera(2, "50"), CINCUENTA, referencia, AHORA))
+        assertThatThrownBy(() -> Transaccion.desembolso(billetera(2, "50"), CINCUENTA, referencia, null, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void laReferenciaTieneHasta60CaracteresYElMontoNoEsCero() {
-        assertThat(Transaccion.recarga(billetera(2, "50"), CINCUENTA, "r".repeat(60), AHORA).referencia()).hasSize(60);
-        assertThatThrownBy(() -> Transaccion.recarga(billetera(2, "50"), CINCUENTA, "r".repeat(61), AHORA))
+        assertThat(Transaccion.desembolso(billetera(2, "50"), CINCUENTA, "r".repeat(60), null, AHORA).referencia()).hasSize(60);
+        assertThatThrownBy(() -> Transaccion.desembolso(billetera(2, "50"), CINCUENTA, "r".repeat(61), null, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> Transaccion.recarga(billetera(2, "50"), Dinero.CERO, "r", AHORA))
+        assertThatThrownBy(() -> Transaccion.desembolso(billetera(2, "50"), Dinero.CERO, "r", null, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> Transaccion.recarga(billetera(2, "50"), CINCUENTA, null, AHORA))
+        assertThatThrownBy(() -> Transaccion.desembolso(billetera(2, "50"), CINCUENTA, null, null, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -152,8 +149,8 @@ class TransaccionTest {
                 new ErrorBilletera.OperacionConSiMismo(), new ErrorBilletera.MontoInvalido(),
                 new ErrorBilletera.SaldoInsuficiente(), new ErrorBilletera.TopePorOperacion(Dinero.de("1000")),
                 new ErrorBilletera.TopeSaldoPropio(Dinero.de("500")), new ErrorBilletera.DestinoNoPuedeRecibir(),
-                new ErrorBilletera.TopeRecargasMes(Dinero.de("20")), new ErrorBilletera.TopePagosMes(Dinero.de("30")),
-                new ErrorBilletera.PagoRechazado("tarjeta vencida"), new ErrorBilletera.CodigoNoValido("Código vencido"),
+                new ErrorBilletera.TopePagosMes(Dinero.de("30")),
+                new ErrorBilletera.CodigoNoValido("Código vencido"),
                 new ErrorBilletera.ReferenciaInvalida(), new ErrorBilletera.CelularInvalido(),
                 new ErrorBilletera.OperacionConcurrente(), new ErrorBilletera.ParametrosNoDisponibles(),
                 new ErrorBilletera.BilleteraRetenida(), new ErrorBilletera.BilleteraYaActiva(),
@@ -166,6 +163,6 @@ class TransaccionTest {
         });
         assertThat(new HashSet<>(errores.stream().map(ErrorBilletera::codigo).toList())).hasSameSizeAs(errores);
         assertThat(new ErrorBilletera.TopeSaldoPropio(Dinero.de("500")).mensaje()).contains("S/ 500.00");
-        assertThat(new ErrorBilletera.TopeRecargasMes(Dinero.de("20")).mensaje()).contains("S/ 20.00");
+        assertThat(new ErrorBilletera.TopePagosMes(Dinero.de("30")).mensaje()).contains("S/ 30.00");
     }
 }

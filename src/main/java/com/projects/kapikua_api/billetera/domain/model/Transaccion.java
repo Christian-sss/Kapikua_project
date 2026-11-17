@@ -32,11 +32,6 @@ public record Transaccion(Long id,
         movimientos = List.copyOf(movimientos);
     }
 
-    public static Transaccion recarga(Billetera destino, Dinero monto, String referencia, OffsetDateTime ahora) {
-        return new Transaccion(null, TiposTransaccion.RECARGA, monto, referencia, null, ahora,
-                List.of(new Movimiento(destino.getId(), monto.valor(), destino.getSaldo())));
-    }
-
     public static Transaccion desembolso(Billetera destino, Dinero monto, String referencia, String descripcion,
                                          OffsetDateTime ahora) {
         return new Transaccion(null, TiposTransaccion.DESEMBOLSO, monto, referencia, descripcion, ahora,

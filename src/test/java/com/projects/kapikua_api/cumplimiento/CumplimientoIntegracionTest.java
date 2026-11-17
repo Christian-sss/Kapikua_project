@@ -2,7 +2,6 @@ package com.projects.kapikua_api.cumplimiento;
 
 import com.projects.kapikua_api.DatosDePrueba;
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.RecargarSaldoUseCase;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.cumplimiento.application.port.in.ReclamosUseCase;
 import com.projects.kapikua_api.cumplimiento.application.port.in.RevisarAlertasUseCase;
@@ -40,17 +39,18 @@ class CumplimientoIntegracionTest {
     }
 
     @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired RecargarSaldoUseCase recargar;
     @Autowired EnviarDineroUseCase enviar;
     @Autowired RevisarAlertasUseCase alertas;
     @Autowired ReclamosUseCase reclamos;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
     DatosDePrueba datos;
+    DatosDePrueba.Cliente negocio;
 
     @BeforeEach
     void preparar() {
         datos = new DatosDePrueba(registrar, jdbc, clock);
+        negocio = null;
     }
 
     private static <T> T ok(Result<T, ErrorCumplimiento> r) {
@@ -63,9 +63,12 @@ class CumplimientoIntegracionTest {
         return ((Result.Err<?, ErrorCumplimiento>) r).error();
     }
 
-    private Long recarga(UsuarioId u, String monto) {
-        var r = recargar.recargar(u, Dinero.de(monto), "tok_aprobado", UUID.randomUUID().toString());
-        assertThat(r.esOk()).as("recarga %s", r).isTrue();
+    /** El cliente paga a un negocio con saldo cargado para la prueba; devuelve la transacción. */
+    private Long pago(UsuarioId u, String monto) {
+        if (negocio == null) negocio = datos.cliente('1');
+        datos.fondear(u, monto);
+        var r = enviar.pagarNegocio(u, negocio.celular(), Dinero.de(monto), UUID.randomUUID().toString());
+        assertThat(r.esOk()).as("pago %s", r).isTrue();
         return jdbc.queryForObject("select max(id) from billetera.transaccion", Long.class);
     }
 
@@ -83,9 +86,9 @@ class CumplimientoIntegracionTest {
     }
 
     @Test
-    void unaRecargaCercaDelTopeGeneraUnaAlertaConElDniEnmascarado() {
+    void unPagoCercaDelTopeGeneraUnaAlertaConElDniEnmascarado() {
         var ana = datos.cliente('0');
-        var tx = recarga(ana.id(), "3000");
+        var tx = pago(ana.id(), "3000");
         assertThat(reglasDe(ana.id())).containsExactly("CERCA_DEL_TOPE");
 
         var pendiente = alertas.pendientes().stream().filter(a -> a.regla() == ReglaAlerta.CERCA_DEL_TOPE
@@ -99,13 +102,13 @@ class CumplimientoIntegracionTest {
     }
 
     @Test
-    void tresRecargasQueSuperanElTopeSonFraccionamientoUnaSolaVez() {
+    void tresPagosQueSuperanElTopeSonFraccionamientoUnaSolaVez() {
         var ana = datos.cliente('0');
-        recarga(ana.id(), "1200");
-        recarga(ana.id(), "1200");
+        pago(ana.id(), "1200");
+        pago(ana.id(), "1200");
         assertThat(reglasDe(ana.id())).isEmpty();
-        recarga(ana.id(), "1200");
-        recarga(ana.id(), "1200");
+        pago(ana.id(), "1200");
+        pago(ana.id(), "1200");
         assertThat(reglasDe(ana.id())).containsExactly("FRACCIONAMIENTO");
     }
 
@@ -113,7 +116,7 @@ class CumplimientoIntegracionTest {
     void cincoPagosEnDiezMinutosSonTransferenciasSeguidas() {
         var ana = datos.cliente('0');
         var bodega = datos.cliente('1');
-        recarga(ana.id(), "500");
+        datos.fondear(ana.id(), "500");
         for (int i = 0; i < 6; i++) {
             assertThat(enviar.pagarNegocio(ana.id(), bodega.celular(), Dinero.de("10"), UUID.randomUUID().toString()).esOk()).isTrue();
         }
@@ -125,7 +128,7 @@ class CumplimientoIntegracionTest {
     void escalarConBloqueoDejaLaBilleteraBloqueadaYLaDecisionEsDefinitiva() {
         var ana = datos.cliente('0');
         var admin = datos.cliente('1');
-        recarga(ana.id(), "3000");
+        pago(ana.id(), "3000");
         var alerta = alertaDe(ana.id(), ReglaAlerta.CERCA_DEL_TOPE);
 
         assertThat(error(alertas.revisar(alerta, admin.id(), EstadoAlerta.DESCARTADA, "Normal", true, "Motivo")))
@@ -140,7 +143,8 @@ class CumplimientoIntegracionTest {
         assertThat(jdbc.queryForObject("select estado || ' · ' || motivo_bloqueo from billetera.billetera where usuario_id = ?",
                 String.class, ana.id().valor())).isEqualTo("BLOQUEADA · Alerta escalada a cumplimiento");
 
-        var otra = recargar.recargar(ana.id(), Dinero.de("10"), "tok_aprobado", UUID.randomUUID().toString());
+        datos.fondear(ana.id(), "10");
+        var otra = enviar.pagarNegocio(ana.id(), negocio.celular(), Dinero.de("10"), UUID.randomUUID().toString());
         assertThat(otra).isInstanceOf(Result.Err.class);
         assertThat(((Result.Err<?, ErrorBilletera>) otra).error()).isInstanceOf(ErrorBilletera.BilleteraBloqueada.class);
 
@@ -153,7 +157,7 @@ class CumplimientoIntegracionTest {
     @Test
     void descartarNoBloqueaLaBilletera() {
         var ana = datos.cliente('0');
-        recarga(ana.id(), "3000");
+        pago(ana.id(), "3000");
         ok(alertas.revisar(alertaDe(ana.id(), ReglaAlerta.CERCA_DEL_TOPE), datos.cliente('1').id(),
                 EstadoAlerta.DESCARTADA, "Venta de temporada, habitual", false, ""));
         assertThat(jdbc.queryForObject("select estado from billetera.billetera where usuario_id = ?", String.class, ana.id().valor()))
@@ -164,12 +168,12 @@ class CumplimientoIntegracionTest {
     void elClienteRegistraUnReclamoConCodigoYPlazoYElAdministradorResponde() {
         var ana = datos.cliente('0');
         var luis = datos.cliente('1');
-        var tx = recarga(ana.id(), "100");
+        var tx = pago(ana.id(), "100");
 
         assertThat(error(reclamos.registrar(luis.id(), MotivoReclamo.OPERACION, "No reconozco esta operación", tx)))
                 .isInstanceOf(ErrorCumplimiento.OperacionAjena.class);
 
-        var r = ok(reclamos.registrar(ana.id(), MotivoReclamo.OPERACION, "La recarga no se reflejó a tiempo", tx));
+        var r = ok(reclamos.registrar(ana.id(), MotivoReclamo.OPERACION, "El pago no se reflejó a tiempo", tx));
         var hoy = LocalDate.now(clock);
         assertThat(r.codigo()).matches("R-" + hoy.getYear() + "-\\d{6}").endsWith(String.format("%06d", r.id()));
         assertThat(r.detalle()).startsWith("Operación N° " + tx + ": ");
@@ -182,16 +186,16 @@ class CumplimientoIntegracionTest {
         assertThat(ok(reclamos.detalle(r.id())).cliente().dniEnmascarado()).contains("*");
 
         var limiteAntes = r.fechaLimite();
-        ok(reclamos.prorrogar(r.id(), "Esperamos el reporte de la pasarela de pagos"));
+        ok(reclamos.prorrogar(r.id(), "Esperamos el reporte del negocio"));
         assertThat(error(reclamos.prorrogar(r.id(), "Otra prórroga más"))).isInstanceOf(ErrorCumplimiento.ProrrogaYaRegistrada.class);
         assertThat(ok(reclamos.delUsuario(ana.id(), r.id())).fechaLimite()).isAfter(limiteAntes.plusDays(14));
 
-        ok(reclamos.responder(r.id(), luis.id(), "La recarga se acreditó; el retraso fue de la pasarela."));
+        ok(reclamos.responder(r.id(), luis.id(), "El pago se acreditó; el retraso fue del sistema."));
         assertThat(error(reclamos.responder(r.id(), luis.id(), "Respuesta duplicada del reclamo")))
                 .isInstanceOf(ErrorCumplimiento.ReclamoYaAtendido.class);
         var atendido = ok(reclamos.delUsuario(ana.id(), r.id()));
         assertThat(atendido.estado()).isEqualTo(EstadoReclamo.ATENDIDO);
-        assertThat(atendido.respuesta()).startsWith("La recarga se acreditó");
+        assertThat(atendido.respuesta()).startsWith("El pago se acreditó");
         assertThat(reclamos.pendientes()).extracting(ReclamosUseCase.VistaReclamo::id).doesNotContain(r.id());
         assertThat(reclamos.atendidos(50)).extracting(ReclamosUseCase.VistaReclamo::id).contains(r.id());
     }

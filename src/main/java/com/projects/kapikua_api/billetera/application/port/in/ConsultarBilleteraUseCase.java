@@ -40,8 +40,6 @@ public interface ConsultarBilleteraUseCase {
             Dinero saldo,
             Dinero saldoApartado,
             Dinero saldoDisponible,
-            Dinero recargasUsadas,
-            Dinero recargasDisponibles,
             Dinero pagosUsados,
             Dinero pagosDisponibles,
             Dinero topePorOperacion,

@@ -68,7 +68,6 @@ public class ConsultarBilleteraService implements ConsultarBilleteraUseCase {
         return Result.ok(new ResumenBilletera(
                 b.getCelular().numero(), b.getNombreNegocio(),
                 b.getSaldo(), b.getSaldoApartado(), b.saldoDisponible(),
-                acumulado.recargas(), acumulado.recargas().faltaPara(t.recargasMes()),
                 acumulado.pagosYTransferencias(), acumulado.pagosYTransferencias().faltaPara(t.pagosMes()),
                 t.porOperacion(), t.saldoMaximo(), inicio, fin, movimientos));
     }

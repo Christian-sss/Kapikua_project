@@ -33,16 +33,16 @@ class TransaccionEventosTest {
     }
 
     @Test
-    void unaRecargaOUnPagoDeCuotaNoSonCobros() {
-        assertThat(tx(10L, TiposTransaccion.RECARGA, mov(2, "50")).eventos()).singleElement()
-                .isEqualTo(new OperacionRegistrada(10L, TiposTransaccion.RECARGA, Dinero.de("50"), null, 2L, AHORA));
+    void unDesembolsoOUnPagoDeCuotaNoSonCobros() {
+        assertThat(tx(10L, TiposTransaccion.DESEMBOLSO, mov(2, "50")).eventos()).singleElement()
+                .isEqualTo(new OperacionRegistrada(10L, TiposTransaccion.DESEMBOLSO, Dinero.de("50"), null, 2L, AHORA));
         assertThat(tx(11L, TiposTransaccion.PAGO_CUOTA, mov(2, "-50")).eventos()).singleElement()
                 .isEqualTo(new OperacionRegistrada(11L, TiposTransaccion.PAGO_CUOTA, Dinero.de("50"), 2L, null, AHORA));
     }
 
     @Test
     void sinGuardarNoHayEventos() {
-        assertThatThrownBy(() -> tx(null, TiposTransaccion.RECARGA, mov(2, "50")).eventos())
+        assertThatThrownBy(() -> tx(null, TiposTransaccion.DESEMBOLSO, mov(2, "50")).eventos())
                 .isInstanceOf(IllegalStateException.class);
     }
 }
