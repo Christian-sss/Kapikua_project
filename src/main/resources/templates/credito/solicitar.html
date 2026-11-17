@@ -51,9 +51,15 @@
                     </select>
                 </div>
 
+                <p class="form-legend">Tus consentimientos</p>
+                <p class="muted small">Son separados y puedes revocarlos cuando quieras. Sin ellos no podemos evaluar tu solicitud.</p>
                 <label class="check">
-                    <input type="checkbox" name="autorizaDatos" value="true">
-                    <span><b>Evaluar y enviar mis datos</b><small>Autorizo que Kapikua evalúe mi solicitud con los datos de mi billetera y los envíe a Financiera Ayni Sur, la entidad que decide y otorga el crédito.</small></span>
+                    <input type="checkbox" name="autorizaEvaluacion" value="true">
+                    <span><b>Evaluar con los datos de mi billetera</b><small>Autorizo a Kapikua a usar mis cobros de las últimas 12 semanas y a consultar mi clasificación en la Central de Riesgos de la SBS.</small></span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" name="autorizaEnvio" value="true">
+                    <span><b>Enviar mis datos a la entidad aliada</b><small>Autorizo el envío de mi solicitud, mi evaluación y los datos de mi aval a Financiera Ayni Sur S.A., la entidad que decide y otorga el crédito.</small></span>
                 </label>
 
                 <button class="btn btn-primary btn-lg btn-block" type="submit">

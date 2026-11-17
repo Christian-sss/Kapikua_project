@@ -5,7 +5,7 @@
 <header th:replace="~{fragmentos :: barra('credito')}"></header>
 
 <main class="app-main" id="contenido">
-    <div class="container container-md">
+    <div class="container container-md" th:attr="data-en-vivo=@{/eventos}">
         <div class="page-head">
             <a class="back-link" th:href="@{/credito}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mi crédito</a>
             <h1>Tu solicitud</h1>
@@ -112,5 +112,6 @@
     </div>
 </main>
 
+<script th:src="@{/js/credito-en-vivo.js}" defer></script>
 </body>
 </html>

@@ -47,6 +47,20 @@
                 </div>
                 <div class="form-row">
                     <div class="field">
+                        <label for="nombres">Nombres</label>
+                        <input class="input" id="nombres" type="text" maxlength="100" th:field="*{nombres}"
+                               autocomplete="given-name">
+                        <span class="error" th:errors="*{nombres}"></span>
+                    </div>
+                    <div class="field">
+                        <label for="apellidos">Apellidos</label>
+                        <input class="input" id="apellidos" type="text" maxlength="100" th:field="*{apellidos}"
+                               autocomplete="family-name">
+                        <span class="error" th:errors="*{apellidos}"></span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
                         <label for="celular">Celular</label>
                         <input class="input" id="celular" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX"
                                th:field="*{celular}" autocomplete="tel">

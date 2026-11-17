@@ -32,6 +32,8 @@
                         <p class="muted small" style="text-align:center">Te mostramos un código de 6 dígitos en pantalla. Vence en 5 minutos y sirve una sola vez.</p>
                         <input type="hidden" th:field="*{codigo}">
                         <th:block th:replace="~{fragmentos :: otp(${vista.codigoMostrado()}, null)}"></th:block>
+                        <p class="otp-hint">¿Venció o lo escribiste mal?
+                            <button class="link-btn" type="submit" form="pedir-codigo">Pedir otro código</button></p>
                     </th:block>
 
                     <div class="btn-row">
@@ -42,6 +44,13 @@
                         </button>
                     </div>
                 </div>
+            </form>
+
+            <!-- CU-05, flujo 5a: vuelve a preparar la operación con los mismos datos y genera un código nuevo -->
+            <form th:if="${modo.pideCodigo}" id="pedir-codigo" th:action="@{${modo.ruta}}" method="post" hidden>
+                <input type="hidden" name="celular" th:value="${form.celular}">
+                <input type="hidden" name="monto" th:value="${form.monto}">
+                <input type="hidden" name="referencia" th:value="${form.referencia}">
             </form>
         </div>
     </div>

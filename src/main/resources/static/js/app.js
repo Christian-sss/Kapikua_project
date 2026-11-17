@@ -26,6 +26,59 @@
     });
   });
 
+  /* ---------- Menú con resaltado deslizante y cambio de página hacia el costado ----------
+     El resaltado sigue al mouse y vuelve a la opción activa. Al elegir una opción que está
+     a la derecha, la pantalla actual sale por la izquierda y la nueva entra por la derecha;
+     hacia la izquierda, al revés. */
+  $$(".app-nav").forEach(function (nav) {
+    var ul = $("ul", nav);
+    var enlaces = $$("a", nav);
+    if (!ul || !enlaces.length) return;
+    var activo = enlaces.filter(function (a) { return a.getAttribute("aria-current") === "page"; })[0] || null;
+    var indicador = document.createElement("span");
+    indicador.className = "nav-indicador";
+    indicador.setAttribute("aria-hidden", "true");
+    ul.insertBefore(indicador, ul.firstChild);
+    nav.classList.add("con-indicador");
+
+    function mover(a, sinAnimar) {
+      enlaces.forEach(function (x) { x.classList.toggle("is-hover", x === a && x !== activo); });
+      if (!a) { indicador.style.opacity = "0"; return; }
+      var base = ul.getBoundingClientRect(), r = a.getBoundingClientRect();
+      if (sinAnimar) indicador.style.transition = "none";
+      indicador.style.opacity = "1";
+      indicador.style.width = r.width + "px";
+      indicador.style.height = r.height + "px";
+      indicador.style.transform = "translate(" + (r.left - base.left) + "px," + (r.top - base.top) + "px)";
+      if (sinAnimar) { void indicador.offsetWidth; indicador.style.transition = ""; }
+    }
+
+    mover(activo, true);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { mover(activo, true); });
+    window.addEventListener("resize", function () { mover(activo, true); });
+    enlaces.forEach(function (a) {
+      a.addEventListener("mouseenter", function () { mover(a); });
+      a.addEventListener("focus", function () { mover(a); });
+    });
+    ul.addEventListener("mouseleave", function () { mover(activo); });
+
+    var reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    enlaces.forEach(function (a, i) {
+      a.addEventListener("click", function (e) {
+        if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || a === activo) return;
+        var desde = enlaces.indexOf(activo);
+        var dir = desde === -1 || i > desde ? "derecha" : "izquierda";
+        try { sessionStorage.setItem("kapikua-entrada", dir); } catch (err) {}
+        mover(a);
+        var main = $(".app-main");
+        if (!main || reducido) return;
+        e.preventDefault();
+        main.classList.add(dir === "derecha" ? "sale-izquierda" : "sale-derecha");
+        setTimeout(function () { window.location.href = a.href; }, 220);
+      });
+    });
+  });
+
   /* ---------- Avisos en pantalla ---------- */
   var stack;
   function toast(titulo, texto, opciones) {
