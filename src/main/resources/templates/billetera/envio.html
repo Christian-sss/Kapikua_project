@@ -2,27 +2,59 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera(${modo.titulo})}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1 th:text="${modo.titulo}">Transferir</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
+<header th:replace="~{fragmentos :: barra('billetera')}"></header>
 
-        <form th:action="@{${modo.ruta}}" th:object="${form}" method="post" novalidate>
-            <input type="hidden" th:field="*{referencia}">
-            <span class="campo-error" th:errors="*{referencia}"></span>
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="op-card">
+            <div class="page-head">
+                <a class="back-link" th:href="@{/billetera}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mi billetera</a>
+                <h1 th:text="${modo.titulo}">Transferir</h1>
+                <p th:text="${modo.pideCodigo} ? 'Envía dinero al instante a otra billetera KAPIKUA.' : 'Paga a un negocio con su número de celular.'"></p>
+            </div>
 
-            <label for="celular" th:text="${modo.etiquetaCelular}">Celular</label>
-            <input id="celular" type="tel" inputmode="numeric" maxlength="9" th:field="*{celular}" autocomplete="off">
-            <span class="campo-error" th:errors="*{celular}"></span>
+            <form class="card" th:action="@{${modo.ruta}}" th:object="${form}" method="post" novalidate>
+                <input type="hidden" th:field="*{referencia}">
+                <ol th:replace="~{fragmentos :: pasos('Datos', ${modo.pideCodigo} ? 'Código' : 'Confirmación', 'Comprobante', 1)}"></ol>
 
-            <label for="monto">Monto (S/)</label>
-            <input id="monto" type="number" inputmode="decimal" step="0.01" min="0.01" th:field="*{monto}">
-            <span class="campo-error" th:errors="*{monto}"></span>
+                <div class="stack">
+                    <h2 class="card-title" th:text="${modo.pideCodigo} ? '¿A quién le envías?' : '¿A qué negocio le pagas?'">¿A quién le envías?</h2>
 
-            <button type="submit" class="principal">Continuar</button>
-        </form>
-    </section>
+                    <div class="notice danger" th:if="${error}">
+                        <svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg>
+                        <div th:text="${error}">Error</div>
+                    </div>
+                    <span class="error" th:errors="*{referencia}"></span>
+
+                    <div class="field">
+                        <label for="celular" th:text="${modo.etiquetaCelular}">Celular de destino</label>
+                        <div class="input-group">
+                            <span class="prefix"><svg th:replace="~{fragmentos :: icono('i-phone')}"></svg></span>
+                            <input class="input" id="celular" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX"
+                                   th:field="*{celular}" autocomplete="off">
+                        </div>
+                        <span class="error" th:errors="*{celular}"></span>
+                    </div>
+
+                    <div class="field">
+                        <label for="monto">Monto</label>
+                        <div class="input-group">
+                            <span class="prefix">S/</span>
+                            <input class="input input-amount" id="monto" type="number" inputmode="decimal" step="0.01" min="0.01"
+                                   placeholder="0.00" th:field="*{monto}">
+                        </div>
+                        <span class="hint">No incluye lo apartado para tu cuota.</span>
+                        <span class="error" th:errors="*{monto}"></span>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg btn-block" type="submit">
+                        Continuar <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

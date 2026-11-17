@@ -2,24 +2,44 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mis reclamos')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1>Mis reclamos</h1>
-        <p class="nota">Respondemos cada reclamo en 15 días hábiles o menos.</p>
-        <a class="principal" th:href="@{/reclamos/nuevo}" style="display:block;text-align:center;margin:12px 0">Nuevo reclamo</a>
-        <p th:if="${#lists.isEmpty(reclamos)}" class="nota">No has presentado reclamos.</p>
-        <ul class="lista">
-            <li th:each="r : ${reclamos}">
-                <a th:href="@{/reclamos/{id}(id=${r.id()})}">
-                    <div class="titulo"><strong th:text="${r.codigo()}"></strong>
-                        <span th:class="${r.estado().name() == 'ATENDIDO'} ? 'etiqueta listo' : 'etiqueta'"
-                              th:text="${r.estado().name() == 'ATENDIDO'} ? 'Respondido' : 'En atención'"></span></div>
-                    <div class="nota" th:text="${r.motivo().descripcion()} + ' · respuesta hasta el ' + ${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></div>
-                </a>
-            </li>
-        </ul>
-    </section>
+<header th:replace="~{fragmentos :: barra('reclamos')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head page-head-row">
+            <div class="stack-sm">
+                <p class="eyebrow"><span class="dot"></span> Atención al cliente</p>
+                <h1>Reclamos</h1>
+                <p>Respondemos cada reclamo en 15 días hábiles o menos.</p>
+            </div>
+            <a class="btn btn-primary" th:href="@{/reclamos/nuevo}"><svg th:replace="~{fragmentos :: icono('i-plus')}"></svg>Nuevo reclamo</a>
+        </div>
+
+        <section class="card card-flush" aria-labelledby="t-mis">
+            <div class="card-head"><h2 id="t-mis">Mis reclamos</h2></div>
+            <ul class="row-list" style="margin-top: var(--space-4)" th:unless="${#lists.isEmpty(reclamos)}">
+                <li th:each="r : ${reclamos}">
+                    <a class="row-item" th:href="@{/reclamos/{id}(id=${r.id()})}">
+                        <span class="ico-box" th:classappend="${r.estado().name() == 'ATENDIDO'} ? '' : 'amarillo'">
+                            <svg th:replace="~{fragmentos :: icono(${r.estado().name() == 'ATENDIDO'} ? 'i-check-circle' : 'i-clock')}"></svg></span>
+                        <span class="row-txt">
+                            <b th:text="${r.codigo()} + ' · ' + ${r.motivo().descripcion()}">Código</b>
+                            <small th:text="'Respuesta hasta el ' + ${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></small>
+                        </span>
+                        <span class="row-end"><span class="badge" th:classappend="${r.estado().name() == 'ATENDIDO'} ? 'success' : 'warning'"
+                              th:text="${r.estado().name() == 'ATENDIDO'} ? 'RESPONDIDO' : 'EN ATENCIÓN'"></span></span>
+                    </a>
+                </li>
+            </ul>
+            <div class="empty" th:if="${#lists.isEmpty(reclamos)}">
+                <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-message')}"></svg></span>
+                <b>No has presentado reclamos</b>
+                <p class="small">Si algo no salió bien con una operación o tu crédito, cuéntanos.</p>
+                <a class="btn btn-primary" th:href="@{/reclamos/nuevo}">Nuevo reclamo</a>
+            </div>
+        </section>
+    </div>
 </main>
+
 </body>
 </html>

@@ -2,51 +2,77 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Reclamo')}"></head>
 <body>
-<main>
-    <div class="barra">
-        <a th:href="@{/admin/reclamos}">← Reclamos</a>
-        <form th:action="@{/logout}" method="post">
-            <button type="submit" class="enlace-boton">Cerrar sesión</button>
-        </form>
+<header th:replace="~{fragmentos :: barraAdmin('reclamos')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head page-head-row">
+            <div class="stack-sm">
+                <a class="back-link" th:href="@{/admin/reclamos}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Reclamos</a>
+                <h1 th:text="'Responder ' + ${r.codigo()}">Reclamo</h1>
+            </div>
+            <span class="badge" th:classappend="${r.estado().name() == 'REGISTRADO'} ? (${r.cercaDelLimite()} ? 'danger' : 'warning') : 'success'"
+                  th:text="${r.estado().name()}"></span>
+        </div>
+
+        <div class="stack" style="margin-bottom: var(--space-5)" th:if="${aviso == 'prorroga' or error != null}">
+            <div class="notice info" th:if="${aviso == 'prorroga'}"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>
+                <div>Prórroga registrada. El cliente ve el nuevo plazo y la justificación en su reclamo.</div></div>
+            <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+        </div>
+
+        <div class="grid layout-aside">
+            <div class="stack-lg">
+                <section class="card">
+                    <dl class="kv">
+                        <div><dt>Cliente</dt><dd th:text="${r.cliente().nombre()}"></dd></div>
+                        <div><dt>DNI</dt><dd th:text="${r.cliente().dniEnmascarado()}"></dd></div>
+                        <div><dt>Motivo</dt><dd th:text="${r.motivo().descripcion()}"></dd></div>
+                        <div><dt>Registrado</dt><dd th:text="${#temporals.format(r.fechaRegistro(), 'dd/MM/yyyy HH:mm')}"></dd></div>
+                        <div class="total"><dt>Fecha límite</dt>
+                            <dd><span class="deadline" th:classappend="${r.cercaDelLimite()} ? 'soon'"
+                                th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')} + (${r.estado().name() == 'REGISTRADO'} ? ' · ' + ${r.diasHabilesRestantes()} + ' días hábiles' : '')"></span></dd></div>
+                    </dl>
+                    <p class="small" style="margin-top: var(--space-4)"><b>Reclamo del cliente:</b></p>
+                    <p class="small texto-largo" th:text="${r.detalle()}"></p>
+                </section>
+
+                <div class="notice warning" th:if="${r.prorroga()}">
+                    <svg th:replace="~{fragmentos :: icono('i-clock')}"></svg>
+                    <div class="small"><b>Prórroga</b><span class="texto-largo" th:text="${r.prorroga()}"></span></div>
+                </div>
+
+                <div class="notice info" th:if="${r.respuesta()}">
+                    <svg th:replace="~{fragmentos :: icono('i-message')}"></svg>
+                    <div class="small"><b>Respuesta</b>
+                        <span class="muted" th:text="${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy HH:mm')}"></span>
+                        <span class="texto-largo" style="display:block;margin-top:4px" th:text="${r.respuesta()}"></span></div>
+                </div>
+            </div>
+
+            <aside class="stack-lg" th:if="${r.estado().name() == 'REGISTRADO'}">
+                <form class="card stack" th:action="@{/admin/reclamos/{id}/respuesta(id=${r.id()})}" method="post">
+                    <h2 class="card-title">Respuesta</h2>
+                    <div class="field">
+                        <label for="respuesta" class="sr-only">Respuesta</label>
+                        <textarea class="input" id="respuesta" name="respuesta" maxlength="500" required th:text="${respuesta}"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block" type="submit">Enviar respuesta</button>
+                </form>
+
+                <form class="card stack" th:if="${r.prorroga() == null}" th:action="@{/admin/reclamos/{id}/prorroga(id=${r.id()})}" method="post">
+                    <h2 class="card-title">Registrar prórroga</h2>
+                    <p class="xs muted">Solo en casos excepcionales. Amplía el plazo 15 días hábiles, una sola vez. El cliente verá la justificación.</p>
+                    <div class="field">
+                        <label for="justificacion">Justificación de la prórroga</label>
+                        <input class="input" type="text" id="justificacion" name="justificacion" maxlength="255" required>
+                    </div>
+                    <button class="btn btn-outline btn-block" type="submit">Registrar prórroga</button>
+                </form>
+            </aside>
+        </div>
     </div>
-    <p class="aviso" th:if="${aviso == 'prorroga'}">Prórroga registrada. El cliente ve el nuevo plazo y la justificación
-        en su reclamo.</p>
-    <p class="error" th:if="${error}" th:text="${error}"></p>
-    <section class="tarjeta">
-        <h1 th:text="${r.codigo()}">Reclamo</h1>
-        <div class="fila"><span>Cliente</span><span th:text="${r.cliente().nombre()}"></span></div>
-        <div class="fila"><span>DNI</span><span th:text="${r.cliente().dniEnmascarado()}"></span></div>
-        <div class="fila"><span>Motivo</span><span th:text="${r.motivo().descripcion()}"></span></div>
-        <div class="fila"><span>Registrado</span><span
-                th:text="${#temporals.format(r.fechaRegistro(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <div class="fila"><span>Fecha límite</span>
-            <strong th:class="${r.cercaDelLimite()} ? 'salida'"
-                    th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')} + (${r.estado().name() == 'REGISTRADO'} ? ' · ' + ${r.diasHabilesRestantes()} + ' días hábiles' : '')"></strong>
-        </div>
-        <p class="texto-largo" style="margin-top:12px" th:text="${r.detalle()}"></p>
-        <div class="aviso" th:if="${r.prorroga()}"><strong>Prórroga:</strong> <span th:text="${r.prorroga()}"></span>
-        </div>
-    </section>
-    <section class="tarjeta" th:if="${r.estado().name() == 'REGISTRADO'}">
-        <h2>Responder</h2>
-        <form th:action="@{/admin/reclamos/{id}/respuesta(id=${r.id()})}" method="post">
-            <textarea name="respuesta" maxlength="500" required th:text="${respuesta}"></textarea>
-            <button type="submit" class="principal">Registrar respuesta</button>
-        </form>
-    </section>
-    <section class="tarjeta" th:if="${r.estado().name() == 'REGISTRADO' and r.prorroga() == null}">
-        <h2>Prórroga (caso excepcional)</h2>
-        <p class="nota">Amplía el plazo 15 días hábiles, una sola vez. El cliente verá la justificación.</p>
-        <form th:action="@{/admin/reclamos/{id}/prorroga(id=${r.id()})}" method="post">
-            <input type="text" name="justificacion" maxlength="255" required placeholder="Justificación">
-            <button type="submit" class="principal">Registrar prórroga</button>
-        </form>
-    </section>
-    <section class="tarjeta" th:if="${r.respuesta()}">
-        <h2>Respuesta</h2>
-        <p class="nota" th:text="${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy HH:mm')}"></p>
-        <p class="texto-largo" th:text="${r.respuesta()}"></p>
-    </section>
 </main>
+
 </body>
 </html>

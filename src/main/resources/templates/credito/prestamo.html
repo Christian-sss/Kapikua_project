@@ -2,61 +2,101 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mi préstamo')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <p class="exito" th:if="${aviso == 'pagado'}">Pago registrado. ¡Gracias!</p>
-    <p class="exito" th:if="${aviso == 'anticipado'}">Pago anticipado registrado. Revisa tu nuevo cronograma.</p>
-    <p class="aviso" th:if="${aviso == 'cargo-revocado'}">Revocaste el cobro automático: lo apartado volvió a tu saldo.
-        Paga tus cuotas desde aquí.</p>
-    <p class="error" th:if="${p.cuotasVencidas() > 0}"
-       th:text="'Tienes ' + ${p.cuotasVencidas()} + (${p.cuotasVencidas() == 1} ? ' cuota vencida' : ' cuotas vencidas') + ' por ' + ${p.vencido()}
-                + '. Págala hoy para evitar más interés moratorio' + (${p.aval() != null} ? ' y que se avise a tu aval.' : '.')"></p>
-    <section class="tarjeta">
-        <h1>Mi préstamo</h1>
-        <div class="fila"><span>Estado</span><strong th:text="${p.estado()}"></strong></div>
-        <div class="fila"><span>Código del crédito</span><span th:text="${p.codigoCredito()}"></span></div>
-        <div class="fila"><span>Monto</span><span th:text="${p.monto()}"></span></div>
-        <div class="fila"><span>Capital pendiente</span><strong th:text="${p.capitalPendiente()}"></strong></div>
-        <div class="fila"><span>TEA / TCEA</span><span
-                th:text="${p.tea().stripTrailingZeros().toPlainString()} + ' % / ' + ${p.tcea().stripTrailingZeros().toPlainString()} + ' %'"></span>
+<header th:replace="~{fragmentos :: barra('prestamo')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container stack-lg"
+         th:with="pagadas=${#lists.size(p.cuotas().?[estado == 'PAGADA'])}, total=${#lists.size(p.cuotas())}">
+        <div class="page-head page-head-row" style="margin-bottom:0">
+            <div class="stack-sm">
+                <p class="eyebrow"><span class="dot"></span> Mi préstamo</p>
+                <h1 th:text="'Crédito ' + ${p.codigoCredito()}">Crédito</h1>
+            </div>
+            <div class="btn-row">
+                <a class="btn btn-outline" th:href="@{/credito/prestamo/anticipado}"><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg>Pagar por adelantado</a>
+                <a class="btn btn-primary" th:href="@{/credito/prestamo/pagar}"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg>Pagar cuota</a>
+            </div>
         </div>
-        <div class="fila"><span>Cobro automático</span>
-            <span th:text="${p.cargoAutorizado()} ? ${p.porcentajeRetencion()} + ' % de cada venta' : 'Revocado'"></span>
+
+        <div class="stack" th:if="${aviso != null or p.cuotasVencidas() > 0}">
+            <div class="notice info" th:if="${aviso == 'pagado'}"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg><div>Pago registrado. ¡Gracias!</div></div>
+            <div class="notice info" th:if="${aviso == 'anticipado'}"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg><div>Pago anticipado registrado. Revisa tu nuevo cronograma.</div></div>
+            <div class="notice warning" th:if="${aviso == 'cargo-revocado'}"><svg th:replace="~{fragmentos :: icono('i-info')}"></svg><div>Revocaste el cobro automático: lo apartado volvió a tu saldo. Paga tus cuotas desde aquí.</div></div>
+            <div class="notice danger" th:if="${p.cuotasVencidas() > 0}"><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg>
+                <div th:text="'Tienes ' + ${p.cuotasVencidas()} + (${p.cuotasVencidas() == 1} ? ' cuota vencida' : ' cuotas vencidas') + ' por ' + ${p.vencido()}
+                    + '. Págala hoy para evitar más interés moratorio' + (${p.aval() != null} ? ' y que se avise a tu aval.' : '.')"></div></div>
         </div>
-        <div class="fila" th:if="${p.cargoAutorizado()}"><span>Apartado de tus ventas</span><span
-                th:text="${p.apartado()}"></span></div>
-        <div class="fila" th:if="${p.aval()}"><span>Aval</span><span th:text="${p.aval()}"></span></div>
-        <p class="nota" style="margin-top:8px"
-           th:text="'Aceptaste la hoja resumen ' + ${p.constancia().versionHojaResumen()} + ' el ' + ${#temporals.format(p.constancia().fecha(), 'dd/MM/yyyy HH:mm')} + '.'"></p>
-        <div class="acciones" style="grid-template-columns:1fr 1fr;margin-top:12px">
-            <a th:href="@{/credito/prestamo/pagar}">Pagar cuota</a>
-            <a th:href="@{/credito/prestamo/anticipado}">Adelantar pago</a>
-        </div>
-    </section>
-    <section class="tarjeta">
-        <h2>Cronograma</h2>
-        <ul class="movimientos">
-            <li th:each="c : ${p.cuotas()}">
-                <div>
-                    <div th:text="'Cuota ' + ${c.numero}"></div>
-                    <div class="detalle"
-                         th:text="${#temporals.format(c.fechaVencimiento, 'dd/MM/yyyy')} + ' · ' + ${c.estado}"></div>
+
+        <section class="card loan-hero">
+            <div class="stack-sm">
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <span class="badge" th:classappend="${p.cuotasVencidas() > 0} ? 'danger' : 'success'" th:text="${p.estado()}">VIGENTE</span>
+                    <span class="badge no-dot">Financiera Ayni Sur</span>
                 </div>
-                <div class="monto">
-                    <div th:text="${c.total()}" th:classappend="${c.estaVencida()} ? 'salida' : ''"></div>
-                    <div class="detalle" th:text="'Pagado ' + ${c.montoPagado}
-                         + (${c.interesMoratorio.esCero()} ? '' : ' · mora ' + ${c.interesMoratorio})"></div>
+                <small class="muted">Capital pendiente</small>
+                <div style="font-size: var(--fs-3xl); font-weight: 800; letter-spacing: -.03em" class="num" th:text="${p.capitalPendiente()}">S/ 0.00</div>
+                <div class="loan-progress">
+                    <div class="meter" role="progressbar" aria-valuemin="0" th:attr="aria-valuemax=${total},aria-valuenow=${pagadas}" aria-label="Cuotas pagadas">
+                        <span th:style="'width:' + ${total > 0 ? pagadas * 100.0 / total : 0} + '%'"></span></div>
+                    <small class="muted" th:text="${pagadas} + ' de ' + ${total} + ' cuotas pagadas · monto del préstamo: ' + ${p.monto()}"></small>
                 </div>
-            </li>
-        </ul>
-    </section>
-    <section class="tarjeta" th:if="${p.cargoAutorizado()}">
-        <form th:action="@{/credito/prestamo/revocar-cargo}" method="post">
-            <p class="nota">Puedes revocar el cobro automático cuando quieras. Tendrás que pagar cada cuota desde
-                aquí.</p>
-            <button type="submit" class="enlace-boton">Revocar el cobro automático</button>
-        </form>
-    </section>
+            </div>
+            <div class="figures" style="grid-template-columns: 1fr 1fr">
+                <div class="figure"><small>TEA</small><b th:text="${p.tea().stripTrailingZeros().toPlainString()} + ' %'"></b></div>
+                <div class="figure"><small>TCEA</small><b th:text="${p.tcea().stripTrailingZeros().toPlainString()} + ' %'"></b></div>
+                <div class="figure hl"><small>Apartado de tus ventas</small><b th:text="${p.cargoAutorizado()} ? ${p.apartado()} : '—'"></b></div>
+                <div class="figure"><small>Cobro automático</small><b th:text="${p.cargoAutorizado()} ? ${p.porcentajeRetencion()} + ' %' : 'Revocado'"></b></div>
+            </div>
+        </section>
+
+        <div class="grid layout-aside">
+            <section class="card card-flush" aria-labelledby="t-crono">
+                <div class="card-head"><h2 id="t-crono">Cronograma</h2><span class="card-sub">Cuotas semanales</span></div>
+                <div class="table-wrap" style="margin-top: var(--space-4)">
+                    <table class="table">
+                        <thead><tr><th>N.º</th><th>Vence</th><th>Estado</th><th class="r">Cuota</th><th class="r">Pagado</th><th class="r">Mora</th></tr></thead>
+                        <tbody>
+                        <tr th:each="c : ${p.cuotas()}" th:classappend="${c.estado == 'PAGADA'} ? 'is-paid' : (${c.estaVencida()} ? 'is-soon' : '')">
+                            <td th:text="${c.numero}">1</td>
+                            <td th:text="${#temporals.format(c.fechaVencimiento, 'dd/MM/yyyy')}"></td>
+                            <td><span class="badge" th:classappend="${c.estado == 'PAGADA'} ? 'success' : (${c.estaVencida()} ? 'danger' : '')" th:text="${c.estado}">PENDIENTE</span></td>
+                            <td class="r" th:classappend="${c.estaVencida()} ? 'text-danger'" th:text="${c.total()}"></td>
+                            <td class="r" th:text="${c.montoPagado}"></td>
+                            <td class="r" th:text="${c.interesMoratorio.esCero()} ? '—' : ${c.interesMoratorio}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="stack-lg">
+                <section class="card" aria-labelledby="t-hr">
+                    <div class="card-head"><h2 id="t-hr">Hoja resumen aceptada</h2></div>
+                    <dl class="kv">
+                        <div><dt>Versión</dt><dd th:text="${p.constancia().versionHojaResumen()}"></dd></div>
+                        <div><dt>Aceptada</dt><dd th:text="${#temporals.format(p.constancia().fecha(), 'dd/MM/yyyy HH:mm')}"></dd></div>
+                        <div><dt>Retención de ventas</dt><dd th:text="${p.porcentajeRetencion()} + ' %'"></dd></div>
+                        <div><dt>Cargo automático</dt><dd><span class="badge" th:classappend="${p.cargoAutorizado()} ? 'success' : 'warning'"
+                                th:text="${p.cargoAutorizado()} ? 'Autorizado' : 'Revocado'"></span></dd></div>
+                    </dl>
+                    <form th:if="${p.cargoAutorizado()}" th:action="@{/credito/prestamo/revocar-cargo}" method="post" style="margin-top: var(--space-3)">
+                        <p class="xs muted" style="margin-bottom: var(--space-2)">Puedes revocar el cobro automático cuando quieras. Tendrás que pagar cada cuota desde aquí.</p>
+                        <button class="btn btn-ghost btn-block" type="submit">Revocar el cobro automático</button>
+                    </form>
+                </section>
+
+                <section class="card" th:if="${p.aval()}" aria-labelledby="t-aval">
+                    <div class="card-head"><h2 id="t-aval">Tu aval</h2></div>
+                    <div class="aval-slot" style="border:0;padding:0">
+                        <span class="avatar" th:text="${#strings.substring(p.aval(), 0, 1)}">A</span>
+                        <div><b th:text="${p.aval()}">Aval</b><small>Respalda solo cuotas vencidas</small></div>
+                        <span></span>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

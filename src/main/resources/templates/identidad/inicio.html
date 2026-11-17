@@ -1,71 +1,51 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inicio · Kapikua</title>
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            margin: 0;
-            padding: 16px;
-            background: #f6f7f9;
-            color: #1d2433;
-        }
-
-        main {
-            max-width: 420px;
-            margin: 0 auto;
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        h1 {
-            font-size: 1.4rem;
-            margin: 0 0 8px;
-        }
-
-        p.nota {
-            color: #5b6475;
-            font-size: .9rem;
-        }
-
-        .menu-admin a {
-            display: block;
-            padding: 12px;
-            margin-top: 8px;
-            border: 1px solid #c8cdd6;
-            border-radius: 8px;
-            color: #1f5eff;
-            text-decoration: none;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 20px;
-            padding: 12px;
-            border: 1px solid #c8cdd6;
-            border-radius: 8px;
-            background: #fff;
-            font-size: 1rem;
-        }
-    </style>
-</head>
+<head th:replace="~{fragmentos :: cabecera('Inicio')}"></head>
 <body>
-<main>
-    <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
-    <p th:text="${usuario.rol() == 'ADMINISTRADOR'} ? 'Panel del Administrador' : 'Tu billetera estará aquí muy pronto.'"></p>
-    <nav th:if="${usuario.rol() == 'ADMINISTRADOR'}" class="menu-admin">
-        <a th:href="@{/admin/alertas}">Alertas de operaciones inusuales</a>
-        <a th:href="@{/admin/reclamos}">Reclamos</a>
-        <a th:href="@{/admin/reportes}">Reportes</a>
-    </nav>
-    <p class="nota">Tu sesión se cierra sola tras 15 minutos sin actividad.</p>
+<th:block th:if="${usuario.rol() == 'ADMINISTRADOR'}">
+    <header th:replace="~{fragmentos :: barraAdmin('inicio')}"></header>
+</th:block>
+<th:block th:unless="${usuario.rol() == 'ADMINISTRADOR'}">
+    <header th:replace="~{fragmentos :: barra('')}"></header>
+</th:block>
 
-    <form th:action="@{/logout}" method="post">
-        <button type="submit">Cerrar sesión</button>
-    </form>
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span>
+                <span th:text="${usuario.rol() == 'ADMINISTRADOR'} ? 'Panel del Administrador' : 'Inicio'">Panel</span></p>
+            <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
+            <p th:unless="${usuario.rol() == 'ADMINISTRADOR'}">Tu billetera estará aquí muy pronto.</p>
+            <p th:if="${usuario.rol() == 'ADMINISTRADOR'}">Revisa las operaciones inusuales, atiende los reclamos dentro del plazo y consulta los reportes.</p>
+        </div>
+
+        <div class="grid grid-3" th:if="${usuario.rol() == 'ADMINISTRADOR'}">
+            <a class="card stack" th:href="@{/admin/alertas}" style="text-decoration:none;color:inherit">
+                <span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg></span>
+                <h2 class="card-title">Alertas de operaciones inusuales</h2>
+                <p class="muted small">Revisa cada alerta y registra tu decisión.</p>
+                <span class="btn btn-outline btn-block">Ver alertas</span>
+            </a>
+            <a class="card stack" th:href="@{/admin/reclamos}" style="text-decoration:none;color:inherit">
+                <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-message')}"></svg></span>
+                <h2 class="card-title">Reclamos</h2>
+                <p class="muted small">Ordenados por fecha límite de respuesta.</p>
+                <span class="btn btn-outline btn-block">Atender reclamos</span>
+            </a>
+            <a class="card stack" th:href="@{/admin/reportes}" style="text-decoration:none;color:inherit">
+                <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-chart')}"></svg></span>
+                <h2 class="card-title">Reportes</h2>
+                <p class="muted small">Clientes, transacciones, créditos y cobranza.</p>
+                <span class="btn btn-outline btn-block">Ver reportes</span>
+            </a>
+        </div>
+
+        <p class="notice" style="margin-top: var(--space-6)">
+            <svg th:replace="~{fragmentos :: icono('i-clock')}"></svg>
+            <span class="small">Tu sesión se cierra sola tras 15 minutos sin actividad.</span>
+        </p>
+    </div>
 </main>
+
 </body>
 </html>

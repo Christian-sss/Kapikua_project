@@ -2,25 +2,43 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Nuevo reclamo')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1>Nuevo reclamo</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <form th:action="@{/reclamos}" method="post">
-            <label for="motivo">Motivo</label>
-            <select id="motivo" name="motivo" required>
-                <option th:each="m : ${motivos}" th:value="${m.name()}" th:text="${m.descripcion()}"
-                        th:selected="${m.name() == motivo}"></option>
-            </select>
-            <label for="operacion">N.° de operación (opcional)</label>
-            <input type="number" id="operacion" name="operacion" min="1" th:value="${operacion}" inputmode="numeric">
-            <label for="detalle">Describe el problema</label>
-            <textarea id="detalle" name="detalle" maxlength="450" minlength="10" required th:text="${detalle}"></textarea>
-            <p class="nota">Entre 10 y 450 caracteres. Te daremos un código y la fecha límite de respuesta.</p>
-            <button type="submit" class="principal">Registrar reclamo</button>
+<header th:replace="~{fragmentos :: barra('reclamos')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head">
+            <a class="back-link" th:href="@{/reclamos}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mis reclamos</a>
+            <h1>Nuevo reclamo</h1>
+            <p>Te daremos un código y la fecha límite de respuesta.</p>
+        </div>
+
+        <form class="card stack" th:action="@{/reclamos}" method="post">
+            <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+
+            <div class="field">
+                <span class="field-label" id="l-motivo">Motivo</span>
+                <div class="choice-grid cols-2" role="radiogroup" aria-labelledby="l-motivo">
+                    <label class="choice" th:each="m, it : ${motivos}">
+                        <input type="radio" name="motivo" th:value="${m.name()}" required
+                               th:checked="${motivo != null ? m.name() == motivo : it.first}">
+                        <span><b th:text="${m.descripcion()}">Motivo</b></span>
+                    </label>
+                </div>
+            </div>
+            <div class="field">
+                <label for="operacion">N.° de operación <span class="muted">(opcional)</span></label>
+                <input class="input" type="number" id="operacion" name="operacion" min="1" th:value="${operacion}" inputmode="numeric">
+            </div>
+            <div class="field">
+                <label for="detalle">Describe el problema</label>
+                <textarea class="input" id="detalle" name="detalle" maxlength="450" minlength="10" required
+                          placeholder="Cuéntanos qué pasó, cuándo y qué esperas que hagamos." th:text="${detalle}"></textarea>
+                <span class="hint">Entre 10 y 450 caracteres.</span>
+            </div>
+            <button class="btn btn-primary btn-lg btn-block" type="submit"><svg th:replace="~{fragmentos :: icono('i-send')}"></svg>Enviar reclamo</button>
         </form>
-    </section>
+    </div>
 </main>
+
 </body>
 </html>

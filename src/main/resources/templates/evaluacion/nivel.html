@@ -2,63 +2,96 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mi nivel')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
+<header th:replace="~{fragmentos :: barra('nivel')}"></header>
 
-    <section class="tarjeta" th:if="${error}">
-        <h1>Mi nivel de crédito</h1>
-        <p class="error" th:text="${error}"></p>
-    </section>
-
-    <th:block th:if="${n}">
-        <section class="tarjeta">
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span> Mi nivel</p>
             <h1>Mi nivel de crédito</h1>
-            <p class="saldo" th:text="'Nivel ' + ${n.nivel()} + ' de ' + ${n.nivelMaximo()}">Nivel 1 de 4</p>
-            <p class="error" th:if="${n.bloqueado()}">
-                Tienes un bloqueo interno por atrasos en créditos anteriores. Comunícate con atención al cliente.
-            </p>
-            <div class="fila"><span>Parte de tu capacidad de pago que te confiamos</span>
-                <strong th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' %'"></strong></div>
-            <div class="fila"><span>Cuotas semanales</span>
-                <span th:text="'de ' + ${n.cuotasMinimas()} + ' a ' + ${n.maxCuotas()}"></span></div>
-            <div class="fila"><span>Tasa efectiva anual (TEA)</span>
-                <span th:text="${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-            <div class="fila"><span>Necesitas un aval</span>
-                <span th:text="${n.requiereAval()} ? 'Sí' : 'No'"></span></div>
-            <p class="nota" style="margin-top:8px">
-                La cuota de tu crédito no supera el 30 % de lo que cobras por semana con Kapikua.
-            </p>
-        </section>
+            <p>Paga a tiempo y sube de nivel: más monto, más cuotas y una TEA menor.</p>
+        </div>
 
-        <section class="tarjeta" th:if="${n.siguiente()}">
-            <h2 th:text="'Para subir al nivel ' + ${n.siguiente().nivel()}">Para subir</h2>
-            <p th:text="'Paga a tiempo ' + ${n.creditosParaSubir()} + (${n.creditosParaSubir() == 1} ? ' crédito' : ' créditos')
-                        + ' (sin cuotas con más de 8 días de atraso). Llevas ' + ${n.creditosPagadosEnNivel()} + '.'"></p>
-            <div class="fila"><span>Te confiaremos</span>
-                <span th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></span>
+        <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+
+        <th:block th:if="${n}">
+            <section class="card" aria-labelledby="t-nivel" style="margin-bottom: var(--space-5)">
+                <div class="card-head">
+                    <div><h2 id="t-nivel">Tu nivel: <span class="badge level" th:text="'Nivel ' + ${n.nivel()} + ' de ' + ${n.nivelMaximo()}">Nivel 1</span></h2>
+                        <p class="card-sub">La cuota de tu crédito no supera el 30 % de lo que cobras por semana con Kapikua.</p></div>
+                </div>
+                <ol class="ladder" th:style="'grid-template-columns: repeat(' + ${n.nivelMaximo()} + ', 1fr)'">
+                    <li th:each="k : ${#numbers.sequence(1, n.nivelMaximo())}"
+                        th:classappend="${k == n.nivel()} ? 'is-current' : (${k < n.nivel()} ? 'is-done' : '')">
+                        <b th:text="'Nivel ' + ${k}">Nivel</b>
+                        <th:block th:if="${k == n.nivel()}"
+                                  th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % · ' + ${n.cuotasMinimas()} + '–' + ${n.maxCuotas()} + ' cuotas'"></th:block>
+                        <span th:if="${k == n.nivel()}" th:text="' · TEA ' + ${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></span>
+                        <th:block th:if="${n.siguiente() != null and k == n.siguiente().nivel()}"
+                                  th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % · hasta ' + ${n.siguiente().maxCuotas()}"></th:block>
+                        <span th:if="${n.siguiente() != null and k == n.siguiente().nivel()}" th:text="' · TEA ' + ${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></span>
+                    </li>
+                </ol>
+                <div class="notice danger" th:if="${n.bloqueado()}" style="margin-top: var(--space-4)">
+                    <svg th:replace="~{fragmentos :: icono('i-ban')}"></svg>
+                    <div>Tienes un bloqueo interno por atrasos en créditos anteriores. Comunícate con atención al cliente.</div>
+                </div>
+            </section>
+
+            <div class="grid grid-2" style="align-items:start">
+                <div class="stack-lg">
+                    <section class="card" aria-labelledby="t-cond">
+                        <div class="card-head"><h2 id="t-cond">Condiciones de tu nivel</h2></div>
+                        <dl class="kv">
+                            <div><dt>Parte de tu capacidad de pago que te confiamos</dt><dd th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
+                            <div><dt>Cuotas semanales</dt><dd th:text="'de ' + ${n.cuotasMinimas()} + ' a ' + ${n.maxCuotas()}"></dd></div>
+                            <div><dt>Tasa efectiva anual (TEA)</dt><dd th:text="${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
+                            <div><dt>Necesitas un aval</dt><dd th:text="${n.requiereAval()} ? 'Sí' : 'No'"></dd></div>
+                        </dl>
+                    </section>
+
+                    <section class="card" th:if="${n.siguiente()}" aria-labelledby="t-subir">
+                        <div class="card-head"><h2 id="t-subir" th:text="'Para subir al nivel ' + ${n.siguiente().nivel()}">Para subir</h2></div>
+                        <div class="loan-progress">
+                            <div class="meter"><span th:style="'width:' + ${n.creditosParaSubir() > 0 ? n.creditosPagadosEnNivel() * 100.0 / n.creditosParaSubir() : 0} + '%'"></span></div>
+                            <small class="muted" th:text="'Paga a tiempo ' + ${n.creditosParaSubir()} + (${n.creditosParaSubir() == 1} ? ' crédito' : ' créditos')
+                                + ' (sin cuotas con más de 8 días de atraso). Llevas ' + ${n.creditosPagadosEnNivel()} + '.'"></small>
+                        </div>
+                        <dl class="kv" style="margin-top: var(--space-4)">
+                            <div><dt>Te confiaremos</dt><dd th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></dd></div>
+                            <div><dt>Hasta</dt><dd th:text="${n.siguiente().maxCuotas()} + ' cuotas'"></dd></div>
+                            <div><dt>TEA</dt><dd th:text="${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
+                            <div><dt>Aval</dt><dd th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></dd></div>
+                        </dl>
+                    </section>
+                </div>
+
+                <section class="card" th:with="u=${n.usoMinimo()}" aria-labelledby="t-uso">
+                    <div class="card-head"><h2 id="t-uso">Uso de tu billetera</h2>
+                        <span class="badge" th:classappend="${u.cumple()} ? 'success' : 'warning'" th:text="${u.cumple()} ? 'Cumples' : 'Aún no'"></span></div>
+                    <p class="muted small" style="margin-bottom: var(--space-4)"
+                       th:text="${u.cumple()} ? 'Ya cumples el uso mínimo para solicitar un crédito.' : 'Para solicitar un crédito necesitas:'"></p>
+                    <div class="limit">
+                        <div class="limit-top"><span>Días con tu billetera</span><b th:text="${u.dias()} + ' / ' + ${u.diasRequeridos()}"></b></div>
+                        <div class="meter"><span th:style="'width:' + ${u.diasRequeridos() > 0 ? (u.dias() >= u.diasRequeridos() ? 100 : u.dias() * 100.0 / u.diasRequeridos()) : 100} + '%'"></span></div>
+                    </div>
+                    <div class="limit">
+                        <div class="limit-top"><span>Semanas con cobros</span><b th:text="${u.semanasConCobros()} + ' / ' + ${u.semanasRequeridas()}"></b></div>
+                        <div class="meter"><span th:style="'width:' + ${u.semanasRequeridas() > 0 ? (u.semanasConCobros() >= u.semanasRequeridas() ? 100 : u.semanasConCobros() * 100.0 / u.semanasRequeridas()) : 100} + '%'"></span></div>
+                    </div>
+                    <div class="limit">
+                        <div class="limit-top"><span>Cobros recibidos</span><b th:text="${u.cobros()} + ' / ' + ${u.cobrosRequeridos()}"></b></div>
+                        <div class="meter amarillo"><span th:style="'width:' + ${u.cobrosRequeridos() > 0 ? (u.cobros() >= u.cobrosRequeridos() ? 100 : u.cobros() * 100.0 / u.cobrosRequeridos()) : 100} + '%'"></span></div>
+                    </div>
+                    <dl class="kv" style="margin-top: var(--space-4)">
+                        <div><dt>Cobras en promedio por semana</dt><dd th:text="${u.promedioSemanal()}"></dd></div>
+                    </dl>
+                    <p class="xs muted" style="margin-top: var(--space-3)">Cuentan los pagos de tus clientes y las transferencias que recibes.</p>
+                </section>
             </div>
-            <div class="fila"><span>Hasta</span><span th:text="${n.siguiente().maxCuotas()} + ' cuotas'"></span></div>
-            <div class="fila"><span>TEA</span>
-                <span th:text="${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-            <div class="fila"><span>Aval</span>
-                <span th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></span></div>
-        </section>
-
-        <section class="tarjeta" th:with="u=${n.usoMinimo()}">
-            <h2>Uso de tu billetera</h2>
-            <p class="exito" th:if="${u.cumple()}">Ya cumples el uso mínimo para solicitar un crédito.</p>
-            <p class="aviso" th:unless="${u.cumple()}">Para solicitar un crédito necesitas:</p>
-            <div class="fila"><span>Días con tu billetera</span>
-                <span th:text="${u.dias()} + ' de ' + ${u.diasRequeridos()}"></span></div>
-            <div class="fila"><span>Semanas con cobros</span>
-                <span th:text="${u.semanasConCobros()} + ' de ' + ${u.semanasRequeridas()}"></span></div>
-            <div class="fila"><span>Cobros recibidos</span>
-                <span th:text="${u.cobros()} + ' de ' + ${u.cobrosRequeridos()}"></span></div>
-            <div class="fila"><span>Cobras en promedio por semana</span>
-                <span th:text="${u.promedioSemanal()}"></span></div>
-            <p class="nota" style="margin-top:8px">Cuentan los pagos de tus clientes y las transferencias que recibes.</p>
-        </section>
-    </th:block>
+        </th:block>
+    </div>
 </main>
+
 </body>
 </html>

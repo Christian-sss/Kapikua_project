@@ -2,34 +2,51 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Reclamo')}"></head>
 <body>
-<main>
-    <div class="barra">
-        <a th:href="@{/reclamos}">← Mis reclamos</a>
-        <form th:action="@{/logout}" method="post"><button type="submit" class="enlace-boton">Cerrar sesión</button></form>
-    </div>
-    <div class="tarjeta exito" th:if="${registrado}">
-        <strong>Registramos tu reclamo.</strong>
-        <p style="margin-top:6px">Guarda tu código; te responderemos a más tardar en la fecha límite.</p>
-    </div>
-    <section class="tarjeta">
-        <h1 th:text="'Reclamo ' + ${r.codigo()}">Reclamo</h1>
-        <div class="fila"><span>Código</span><strong th:text="${r.codigo()}"></strong></div>
-        <div class="fila"><span>Motivo</span><span th:text="${r.motivo().descripcion()}"></span></div>
-        <div class="fila"><span>Registrado</span><span th:text="${#temporals.format(r.fechaRegistro(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <div class="fila"><span>Fecha límite de respuesta</span><strong th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></strong></div>
-        <div class="fila"><span>Estado</span><span th:text="${r.estado().name() == 'ATENDIDO'} ? 'Respondido' : 'En atención'"></span></div>
-        <h2 style="margin-top:16px">Lo que nos contaste</h2>
-        <p class="texto-largo" th:text="${r.detalle()}"></p>
-        <div class="aviso" th:if="${r.prorroga()}" style="margin-top:12px">
-            <strong>Ampliamos el plazo de respuesta</strong> hasta el <span th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></span>.
-            <p class="texto-largo" style="margin:6px 0 0" th:text="${r.prorroga()}"></p>
+<header th:replace="~{fragmentos :: barra('reclamos')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container container-md stack-lg">
+        <div class="page-head page-head-row" style="margin-bottom:0">
+            <div class="stack-sm">
+                <a class="back-link" th:href="@{/reclamos}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mis reclamos</a>
+                <h1 th:text="'Reclamo ' + ${r.codigo()}">Reclamo</h1>
+            </div>
+            <span class="badge" th:classappend="${r.estado().name() == 'ATENDIDO'} ? 'success' : 'warning'"
+                  th:text="${r.estado().name() == 'ATENDIDO'} ? 'RESPONDIDO' : 'EN ATENCIÓN'"></span>
         </div>
-    </section>
-    <section class="tarjeta" th:if="${r.respuesta()}">
-        <h2>Nuestra respuesta</h2>
-        <p class="nota" th:text="${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy HH:mm')}"></p>
-        <p class="texto-largo" th:text="${r.respuesta()}"></p>
-    </section>
+
+        <section class="card receipt" th:if="${registrado}">
+            <div class="receipt-ico"><svg th:replace="~{fragmentos :: icono('i-file')}"></svg></div>
+            <h2>Recibimos tu reclamo</h2>
+            <p class="muted">Guarda tu código; te responderemos a más tardar en la fecha límite.</p>
+        </section>
+
+        <section class="card">
+            <dl class="kv">
+                <div><dt>Código</dt><dd th:text="${r.codigo()}"></dd></div>
+                <div><dt>Motivo</dt><dd th:text="${r.motivo().descripcion()}"></dd></div>
+                <div><dt>Registrado</dt><dd th:text="${#temporals.format(r.fechaRegistro(), 'dd/MM/yyyy HH:mm')}"></dd></div>
+                <div class="total"><dt>Fecha límite de respuesta</dt><dd th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></dd></div>
+            </dl>
+            <p class="small" style="margin-top: var(--space-4)"><b>Tu reclamo:</b></p>
+            <p class="small texto-largo" th:text="${r.detalle()}"></p>
+        </section>
+
+        <div class="notice warning" th:if="${r.prorroga()}">
+            <svg th:replace="~{fragmentos :: icono('i-clock')}"></svg>
+            <div class="small"><b>Ampliamos el plazo de respuesta</b>
+                Hasta el <span th:text="${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')}"></span>.
+                <span class="texto-largo" style="display:block;margin-top:4px" th:text="${r.prorroga()}"></span></div>
+        </div>
+
+        <div class="notice info" th:if="${r.respuesta()}">
+            <svg th:replace="~{fragmentos :: icono('i-message')}"></svg>
+            <div class="small"><b>Respuesta de KAPIKUA</b>
+                <span class="muted" th:text="${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy HH:mm')}"></span>
+                <span class="texto-largo" style="display:block;margin-top:4px" th:text="${r.respuesta()}"></span></div>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

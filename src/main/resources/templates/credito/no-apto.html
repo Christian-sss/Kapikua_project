@@ -2,15 +2,29 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Resultado')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1>Por ahora no podemos ofrecerte un crédito</h1>
-        <p class="aviso" th:text="${r.motivo()}"></p>
-        <p class="nota" style="margin-top:8px">Sigue usando tu billetera: con más cobros y un buen historial, tu
-            evaluación mejora.</p>
-        <p style="margin-top:12px"><a th:href="@{/nivel}">Ver mi nivel de crédito</a></p>
-    </section>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head">
+            <a class="back-link" th:href="@{/credito}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mi crédito</a>
+            <h1>Resultado de tu solicitud</h1>
+        </div>
+
+        <section class="verdict noapto">
+            <div class="verdict-head">
+                <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg></span>
+                <div><span class="badge danger">NO APTO</span><h3>Por ahora no podemos ofrecerte un crédito</h3></div>
+            </div>
+            <p class="small"><b>Motivo:</b> <span th:text="${r.motivo()}"></span></p>
+            <p class="small muted">Sigue usando tu billetera: con más cobros y un buen historial, tu evaluación mejora.</p>
+            <div class="btn-row">
+                <a class="btn btn-primary" th:href="@{/nivel}">Ver mi nivel de crédito</a>
+                <a class="btn btn-outline" th:href="@{/billetera}">Volver a mi billetera</a>
+            </div>
+        </section>
+    </div>
 </main>
+
 </body>
 </html>
