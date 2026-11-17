@@ -2,36 +2,66 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Reclamos')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barraAdmin}"></div>
-    <p class="exito" th:if="${aviso == 'respondido'}">Respuesta registrada. El reclamo quedó atendido.</p>
-    <section class="tarjeta">
-        <h1>Reclamos por responder</h1>
-        <p class="nota">Ordenados por fecha límite. Se destacan los que vencen en 3 días hábiles o menos.</p>
-        <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay reclamos por responder.</p>
-        <ul class="lista">
-            <li th:each="r : ${pendientes}" th:classappend="${r.cercaDelLimite()} ? 'destacado'">
-                <a th:href="@{/admin/reclamos/{id}(id=${r.id()})}">
-                    <div class="titulo"><strong th:text="${r.codigo()}"></strong>
-                        <span th:class="${r.cercaDelLimite()} ? 'etiqueta urgente' : 'etiqueta'"
-                              th:text="${r.fueraDePlazo()} ? 'Fuera de plazo' : (${r.diasHabilesRestantes() == 0} ? 'Vence hoy' : ${r.diasHabilesRestantes()} + ' días hábiles')"></span></div>
-                    <div class="nota" th:text="${r.motivo().descripcion()} + ' · ' + ${r.cliente().nombre()} + ' · DNI ' + ${r.cliente().dniEnmascarado()}"></div>
-                    <div class="nota" th:text="'Límite: ' + ${#temporals.format(r.fechaLimite(), 'dd/MM/yyyy')} + (${r.prorroga()} ? ' (con prórroga)' : '')"></div>
-                </a>
-            </li>
-        </ul>
-    </section>
-    <section class="tarjeta" th:unless="${#lists.isEmpty(atendidos)}">
-        <h2>Atendidos recientemente</h2>
-        <ul class="lista">
-            <li th:each="r : ${atendidos}">
-                <a th:href="@{/admin/reclamos/{id}(id=${r.id()})}">
-                    <div class="titulo"><span th:text="${r.codigo()}"></span><span class="etiqueta listo">Atendido</span></div>
-                    <div class="nota" th:text="${r.cliente().nombre()} + ' · ' + ${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy')}"></div>
-                </a>
-            </li>
-        </ul>
-    </section>
+<header th:replace="~{fragmentos :: barraAdmin('reclamos')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span> Cumplimiento</p>
+            <h1>Atención de reclamos</h1>
+            <p>Ordenados por fecha límite. Se resaltan los que vencen en 3 días hábiles o menos.</p>
+        </div>
+
+        <div class="notice info" th:if="${aviso == 'respondido'}" style="margin-bottom: var(--space-5)">
+            <svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg><div>Respuesta registrada. El reclamo quedó atendido.</div></div>
+
+        <div class="kpis cols-3" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))">
+            <div class="kpi hl"><small>Por vencer</small><b th:text="${#lists.size(pendientes.?[cercaDelLimite()])}">0</b><span class="delta">3 días hábiles o menos</span></div>
+            <div class="kpi"><small>Pendientes</small><b th:text="${#lists.size(pendientes)}">0</b><span class="delta">Por responder</span></div>
+            <div class="kpi"><small>Atendidos recientes</small><b th:text="${#lists.size(atendidos)}">0</b><span class="delta">Últimos registrados</span></div>
+        </div>
+
+        <section class="card card-flush" aria-labelledby="t-adm" style="margin-bottom: var(--space-5)">
+            <div class="card-head"><h2 id="t-adm">Reclamos pendientes</h2></div>
+            <div class="table-wrap" style="margin-top: var(--space-4)" th:unless="${#lists.isEmpty(pendientes)}">
+                <table class="table">
+                    <thead><tr><th>Código</th><th>Cliente</th><th>DNI</th><th>Motivo</th><th>Fecha límite</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="r : ${pendientes}" th:classappend="${r.cercaDelLimite()} ? 'is-soon'">
+                        <td th:text="${r.codigo()}"></td>
+                        <td th:text="${r.cliente().nombre()}"></td>
+                        <td th:text="${r.cliente().dniEnmascarado()}"></td>
+                        <td th:text="${r.motivo().descripcion()}"></td>
+                        <td><span class="deadline" th:classappend="${r.cercaDelLimite()} ? 'soon'">
+                            <svg th:replace="~{fragmentos :: icono(${r.cercaDelLimite()} ? 'i-alert' : 'i-clock')}"></svg>
+                            <span th:text="${#temporals.format(r.fechaLimite(), 'dd/MM')} + ' · ' + (${r.fueraDePlazo()} ? 'fuera de plazo' : (${r.diasHabilesRestantes() == 0} ? 'vence hoy' : ${r.diasHabilesRestantes()} + ' días'))
+                                + (${r.prorroga()} ? ' (prórroga)' : '')"></span></span></td>
+                        <td><a class="btn btn-sm btn-outline" th:href="@{/admin/reclamos/{id}(id=${r.id()})}">Responder</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty" th:if="${#lists.isEmpty(pendientes)}">
+                <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></span>
+                <b>No hay reclamos por responder</b>
+            </div>
+        </section>
+
+        <section class="card card-flush" th:unless="${#lists.isEmpty(atendidos)}" aria-labelledby="t-at">
+            <div class="card-head"><h2 id="t-at">Atendidos recientemente</h2></div>
+            <ul class="row-list" style="margin-top: var(--space-4)">
+                <li th:each="r : ${atendidos}">
+                    <a class="row-item" th:href="@{/admin/reclamos/{id}(id=${r.id()})}">
+                        <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></span>
+                        <span class="row-txt"><b th:text="${r.codigo()}">Código</b>
+                            <small th:text="${r.cliente().nombre()} + ' · respondido el ' + ${#temporals.format(r.fechaRespuesta(), 'dd/MM/yyyy')}"></small></span>
+                        <span class="row-end"><span class="badge success">ATENDIDO</span></span>
+                    </a>
+                </li>
+            </ul>
+        </section>
+    </div>
 </main>
+
 </body>
 </html>

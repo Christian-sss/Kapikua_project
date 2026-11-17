@@ -2,14 +2,22 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mi billetera')}"></head>
 <body>
-<main>
-    <section class="tarjeta">
-        <h1>Mi billetera</h1>
-        <p class="error" th:text="${error}"></p>
-        <form th:action="@{/logout}" method="post">
-            <button type="submit" class="principal">Cerrar sesión</button>
-        </form>
-    </section>
+<header th:replace="~{fragmentos :: barra('billetera')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="op-card">
+            <div class="card empty">
+                <span class="ico-box danger"><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg></span>
+                <h2>No pudimos abrir tu billetera</h2>
+                <p class="small" th:text="${error}">Motivo</p>
+                <form th:action="@{/logout}" method="post">
+                    <button class="btn btn-outline" type="submit"><svg th:replace="~{fragmentos :: icono('i-logout')}"></svg>Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

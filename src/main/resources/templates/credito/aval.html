@@ -2,40 +2,72 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Ser aval')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1 th:text="${i.deudor()} + ' te pide ser su aval'">Invitación</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <div class="fila"><span>Crédito</span><strong th:text="${i.monto()}"></strong></div>
-        <div class="fila"><span>Cuotas semanales</span><span th:text="${i.cuotas()} + ' de ' + ${i.cuota()}"></span></div>
-        <div class="fila"><span>TEA</span><span th:text="${i.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-        <div class="fila"><span>Responde antes del</span><span th:text="${#temporals.format(i.vence(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <p class="aviso" style="margin-top:12px">Si aceptas, respondes solo por las cuotas vencidas, sin penalidades.
-            Te avisaremos a los 9 días de atraso y, desde los 15 días, se retendrá
-            <span th:text="'el ' + ${i.porcentajeRetencion()} + ' %'"></span> de tus ventas hasta cubrir lo vencido.
-            Cuando el préstamo se pague, quedas liberado.</p>
-    </section>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
 
-    <section class="tarjeta">
-        <form th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post">
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span> Invitación para ser aval</p>
+            <h1 th:text="${i.deudor()} + ' te pidió ser su aval'">Invitación</h1>
+            <p>Revisa con calma el crédito y tu responsabilidad antes de aceptar. Tienes hasta el
+                <b th:text="${#temporals.format(i.vence(), 'dd/MM/yyyy HH:mm')}"></b>.</p>
+        </div>
+
+        <form class="card" th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post">
             <input type="hidden" name="acepta" value="true">
-            <label class="check" style="display:flex;gap:8px">
-                <input type="checkbox" name="autorizaGarantia" value="true">
-                <span>Autorizo el uso de mis datos para evaluarme como aval y la retención de mis ventas si la persona que respaldo no paga.</span>
-            </label>
-            <p class="aviso" style="margin-top:16px">Tu código de un solo uso (vence en 5 minutos):
-                <span class="codigo" style="display:block" th:text="${i.codigoMostrado()}"></span>
-                <span class="nota">En producción este código llegaría por SMS.</span></p>
-            <label for="codigo">Ingresa el código</label>
-            <input id="codigo" name="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
-            <button type="submit" class="principal">Aceptar ser aval</button>
+            <ol th:replace="~{fragmentos :: pasos('Revisión', 'Código', 'Listo', 1)}"></ol>
+
+            <div class="stack">
+                <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+
+                <div class="figures">
+                    <div class="figure"><small>Monto del crédito</small><b th:text="${i.monto()}">S/ 0.00</b></div>
+                    <div class="figure"><small>Cuotas</small><b th:text="${i.cuotas()} + ' semanales'"></b></div>
+                    <div class="figure"><small>Cuota</small><b th:text="${i.cuota()}">S/ 0.00</b></div>
+                    <div class="figure"><small>TEA</small><b th:text="${i.tea().stripTrailingZeros().toPlainString()} + ' %'"></b></div>
+                </div>
+
+                <h2 class="card-title">Tu responsabilidad como aval</h2>
+                <ul class="duty-list">
+                    <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-shield')}"></svg></span><span><b>Respondes solo por las cuotas vencidas,</b> sin penalidades.</span></li>
+                    <li><span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-bell')}"></svg></span><span><b>A los 9 días de atraso</b> te avisaremos.</span></li>
+                    <li><span class="ico-box danger"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span><span><b>Desde los 15 días</b> se retendrá <span th:text="'el ' + ${i.porcentajeRetencion()} + ' %'"></span> de tus ventas hasta cubrir lo vencido.</span></li>
+                    <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></span><span><b>Quedas liberado</b> cuando el préstamo se pague.</span></li>
+                </ul>
+
+                <label class="check">
+                    <input type="checkbox" name="autorizaGarantia" value="true">
+                    <span><b>Otorgo mi garantía personal</b><small>Autorizo el uso de mis datos para evaluarme como aval y la retención de mis ventas si la persona que respaldo no paga.</small></span>
+                </label>
+
+                <div class="stack" data-otp-box th:attr="data-codigo=${i.codigoMostrado()}">
+                    <h2 class="card-title" style="text-align:center">Confirma con tu código</h2>
+                    <p class="muted small" style="text-align:center">Registraremos tu aceptación con la fecha, la hora y tu dispositivo.</p>
+                    <input type="hidden" name="codigo" value="">
+                    <th:block th:replace="~{fragmentos :: otp(${i.codigoMostrado()}, @{/credito/aval/{id}(id=${i.ofertaId()})})}"></th:block>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-danger" type="button" data-open-dialog="dlg-rechazar">Rechazar</button>
+                    <button class="btn btn-primary btn-lg" type="submit">Aceptar ser aval <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></button>
+                </div>
+            </div>
         </form>
-        <form th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post" style="margin-top:8px">
-            <input type="hidden" name="acepta" value="false">
-            <button type="submit" class="enlace-boton">Rechazar la invitación</button>
-        </form>
-    </section>
+    </div>
 </main>
+
+<dialog class="modal" id="dlg-rechazar" aria-labelledby="dlg-rechazar-t">
+    <div class="modal-head">
+        <h2 id="dlg-rechazar-t">¿Rechazar la invitación?</h2>
+        <button class="icon-btn" type="button" aria-label="Cerrar" data-close-dialog><svg th:replace="~{fragmentos :: icono('i-close')}"></svg></button>
+    </div>
+    <div class="modal-body"><p>Le avisaremos para que designe a otra persona. Rechazar no afecta tu historial.</p></div>
+    <form class="modal-foot" th:action="@{/credito/aval/{id}(id=${i.ofertaId()})}" method="post">
+        <input type="hidden" name="acepta" value="false">
+        <button class="btn btn-outline" type="button" data-close-dialog>Cancelar</button>
+        <button class="btn btn-danger" type="submit">Sí, rechazar</button>
+    </form>
+</dialog>
+
 </body>
 </html>

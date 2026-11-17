@@ -2,46 +2,91 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Hoja resumen')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta" th:with="c=${h.condiciones()}">
-        <h1>Hoja resumen</h1>
-        <p class="nota" th:text="'Versión ' + ${h.version()} + ' · Financiera Ayni Sur S.A. otorga el crédito; Kapikua lo cobra por su encargo.'"></p>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <div class="fila"><span>Monto</span><strong th:text="${c.monto()}"></strong></div>
-        <div class="fila"><span>Cuotas semanales</span><span th:text="${c.cuotas()} + ' de ' + ${c.cuota()}"></span></div>
-        <div class="fila"><span>TEA</span><span th:text="${c.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-        <div class="fila"><span>TCEA</span><span th:text="${c.tcea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-        <div class="fila"><span>Intereses</span><span th:text="${h.interesTotal()}"></span></div>
-        <div class="fila"><span>Total a pagar</span><strong th:text="${h.totalAPagar()}"></strong></div>
-        <div class="fila"><span>Interés moratorio máximo por atraso</span>
-            <span th:text="${h.tasaMoratoriaMaxima().stripTrailingZeros().toPlainString()} + ' % anual, sin penalidades'"></span></div>
-        <div class="fila"><span>Retención de tus ventas</span><span th:text="${h.porcentajeRetencion()} + ' % de cada cobro'"></span></div>
-        <div class="fila" th:if="${h.aval()}"><span>Aval</span><span th:text="${h.aval()}"></span></div>
-        <p class="nota" style="margin-top:8px">Puedes pagar por adelantado, total o parcialmente, sin penalidad.</p>
-        <ul class="movimientos">
-            <li th:each="q : ${h.cronograma()}">
-                <div><div th:text="'Cuota ' + ${q.numero()}"></div><div class="detalle" th:text="${#temporals.format(q.vencimiento(), 'dd/MM/yyyy')}"></div></div>
-                <div class="monto"><div th:text="${q.total()}"></div><div class="detalle" th:text="'Capital ' + ${q.capital()} + ' · interés ' + ${q.interes()}"></div></div>
-            </li>
-        </ul>
-    </section>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
 
-    <section class="tarjeta">
-        <form th:action="@{/credito/ofertas/{id}/aceptar(id=${h.ofertaId()})}" method="post">
-            <label class="check" style="display:flex;gap:8px">
-                <input type="checkbox" name="autorizaCargo" value="true">
-                <span th:text="'Autorizo que se aparte el ' + ${h.porcentajeRetencion()} + ' % de cada cobro para mi cuota y que, si no alcanza, '
-                              + 'la diferencia se cobre de mi saldo el día del vencimiento. Puedo revocarlo cuando quiera.'"></span>
-            </label>
-            <p class="aviso" style="margin-top:16px">Tu código de un solo uso (vence en 5 minutos):
-                <span class="codigo" style="display:block" th:text="${h.codigoMostrado()}"></span>
-                <span class="nota">En producción este código llegaría por SMS.</span></p>
-            <label for="codigo">Ingresa el código</label>
-            <input id="codigo" name="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
-            <button type="submit" class="principal">Aceptar y recibir el dinero</button>
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head">
+            <a class="back-link" th:href="@{/credito/ofertas/{id}(id=${h.ofertaId()})}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mi solicitud</a>
+            <h1>Tu oferta está lista</h1>
+            <p>Financiera Ayni Sur confirmó tu crédito. Revisa la hoja resumen antes de aceptar.</p>
+        </div>
+
+        <form class="card doc" th:action="@{/credito/ofertas/{id}/aceptar(id=${h.ofertaId()})}" method="post" th:with="c=${h.condiciones()}">
+            <ol th:replace="~{fragmentos :: pasos('Hoja resumen', 'Código', 'Desembolso', 2)}"></ol>
+
+            <div class="stack-lg">
+                <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+
+                <div class="doc-head">
+                    <div><h2 class="card-title">Hoja resumen</h2>
+                        <small th:text="'Versión ' + ${h.version()} + ' · Financiera Ayni Sur S.A. otorga el crédito; Kapikua lo cobra por su encargo.'"></small></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="badge success">CONFIRMADA</span></div>
+                </div>
+
+                <div class="figures">
+                    <div class="figure hl"><small>Monto</small><b th:text="${c.monto()}">S/ 0.00</b></div>
+                    <div class="figure"><small>TEA</small><b th:text="${c.tea().stripTrailingZeros().toPlainString()} + ' %'"></b></div>
+                    <div class="figure"><small>TCEA</small><b th:text="${c.tcea().stripTrailingZeros().toPlainString()} + ' %'"></b></div>
+                    <div class="figure hl"><small>Cuota semanal</small><b th:text="${c.cuota()}">S/ 0.00</b></div>
+                </div>
+
+                <dl class="kv">
+                    <div><dt>Entidad que otorga el crédito</dt><dd>Financiera Ayni Sur S.A.</dd></div>
+                    <div><dt>Número de cuotas</dt><dd th:text="${c.cuotas()} + ' semanales'"></dd></div>
+                    <div><dt>Total de intereses</dt><dd th:text="${h.interesTotal()}"></dd></div>
+                    <div><dt>Total a pagar</dt><dd th:text="${h.totalAPagar()}"></dd></div>
+                    <div><dt>Interés moratorio máximo por atraso</dt><dd th:text="${h.tasaMoratoriaMaxima().stripTrailingZeros().toPlainString()} + ' % anual, sin penalidades'"></dd></div>
+                    <div><dt>Pago anticipado</dt><dd>Total o parcial, sin penalidad</dd></div>
+                    <div><dt>Retención de tus ventas</dt><dd th:text="${h.porcentajeRetencion()} + ' % de cada cobro'"></dd></div>
+                    <div th:if="${h.aval()}"><dt>Aval</dt><dd th:text="${h.aval()}"></dd></div>
+                </dl>
+
+                <details class="card card-flush">
+                    <summary class="row-item" style="cursor:pointer">
+                        <span class="ico-box" style="width:36px;height:36px"><svg th:replace="~{fragmentos :: icono('i-calendar')}"></svg></span>
+                        <span class="row-txt"><b>Cronograma de pagos</b><small th:text="${#lists.size(h.cronograma())} + ' cuotas semanales'"></small></span>
+                        <svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg>
+                    </summary>
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>N.º</th><th>Vence</th><th class="r">Cuota</th><th class="r">Interés</th><th class="r">Capital</th></tr></thead>
+                            <tbody>
+                            <tr th:each="q : ${h.cronograma()}">
+                                <td th:text="${q.numero()}">1</td>
+                                <td th:text="${#temporals.format(q.vencimiento(), 'dd/MM/yyyy')}"></td>
+                                <td class="r" th:text="${q.total()}"></td>
+                                <td class="r" th:text="${q.interes()}"></td>
+                                <td class="r" th:text="${q.capital()}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+
+                <label class="check">
+                    <input type="checkbox" name="autorizaCargo" value="true">
+                    <span><b>Autorizo el cargo automático</b>
+                        <small th:text="'Autorizo que se aparte el ' + ${h.porcentajeRetencion()} + ' % de cada cobro para mi cuota y que, si no alcanza, '
+                                  + 'la diferencia se cobre de mi saldo el día del vencimiento. Puedo revocarlo cuando quiera.'"></small></span>
+                </label>
+
+                <div class="stack" data-otp-box th:attr="data-codigo=${h.codigoMostrado()}">
+                    <h2 class="card-title" style="text-align:center">Confirma con tu código</h2>
+                    <div class="figures" style="grid-template-columns: 1fr 1fr">
+                        <div class="figure hl"><small>Recibirás</small><b th:text="${c.monto()}">S/ 0.00</b></div>
+                        <div class="figure"><small>Pagarás por semana</small><b th:text="${c.cuota()}">S/ 0.00</b></div>
+                    </div>
+                    <input type="hidden" name="codigo" value="">
+                    <th:block th:replace="~{fragmentos :: otp(${h.codigoMostrado()}, @{/credito/ofertas/{id}/hoja(id=${h.ofertaId()})})}"></th:block>
+                </div>
+
+                <button class="btn btn-primary btn-lg btn-block" type="submit">
+                    Aceptar y recibir el dinero <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></button>
+            </div>
         </form>
-    </section>
+    </div>
 </main>
+
 </body>
 </html>

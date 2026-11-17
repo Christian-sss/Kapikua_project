@@ -1,61 +1,104 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crear cuenta · Kapikua</title>
-    <style>
-        body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f6f7f9; color: #1d2433; }
-        main { max-width: 420px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 20px; }
-        h1 { font-size: 1.4rem; margin: 0 0 16px; }
-        label { display: block; font-size: .9rem; margin: 12px 0 4px; }
-        input[type=text], input[type=email], input[type=tel], input[type=date], input[type=password] {
-            width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #c8cdd6; border-radius: 8px; font-size: 1rem;
-        }
-        .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 16px; font-size: .9rem; }
-        .campo-error { color: #b42318; font-size: .8rem; }
-        .error { background: #fde8e7; color: #b42318; padding: 10px; border-radius: 8px; }
-        button { width: 100%; margin-top: 20px; padding: 12px; border: 0; border-radius: 8px; background: #1f5eff; color: #fff; font-size: 1rem; }
-    </style>
-</head>
+<head th:replace="~{fragmentos :: cabecera('Crear cuenta')}"></head>
 <body>
-<main>
-    <h1>Crea tu cuenta Kapikua</h1>
+<header th:replace="~{fragmentos :: barraPublica('login')}"></header>
 
-    <p class="error" th:if="${error}" th:text="${error}"></p>
+<main class="auth-main" id="contenido">
+    <aside class="auth-aside" aria-hidden="true">
+        <p class="eyebrow"><span class="dot"></span> Empieza en minutos</p>
+        <h2>Abre tu billetera<br><span>en minutos.</span></h2>
+        <p>Validamos tu DNI para que todas las cuentas sean de personas reales. Tu billetera se abre con saldo S/ 0.00 y nivel crediticio 1.</p>
+        <ul class="auth-points">
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-user-check')}"></svg></span> Identidad validada con tu DNI</li>
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-wallet')}"></svg></span> Billetera identificada por tu celular</li>
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg></span> Sube de nivel pagando a tiempo</li>
+        </ul>
+    </aside>
 
-    <form th:action="@{/registro}" th:object="${form}" method="post" novalidate>
-        <label for="dni">DNI</label>
-        <input id="dni" type="text" inputmode="numeric" maxlength="8" th:field="*{dni}" autocomplete="off">
-        <span class="campo-error" th:errors="*{dni}"></span>
+    <section class="auth-panel">
+        <div class="auth-box wide">
+            <div class="auth-head">
+                <p class="eyebrow"><span class="dot"></span> Registro</p>
+                <h1>Crea tu cuenta</h1>
+                <p>Completa tus datos tal como figuran en tu DNI.</p>
+            </div>
 
-        <label for="fechaNacimiento">Fecha de nacimiento</label>
-        <input id="fechaNacimiento" type="date" th:field="*{fechaNacimiento}">
-        <span class="campo-error" th:errors="*{fechaNacimiento}"></span>
+            <div class="notice danger" th:if="${error}" style="margin-bottom: var(--space-5)">
+                <svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg>
+                <div><b>No pudimos crear tu cuenta</b><span th:text="${error}">Motivo</span></div>
+            </div>
 
-        <label for="correo">Correo</label>
-        <input id="correo" type="email" th:field="*{correo}" autocomplete="email">
-        <span class="campo-error" th:errors="*{correo}"></span>
+            <form class="form" th:action="@{/registro}" th:object="${form}" method="post" novalidate>
+                <p class="form-legend">Tus datos</p>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="dni">DNI</label>
+                        <input class="input" id="dni" type="text" inputmode="numeric" maxlength="8" placeholder="8 dígitos"
+                               th:field="*{dni}" autocomplete="off">
+                        <span class="error" th:errors="*{dni}"></span>
+                    </div>
+                    <div class="field">
+                        <label for="fechaNacimiento">Fecha de nacimiento</label>
+                        <input class="input" id="fechaNacimiento" type="date" th:field="*{fechaNacimiento}">
+                        <span class="hint">Debes ser mayor de 18 años.</span>
+                        <span class="error" th:errors="*{fechaNacimiento}"></span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="field">
+                        <label for="celular">Celular</label>
+                        <input class="input" id="celular" type="tel" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX"
+                               th:field="*{celular}" autocomplete="tel">
+                        <span class="hint">Será el número de tu billetera.</span>
+                        <span class="error" th:errors="*{celular}"></span>
+                    </div>
+                    <div class="field">
+                        <label for="correo">Correo electrónico</label>
+                        <input class="input" id="correo" type="email" th:field="*{correo}" autocomplete="email">
+                        <span class="error" th:errors="*{correo}"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="nombreNegocio">Nombre de tu negocio <span class="muted">(opcional)</span></label>
+                    <input class="input" id="nombreNegocio" type="text" placeholder="Ej. Bodega Lucía" th:field="*{nombreNegocio}">
+                    <span class="hint">Si lo indicas, tus clientes verán este nombre cuando te paguen.</span>
+                    <span class="error" th:errors="*{nombreNegocio}"></span>
+                </div>
 
-        <label for="celular">Celular</label>
-        <input id="celular" type="tel" inputmode="numeric" maxlength="9" th:field="*{celular}" autocomplete="tel">
-        <span class="campo-error" th:errors="*{celular}"></span>
+                <p class="form-legend">Tu contraseña</p>
+                <div class="field">
+                    <label for="contrasena">Contraseña</label>
+                    <div class="input-group">
+                        <input class="input" id="contrasena" type="password" th:field="*{contrasena}" autocomplete="new-password">
+                        <button class="icon-btn suffix-btn" type="button" style="width:40px;height:40px;border:0"
+                                aria-label="Mostrar contraseña" data-toggle-password="contrasena">
+                            <svg th:replace="~{fragmentos :: icono('i-eye')}"></svg>
+                        </button>
+                    </div>
+                    <span class="error" th:errors="*{contrasena}"></span>
+                </div>
+                <ul class="pwd-rules">
+                    <li><svg th:replace="~{fragmentos :: icono('i-check')}"></svg> Al menos 8 caracteres</li>
+                    <li><svg th:replace="~{fragmentos :: icono('i-check')}"></svg> Letras y números</li>
+                </ul>
 
-        <label for="nombreNegocio">Nombre de tu negocio (opcional)</label>
-        <input id="nombreNegocio" type="text" th:field="*{nombreNegocio}">
-        <span class="campo-error" th:errors="*{nombreNegocio}"></span>
+                <p class="form-legend">Consentimientos</p>
+                <label class="check">
+                    <input type="checkbox" th:field="*{aceptaTerminos}">
+                    <span><b>Acepto los términos del servicio y la política de tratamiento de datos personales</b>
+                        <small>Ley 29733. Puedes revocar este consentimiento cuando quieras.</small></span>
+                </label>
 
-        <label for="contrasena">Contraseña</label>
-        <input id="contrasena" type="password" th:field="*{contrasena}" autocomplete="new-password">
-        <span class="campo-error" th:errors="*{contrasena}"></span>
+                <button class="btn btn-primary btn-lg btn-block" type="submit">
+                    Crear mi cuenta <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg>
+                </button>
+            </form>
 
-        <label class="check">
-            <input type="checkbox" th:field="*{aceptaTerminos}">
-            <span>Acepto los términos del servicio y la política de tratamiento de datos personales.</span>
-        </label>
-
-        <button type="submit">Crear cuenta</button>
-    </form>
+            <p class="auth-alt">¿Ya tienes cuenta? <a th:href="@{/login}">Inicia sesión</a></p>
+        </div>
+    </section>
 </main>
+
 </body>
 </html>

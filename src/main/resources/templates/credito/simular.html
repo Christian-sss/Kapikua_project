@@ -2,40 +2,103 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Simular crédito')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1>Simular crédito</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <p class="nota" th:if="${opciones}"
-           th:text="'Nivel ' + ${opciones.nivel()} + ': de ' + ${opciones.cuotasMinimas()} + ' a ' + ${opciones.cuotasMaximas()}
-                    + ' cuotas semanales, TEA ' + ${opciones.tea().stripTrailingZeros().toPlainString()} + ' %.'"></p>
-        <form th:action="@{/credito/simular}" method="post" th:if="${opciones}">
-            <label for="monto">Monto (S/)</label>
-            <input id="monto" name="monto" type="number" step="0.01" min="1" th:attr="max=${opciones.montoMaximo().valor()}" th:value="${monto}" required>
-            <label for="cuotas">Cuotas semanales</label>
-            <input id="cuotas" name="cuotas" type="number" th:attr="min=${opciones.cuotasMinimas()},max=${opciones.cuotasMaximas()}"
-                   th:value="${cuotas != null ? cuotas : opciones.cuotasMaximas()}" required>
-            <button type="submit" class="principal">Simular</button>
-        </form>
-    </section>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
 
-    <section class="tarjeta" th:if="${s}">
-        <h2>Resultado referencial</h2>
-        <div class="fila"><span>Cuota semanal</span><strong th:text="${s.cuota()}"></strong></div>
-        <div class="fila"><span>TEA / TCEA</span><span th:text="${s.tea().stripTrailingZeros().toPlainString()} + ' % / ' + ${s.tcea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
-        <div class="fila"><span>Intereses</span><span th:text="${s.interesTotal()}"></span></div>
-        <div class="fila"><span>Total a pagar</span><span th:text="${s.totalAPagar()}"></span></div>
-        <p class="nota" style="margin-top:8px">El monto final depende de tu evaluación y de la entidad aliada.</p>
-        <ul class="movimientos">
-            <li th:each="c : ${s.cronograma()}">
-                <div><div th:text="'Cuota ' + ${c.numero()}"></div><div class="detalle" th:text="${#temporals.format(c.vencimiento(), 'dd/MM/yyyy')}"></div></div>
-                <div class="monto" th:text="${c.total()}"></div>
-            </li>
-        </ul>
-        <a class="principal" style="display:block;text-align:center;margin-top:16px"
-           th:href="@{/credito/solicitar(monto=${s.monto().valor()},cuotas=${s.cuotas()})}">Solicitar con estos valores</a>
-    </section>
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head page-head-row">
+            <div class="stack-sm">
+                <p class="eyebrow"><span class="dot"></span> Microcrédito</p>
+                <h1>Simula tu crédito</h1>
+                <p>Calcula tu cuota semanal antes de solicitar. Es un cálculo referencial.</p>
+            </div>
+            <a class="btn btn-outline" th:href="@{/credito/solicitar}"><svg th:replace="~{fragmentos :: icono('i-file')}"></svg>Ir a solicitar</a>
+        </div>
+
+        <div class="notice danger" th:if="${error}" style="margin-bottom: var(--space-5)">
+            <svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg>
+            <div th:text="${error}">Error</div>
+        </div>
+
+        <section class="card" th:if="${opciones}" aria-labelledby="t-nivel" style="margin-bottom: var(--space-5)">
+            <div class="card-head">
+                <div>
+                    <h2 id="t-nivel">Tu nivel: <span class="badge level" th:text="'Nivel ' + ${opciones.nivel()}">Nivel 1</span></h2>
+                    <p class="card-sub" th:text="'De ' + ${opciones.cuotasMinimas()} + ' a ' + ${opciones.cuotasMaximas()} + ' cuotas semanales, TEA ' + ${opciones.tea().stripTrailingZeros().toPlainString()} + ' %.'"></p>
+                </div>
+                <a class="btn btn-ghost btn-sm" th:href="@{/nivel}">Ver mi nivel</a>
+            </div>
+        </section>
+
+        <div class="grid layout-aside-l" th:if="${opciones}">
+            <form class="card stack" th:action="@{/credito/simular}" method="post" aria-labelledby="t-datos">
+                <h2 class="card-title" id="t-datos">Datos del crédito</h2>
+                <div class="field">
+                    <label for="monto">Monto</label>
+                    <div class="input-group">
+                        <span class="prefix">S/</span>
+                        <input class="input input-amount" id="monto" name="monto" type="number" inputmode="decimal" step="0.01" min="1"
+                               th:attr="max=${opciones.montoMaximo().valor()}" th:value="${monto}" required>
+                    </div>
+                    <span class="hint" th:text="'Hasta ' + ${opciones.montoMaximo()} + '.'"></span>
+                </div>
+                <div class="field">
+                    <label for="cuotas">Número de cuotas semanales</label>
+                    <div class="range-row">
+                        <input type="range" id="cuotas" name="cuotas" step="1" data-range-out="cuotas-val" data-range-sufijo=" cuotas"
+                               th:attr="min=${opciones.cuotasMinimas()},max=${opciones.cuotasMaximas()}"
+                               th:value="${cuotas != null ? cuotas : opciones.cuotasMaximas()}">
+                        <span class="range-val" id="cuotas-val" th:text="${cuotas != null ? cuotas : opciones.cuotasMaximas()} + ' cuotas'">8 cuotas</span>
+                    </div>
+                    <span class="hint" th:text="'En tu nivel: de ' + ${opciones.cuotasMinimas()} + ' a ' + ${opciones.cuotasMaximas()} + ' cuotas.'"></span>
+                </div>
+                <dl class="kv">
+                    <div><dt>TEA de tu nivel</dt><dd th:text="${opciones.tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
+                    <div><dt>Penalidad por pago anticipado</dt><dd>Ninguna</dd></div>
+                </dl>
+                <button class="btn btn-primary btn-lg btn-block" type="submit">Calcular mi cuota <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></button>
+            </form>
+
+            <div class="stack">
+                <section class="sim-result" aria-live="polite" aria-labelledby="t-cuota">
+                    <small id="t-cuota">Cuota semanal referencial</small>
+                    <div class="big" th:text="${s != null} ? ${s.cuota()} : 'S/ 0.00'">S/ 0.00</div>
+                    <div class="sim-figures">
+                        <div><small>Intereses</small><b th:text="${s != null} ? ${s.interesTotal()} : 'S/ 0.00'">S/ 0.00</b></div>
+                        <div><small>Total a pagar</small><b th:text="${s != null} ? ${s.totalAPagar()} : 'S/ 0.00'">S/ 0.00</b></div>
+                        <div><small>TEA / TCEA</small><b th:text="${s != null} ? ${s.tea().stripTrailingZeros().toPlainString()} + ' / ' + ${s.tcea().stripTrailingZeros().toPlainString()} + ' %' : '—'">—</b></div>
+                    </div>
+                    <div class="split-bar" aria-hidden="true"><span></span><span></span></div>
+                </section>
+
+                <p class="notice warning">
+                    <svg th:replace="~{fragmentos :: icono('i-info')}"></svg>
+                    <span class="small"><b>Es un cálculo referencial.</b> El monto final depende de tu evaluación y de la entidad aliada.</span>
+                </p>
+
+                <section class="card card-flush" th:if="${s}" aria-labelledby="t-crono">
+                    <div class="card-head"><h2 id="t-crono">Cronograma referencial</h2><span class="card-sub">Sistema francés · cuotas semanales</span></div>
+                    <div class="table-wrap" style="margin-top: var(--space-4)">
+                        <table class="table">
+                            <thead><tr><th>N.º</th><th>Fecha</th><th class="r">Cuota</th></tr></thead>
+                            <tbody>
+                            <tr th:each="c : ${s.cronograma()}">
+                                <td th:text="${c.numero()}">1</td>
+                                <td th:text="${#temporals.format(c.vencimiento(), 'dd/MM/yyyy')}"></td>
+                                <td class="r" th:text="${c.total()}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <a class="btn btn-primary btn-lg btn-block" th:if="${s}"
+                   th:href="@{/credito/solicitar(monto=${s.monto().valor()},cuotas=${s.cuotas()})}">
+                    Solicitar con estos valores <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></a>
+            </div>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

@@ -2,33 +2,50 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Confirmar')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1 th:text="'Confirma: ' + ${modo.titulo.toLowerCase()}">Confirma</h1>
-        <div class="fila"><span>Para</span><strong th:text="${vista.destinatario()}"></strong></div>
-        <div class="fila"><span>Celular</span><span th:text="${vista.celularEnmascarado()}"></span></div>
-        <div class="fila"><span>Monto</span><strong th:text="${vista.monto()}"></strong></div>
+<header th:replace="~{fragmentos :: barra('billetera')}"></header>
 
-        <form th:action="@{__${modo.ruta}__/confirmar}" th:object="${form}" method="post">
-            <input type="hidden" th:field="*{celular}">
-            <input type="hidden" th:field="*{monto}">
-            <input type="hidden" th:field="*{referencia}">
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="op-card">
+            <div class="page-head">
+                <a class="back-link" th:href="@{${modo.ruta}}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Cambiar datos</a>
+                <h1 th:text="'Confirma: ' + ${modo.titulo.toLowerCase()}">Confirma</h1>
+            </div>
 
-            <th:block th:if="${modo.pideCodigo}">
-                <p class="aviso" style="margin-top:16px">
-                    Tu código de un solo uso (vence en 5 minutos):
-                    <span class="codigo" style="display:block" th:text="${vista.codigoMostrado()}"></span>
-                    <span class="nota">En producción este código llegaría por SMS.</span>
-                </p>
-                <label for="codigo">Ingresa el código</label>
-                <input id="codigo" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
-                       th:field="*{codigo}" required>
-            </th:block>
+            <form class="card" th:action="@{__${modo.ruta}__/confirmar}" th:object="${form}" method="post">
+                <input type="hidden" th:field="*{celular}">
+                <input type="hidden" th:field="*{monto}">
+                <input type="hidden" th:field="*{referencia}">
+                <ol th:replace="~{fragmentos :: pasos('Datos', ${modo.pideCodigo} ? 'Código' : 'Confirmación', 'Comprobante', 2)}"></ol>
 
-            <button type="submit" class="principal" th:text="${modo.pideCodigo} ? 'Transferir' : 'Pagar'">Confirmar</button>
-        </form>
-    </section>
+                <div class="stack" th:attr="data-otp-box=${modo.pideCodigo} ? '' : null, data-codigo=${modo.pideCodigo} ? ${vista.codigoMostrado()} : null">
+                    <h2 class="card-title" th:text="${modo.pideCodigo} ? 'Confirma con tu código' : 'Revisa y confirma'">Confirma</h2>
+                    <div class="op-summary">
+                        <small>Envías a <b th:text="${vista.destinatario()}">Destinatario</b></small>
+                        <strong th:text="${vista.monto()}">S/ 0.00</strong>
+                    </div>
+                    <dl class="kv">
+                        <div><dt>Celular</dt><dd th:text="${vista.celularEnmascarado()}"></dd></div>
+                    </dl>
+
+                    <th:block th:if="${modo.pideCodigo}">
+                        <p class="muted small" style="text-align:center">Te mostramos un código de 6 dígitos en pantalla. Vence en 5 minutos y sirve una sola vez.</p>
+                        <input type="hidden" th:field="*{codigo}">
+                        <th:block th:replace="~{fragmentos :: otp(${vista.codigoMostrado()}, null)}"></th:block>
+                    </th:block>
+
+                    <div class="btn-row">
+                        <a class="btn btn-outline" th:href="@{/billetera}">Cancelar</a>
+                        <button class="btn btn-primary btn-lg" type="submit">
+                            <svg th:replace="~{fragmentos :: icono(${modo.pideCodigo} ? 'i-send' : 'i-store')}"></svg>
+                            <span th:text="${modo.pideCodigo} ? 'Transferir' : 'Pagar'">Confirmar</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

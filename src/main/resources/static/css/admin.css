@@ -1,0 +1,64 @@
+/* ==========================================================================
+   KAPIKUA · Administración y Cumplimiento (CU-14 a CU-16)
+   alertas.html, reportes.html y la vista del Administrador en reclamos.html
+   ========================================================================== */
+
+/* --- Indicadores --- */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); margin-bottom: var(--space-5); }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(4, 1fr); } .kpis.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+.kpi { display: grid; gap: 4px; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.kpi small { display: flex; align-items: center; gap: 6px; color: var(--color-text-2); font-size: var(--fs-xs); font-weight: 600; }
+.kpi small .icon { width: 15px; height: 15px; }
+.kpi b { font-size: var(--fs-2xl); font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kpi .delta { color: var(--color-text-muted); font-size: var(--fs-xs); }
+.kpi.hl { background: var(--color-accent-amarillo-bg); border-color: transparent; }
+
+/* --- Lista maestro-detalle --- */
+.master { max-height: none; }
+@media (min-width: 900px) { .master { position: sticky; top: calc(var(--header-h) + 16px); max-height: calc(100vh - var(--header-h) - 32px); overflow: auto; } }
+.master .row-item[aria-current="true"] { background: var(--color-accent-verde-bg); box-shadow: inset 3px 0 0 var(--color-primary); }
+.master .row-item { grid-template-columns: auto 1fr; }
+.master .row-item .row-end { grid-column: 2; justify-items: start; grid-auto-flow: column; gap: var(--space-2); justify-content: start; }
+
+.rule-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--color-surface-2); font-size: var(--fs-xs); font-weight: 700; }
+.rule-chip .icon { width: 14px; height: 14px; color: var(--kp-dorado); }
+
+.decision-log { display: grid; gap: var(--space-3); }
+.decision-log li { padding: var(--space-3) var(--space-4); border-left: 3px solid var(--color-border-input); background: var(--color-surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: var(--fs-sm); }
+.decision-log small { color: var(--color-text-muted); font-size: var(--fs-xs); }
+
+/* --- Gráfico de barras (una serie, color de marca) --- */
+.chart { display: grid; gap: var(--space-3); }
+.bars { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 180px; padding-top: var(--space-3); border-bottom: 1px solid var(--color-border-input);
+  background: repeating-linear-gradient(to top, transparent 0 44px, var(--color-border) 44px 45px); }
+.bar { position: relative; flex: 1; display: flex; align-items: flex-end; height: 100%; cursor: default; }
+.bar span { display: block; width: 100%; max-width: 28px; margin-inline: auto; border-radius: 4px 4px 0 0; background: var(--kp-verde-profundo); transition: opacity .15s var(--ease); }
+:root[data-theme="dark"] .bar span { background: var(--kp-verde); }.bars:hover .bar span { opacity: .45; }
+.bars .bar:hover span, .bars .bar:focus-visible span { opacity: 1; }
+.bar .tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; z-index: 2; transform: translateX(-50%);
+  padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); box-shadow: var(--shadow-md); color: var(--color-text);
+  font-size: var(--fs-xs); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.bar .tip b { display: block; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.bar:hover .tip, .bar:focus-visible .tip { opacity: 1; }
+.bar:nth-child(-n+2) .tip { left: 0; transform: none; }
+.bar:nth-last-child(-n+2) .tip { left: auto; right: 0; transform: none; }
+.bar-labels { display: flex; gap: 2px; color: var(--color-text-muted); font-size: .68rem; }
+.bar-labels span { flex: 1; text-align: center; }
+.bar-labels span:nth-child(even) { visibility: hidden; }
+@media (min-width: 640px) { .bar-labels span:nth-child(even) { visibility: visible; } }
+
+/* Barras horizontales (distribución por estado) */
+.hbars { display: grid; gap: var(--space-3); }
+.hbar { display: grid; grid-template-columns: 110px 1fr auto; gap: var(--space-3); align-items: center; font-size: var(--fs-sm); }
+.hbar .meter { height: 10px; border-radius: 4px; }
+.hbar .meter > span { background: var(--kp-verde-profundo); border-radius: 0 4px 4px 0; }
+:root[data-theme="dark"] .hbar .meter > span { background: var(--kp-verde); }.hbar b { min-width: 3.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* --- Reclamos (Administrador) --- */
+.deadline { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.deadline .icon { width: 15px; height: 15px; }
+.deadline.soon { color: var(--color-danger); }
+.table tr.is-soon td:first-child { box-shadow: inset 3px 0 0 var(--color-danger); }

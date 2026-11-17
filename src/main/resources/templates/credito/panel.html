@@ -2,56 +2,107 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mi crédito')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <p class="exito" th:if="${aviso == 'aval-aceptado'}">Aceptaste ser aval. Te avisaremos si la persona que respaldas se atrasa.</p>
-    <p class="aviso" th:if="${aviso == 'aval-rechazado'}">Rechazaste la invitación. No afecta tu historial.</p>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
 
-    <section class="tarjeta" th:unless="${#lists.isEmpty(panel.invitaciones())}">
-        <h2>Te pidieron ser aval</h2>
-        <div class="fila" th:each="i : ${panel.invitaciones()}">
-            <span th:text="${i.deudor()} + ' · ' + ${i.monto()}"></span>
-            <a th:href="@{/credito/aval/{id}(id=${i.ofertaId()})}">Revisar</a>
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head page-head-row">
+            <div class="stack-sm">
+                <p class="eyebrow"><span class="dot"></span> Microcrédito</p>
+                <h1>Mi crédito</h1>
+                <p>Tu cuota no supera el 30 % de lo que cobras por semana, y se paga sola con un porcentaje de tus ventas.</p>
+            </div>
+            <div class="btn-row" th:unless="${panel.prestamo()}">
+                <a class="btn btn-outline" th:href="@{/credito/simular}"><svg th:replace="~{fragmentos :: icono('i-chart')}"></svg>Simular</a>
+                <a class="btn btn-primary" th:href="@{/credito/solicitar}"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg>Solicitar</a>
+            </div>
         </div>
-    </section>
 
-    <p class="exito" th:if="${aviso == 'pagado-total'}">¡Terminaste de pagar tu préstamo! Ya puedes solicitar otro.</p>
-
-    <section class="tarjeta" th:unless="${#lists.isEmpty(panel.garantias())}">
-        <h2>Créditos que respaldas</h2>
-        <div th:each="g : ${panel.garantias()}" style="margin-bottom:8px">
-            <div class="fila"><span th:text="${g.deudor()} + ' · ' + ${g.monto()}"></span><strong th:text="${g.estadoAval()}"></strong></div>
-            <p class="nota" th:if="${g.cuotasVencidas() == 0}">Al día.</p>
-            <p class="error" th:if="${g.cuotasVencidas() > 0}"
-               th:text="${g.cuotasVencidas()} + ' cuota(s) vencida(s) por ' + ${g.vencido()}
-                        + (${g.estadoAval() == 'ACTIVADO'} ? '. Se está reteniendo de tus ventas hasta cubrirlas.' : '. Si llega a 15 días, se retendrá de tus ventas.')"></p>
+        <div class="stack" style="margin-bottom: var(--space-5)" th:if="${aviso != null}">
+            <div class="notice info" th:if="${aviso == 'aval-aceptado'}"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>
+                <div>Aceptaste ser aval. Te avisaremos si la persona que respaldas se atrasa.</div></div>
+            <div class="notice" th:if="${aviso == 'aval-rechazado'}"><svg th:replace="~{fragmentos :: icono('i-info')}"></svg>
+                <div>Rechazaste la invitación. No afecta tu historial.</div></div>
+            <div class="notice info" th:if="${aviso == 'pagado-total'}"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>
+                <div><b>¡Terminaste de pagar tu préstamo!</b>Ya puedes solicitar otro.</div></div>
         </div>
-    </section>
 
-    <section class="tarjeta" th:if="${panel.prestamo()}" th:with="p=${panel.prestamo()}">
-        <h1>Tu préstamo</h1>
-        <div class="fila"><span>Estado</span><strong th:text="${p.estado()}"></strong></div>
-        <div class="fila"><span>Monto</span><span th:text="${p.monto()}"></span></div>
-        <div class="fila"><span>Te falta pagar (capital)</span><span th:text="${p.capitalPendiente()}"></span></div>
-        <a class="principal" style="display:block;text-align:center;margin-top:16px" th:href="@{/credito/prestamo}">Ver cronograma</a>
-    </section>
+        <div class="grid layout-aside">
+            <div class="stack-lg">
+                <!-- Préstamo vigente -->
+                <section class="card loan-hero" th:if="${panel.prestamo()}" th:with="p=${panel.prestamo()}">
+                    <div class="stack-sm">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <span class="badge" th:classappend="${p.estado() == 'EN_MORA'} ? 'danger' : 'success'" th:text="${p.estado()}">VIGENTE</span>
+                            <span class="badge no-dot">Financiera Ayni Sur</span>
+                        </div>
+                        <small class="muted">Te falta pagar (capital)</small>
+                        <div class="num" style="font-size: var(--fs-3xl); font-weight: 800; letter-spacing: -.03em" th:text="${p.capitalPendiente()}">S/ 0.00</div>
+                        <a class="btn btn-primary" th:href="@{/credito/prestamo}" style="width:fit-content">Ver cronograma y pagar <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></a>
+                    </div>
+                    <div class="figures" style="grid-template-columns: 1fr">
+                        <div class="figure hl"><small>Monto del préstamo</small><b th:text="${p.monto()}">S/ 0.00</b></div>
+                    </div>
+                </section>
 
-    <section class="tarjeta" th:if="${panel.oferta()}" th:with="o=${panel.oferta()}">
-        <h2>Tu solicitud</h2>
-        <div class="fila"><span>Estado</span><strong th:text="${o.estado()}"></strong></div>
-        <div class="fila"><span>Monto</span><span th:text="${o.monto()}"></span></div>
-        <a th:href="@{/credito/ofertas/{id}(id=${o.id()})}">Ver detalle</a>
-    </section>
+                <!-- Solicitud en curso -->
+                <section class="card" th:if="${panel.oferta()}" th:with="o=${panel.oferta()}">
+                    <div class="card-head"><h2>Tu solicitud</h2><span class="badge warning" th:text="${o.estado()}">PENDIENTE_EFA</span></div>
+                    <dl class="kv"><div><dt>Monto</dt><dd th:text="${o.monto()}"></dd></div></dl>
+                    <a class="btn btn-outline btn-block" style="margin-top: var(--space-4)" th:href="@{/credito/ofertas/{id}(id=${o.id()})}">Ver detalle</a>
+                </section>
 
-    <section class="tarjeta" th:unless="${panel.prestamo()}">
-        <h2>Pide un crédito</h2>
-        <p class="nota">Tu cuota no supera el 30 % de lo que cobras por semana, y se paga sola con un porcentaje de tus ventas.</p>
-        <div class="acciones" style="grid-template-columns:1fr 1fr;margin-top:12px">
-            <a th:href="@{/credito/simular}">Simular</a>
-            <a th:href="@{/credito/solicitar}">Solicitar</a>
+                <!-- Sin préstamo -->
+                <section class="card empty" th:unless="${panel.prestamo()}">
+                    <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span>
+                    <h2>Pide un crédito</h2>
+                    <p class="small">Simula un crédito y conoce tu cuota semanal antes de solicitar.</p>
+                    <div class="btn-row" style="justify-content:center">
+                        <a class="btn btn-outline btn-lg" th:href="@{/credito/simular}">Simular</a>
+                        <a class="btn btn-primary btn-lg" th:href="@{/credito/solicitar}">Solicitar</a>
+                    </div>
+                </section>
+
+                <!-- Créditos que respaldo como aval -->
+                <section class="card" th:unless="${#lists.isEmpty(panel.garantias())}" aria-labelledby="t-garantias">
+                    <div class="card-head"><h2 id="t-garantias">Créditos que respaldas</h2><span class="badge no-dot">Aval</span></div>
+                    <ul class="aval-slots">
+                        <li class="aval-slot" th:each="g : ${panel.garantias()}">
+                            <span class="avatar" th:text="${#strings.substring(g.deudor(), 0, 1)}">A</span>
+                            <div>
+                                <b th:text="${g.deudor()} + ' · ' + ${g.monto()}">Deudor</b>
+                                <small th:if="${g.cuotasVencidas() == 0}">Al día.</small>
+                                <small class="text-danger" th:if="${g.cuotasVencidas() > 0}"
+                                       th:text="${g.cuotasVencidas()} + ' cuota(s) vencida(s) por ' + ${g.vencido()}
+                                        + (${g.estadoAval() == 'ACTIVADO'} ? '. Se está reteniendo de tus ventas hasta cubrirlas.' : '. Si llega a 15 días, se retendrá de tus ventas.')"></small>
+                            </div>
+                            <span class="badge" th:classappend="${g.cuotasVencidas() > 0} ? 'danger' : 'success'" th:text="${g.estadoAval()}"></span>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+
+            <aside class="stack-lg">
+                <section class="card" th:unless="${#lists.isEmpty(panel.invitaciones())}" aria-labelledby="t-inv">
+                    <div class="card-head"><h2 id="t-inv">Te pidieron ser aval</h2></div>
+                    <ul class="aval-slots">
+                        <li class="aval-slot" th:each="i : ${panel.invitaciones()}">
+                            <span class="avatar" th:text="${#strings.substring(i.deudor(), 0, 1)}">A</span>
+                            <div><b th:text="${i.deudor()}">Deudor</b><small th:text="${i.monto()}">S/ 0.00</small></div>
+                            <a class="btn btn-sm btn-primary" th:href="@{/credito/aval/{id}(id=${i.ofertaId()})}">Revisar</a>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="card">
+                    <div class="card-head"><h2>Tu nivel</h2></div>
+                    <p class="muted small">Paga a tiempo y sube de nivel: más monto, más cuotas y una TEA menor.</p>
+                    <a class="btn btn-outline btn-block" th:href="@{/nivel}" style="margin-top: var(--space-4)">Ver mi nivel de crédito</a>
+                </section>
+            </aside>
         </div>
-        <p class="nota" style="margin-top:12px"><a th:href="@{/nivel}">Ver mi nivel de crédito</a></p>
-    </section>
+    </div>
 </main>
+
 </body>
 </html>

@@ -2,55 +2,88 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Alerta')}"></head>
 <body>
-<main>
-    <div class="barra">
-        <a th:href="@{/admin/alertas}">← Alertas</a>
-        <form th:action="@{/logout}" method="post"><button type="submit" class="enlace-boton">Cerrar sesión</button></form>
-    </div>
-    <section class="tarjeta" th:with="a=${d.alerta()}">
-        <h1 th:text="${a.regla().nombre()}">Alerta</h1>
-        <div class="fila"><span>Cliente</span><span th:text="${a.cliente().nombre()}"></span></div>
-        <div class="fila"><span>DNI</span><span th:text="${a.cliente().dniEnmascarado()}"></span></div>
-        <div class="fila"><span>Fecha</span><span th:text="${#temporals.format(a.fecha(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <div class="fila"><span>Operación que la disparó</span><span th:text="'N.° ' + ${d.transaccionId()}"></span></div>
-        <div class="fila"><span>Billetera</span><span th:text="${d.billeteraBloqueada()} ? 'Bloqueada' : 'Activa'"></span></div>
-        <p style="margin-top:12px;font-size:.9rem" th:text="${a.detalle()}"></p>
-    </section>
-    <section class="tarjeta">
-        <h2>Operaciones del cliente en las 24 horas previas</h2>
-        <ul class="movimientos">
-            <li th:each="o : ${d.operaciones()}">
-                <div>
-                    <div th:text="${o.tipo() == 'RECARGA'} ? 'Carga inicial' : (${o.tipo() == 'TRANSFERENCIA'} ? 'Transferencia' : 'Pago a negocio')"></div>
-                    <div class="detalle" th:text="'N.° ' + ${o.transaccionId()} + ' · ' + ${#temporals.format(o.fecha(), 'dd/MM HH:mm:ss')}"></div>
+<header th:replace="~{fragmentos :: barraAdmin('alertas')}"></header>
+
+<main class="app-main" id="contenido" th:with="a=${d.alerta()}">
+    <div class="container">
+        <div class="page-head">
+            <a class="back-link" th:href="@{/admin/alertas}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Alertas</a>
+            <h1>Revisión de alerta</h1>
+        </div>
+
+        <div class="grid layout-aside">
+            <div class="stack-lg">
+                <section class="card" aria-labelledby="t-det">
+                    <div class="card-head">
+                        <div><h2 id="t-det" th:text="${a.regla().nombre()}">Regla</h2>
+                            <p class="card-sub" th:text="'Operación N.° ' + ${d.transaccionId()} + ' · generada el ' + ${#temporals.format(a.fecha(), 'dd/MM/yyyy HH:mm')}"></p></div>
+                        <span class="badge" th:classappend="${a.estado().name() == 'PENDIENTE'} ? 'warning' : (${a.estado().name() == 'ESCALADA'} ? 'danger' : 'success')"
+                              th:text="${a.estado().name()}">PENDIENTE</span>
+                    </div>
+                    <p class="rule-chip"><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg><span th:text="${a.detalle()}">Detalle</span></p>
+                    <dl class="kv" style="margin-top: var(--space-4)">
+                        <div><dt>Cliente</dt><dd th:text="${a.cliente().nombre()}"></dd></div>
+                        <div><dt>DNI</dt><dd th:text="${a.cliente().dniEnmascarado()}"></dd></div>
+                        <div><dt>Billetera</dt><dd><span class="badge" th:classappend="${d.billeteraBloqueada()} ? 'danger' : 'success'"
+                              th:text="${d.billeteraBloqueada()} ? 'BLOQUEADA' : 'ACTIVA'"></span></dd></div>
+                    </dl>
+                </section>
+
+                <section class="card card-flush" aria-labelledby="t-ops">
+                    <div class="card-head"><h2 id="t-ops">Operaciones de las 24 horas previas</h2></div>
+                    <div class="table-wrap" style="margin-top: var(--space-4)">
+                        <table class="table">
+                            <thead><tr><th>Fecha</th><th>Tipo</th><th>N.°</th><th class="r">Monto</th></tr></thead>
+                            <tbody>
+                            <tr th:each="o : ${d.operaciones()}" th:classappend="${o.transaccionId() == d.transaccionId()} ? 'is-soon'">
+                                <td th:text="${#temporals.format(o.fecha(), 'dd/MM HH:mm:ss')}"></td>
+                                <td th:text="${o.tipo() == 'RECARGA'} ? 'Carga inicial' : (${o.tipo() == 'TRANSFERENCIA'} ? 'Transferencia' : 'Pago a negocio')"></td>
+                                <td th:text="${o.transaccionId()}"></td>
+                                <td class="r" th:classappend="${o.transaccionId() == d.transaccionId()} ? 'text-danger'" th:text="${o.monto()}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <form class="card stack" th:if="${a.estado().name() == 'PENDIENTE'}"
+                  th:action="@{/admin/alertas/{id}/revision(id=${a.id()})}" method="post" aria-labelledby="t-dec">
+                <h2 class="card-title" id="t-dec">Tu decisión</h2>
+                <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+                <div class="choice-grid">
+                    <label class="choice"><input type="radio" name="decision" value="DESCARTADA" required th:checked="${decision != 'ESCALADA'}">
+                        <span><b>Descartar</b><small>Es una operación normal</small></span></label>
+                    <label class="choice"><input type="radio" name="decision" value="ESCALADA" th:checked="${decision == 'ESCALADA'}">
+                        <span><b>Escalar</b><small>Requiere análisis (reporte a la UIF fuera del sistema)</small></span></label>
                 </div>
-                <div class="monto" th:classappend="${o.transaccionId() == d.transaccionId()} ? 'salida'" th:text="${o.monto()}"></div>
-            </li>
-        </ul>
-    </section>
-    <section class="tarjeta" th:if="${d.alerta().estado().name() == 'PENDIENTE'}">
-        <h2>Registrar revisión</h2>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <form th:action="@{/admin/alertas/{id}/revision(id=${d.alerta().id()})}" method="post">
-            <label for="decision">Decisión</label>
-            <select id="decision" name="decision" required>
-                <option value="DESCARTADA" th:selected="${decision == 'DESCARTADA'}">Descartar: es una operación normal</option>
-                <option value="ESCALADA" th:selected="${decision == 'ESCALADA'}">Escalar: requiere análisis (reporte a la UIF fuera del sistema)</option>
-            </select>
-            <label for="comentario">Comentario</label>
-            <textarea id="comentario" name="comentario" maxlength="255" required th:text="${comentario}"></textarea>
-            <label class="check"><input type="checkbox" name="bloquear" value="true" th:checked="${bloquear}"> Bloquear la billetera (solo al escalar)</label>
-            <label for="motivoBloqueo">Motivo del bloqueo</label>
-            <input type="text" id="motivoBloqueo" name="motivoBloqueo" maxlength="150" th:value="${motivoBloqueo}">
-            <button type="submit" class="principal">Registrar revisión</button>
-        </form>
-    </section>
-    <section class="tarjeta" th:unless="${d.alerta().estado().name() == 'PENDIENTE'}">
-        <h2 th:text="${d.alerta().estado().name() == 'ESCALADA'} ? 'Escalada' : 'Descartada'"></h2>
-        <div class="fila"><span>Revisó</span><span th:text="${d.revisadoPor()}"></span></div>
-        <div class="fila"><span>Fecha</span><span th:text="${#temporals.format(d.fechaRevision(), 'dd/MM/yyyy HH:mm')}"></span></div>
-        <p class="texto-largo" style="margin-top:8px" th:text="${d.comentario()}"></p>
-    </section>
+                <div class="field">
+                    <label for="comentario">Comentario</label>
+                    <textarea class="input" id="comentario" name="comentario" maxlength="255" required
+                              placeholder="Explica el motivo de tu decisión" th:text="${comentario}"></textarea>
+                </div>
+                <label class="check">
+                    <input type="checkbox" name="bloquear" value="true" th:checked="${bloquear}">
+                    <span><b>Bloquear la billetera</b><small>Solo al escalar. El cliente no podrá operar hasta que se resuelva su situación.</small></span>
+                </label>
+                <div class="field">
+                    <label for="motivoBloqueo">Motivo del bloqueo</label>
+                    <input class="input" type="text" id="motivoBloqueo" name="motivoBloqueo" maxlength="150" th:value="${motivoBloqueo}">
+                </div>
+                <p class="notice"><svg th:replace="~{fragmentos :: icono('i-lock')}"></svg><span class="small">Se registrará con tu usuario, la fecha y la hora.</span></p>
+                <button class="btn btn-primary btn-lg btn-block" type="submit">Registrar decisión</button>
+            </form>
+
+            <section class="card" th:unless="${a.estado().name() == 'PENDIENTE'}" aria-labelledby="t-rev">
+                <div class="card-head"><h2 id="t-rev" th:text="${a.estado().name() == 'ESCALADA'} ? 'Escalada' : 'Descartada'">Revisada</h2></div>
+                <ul class="decision-log">
+                    <li><small th:text="${d.revisadoPor()} + ' · ' + ${#temporals.format(d.fechaRevision(), 'dd/MM/yyyy HH:mm')}"></small>
+                        <p class="texto-largo" th:text="${d.comentario()}"></p></li>
+                </ul>
+            </section>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>
