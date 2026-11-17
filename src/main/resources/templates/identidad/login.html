@@ -16,6 +16,9 @@
         .aviso { background: #e7f0fd; color: #1849a9; padding: 10px; border-radius: 8px; }
         button { width: 100%; margin-top: 20px; padding: 12px; border: 0; border-radius: 8px; background: #1f5eff; color: #fff; font-size: 1rem; }
         p.pie { text-align: center; font-size: .9rem; margin-top: 16px; }
+        .captcha { display: flex; align-items: center; gap: 12px; }
+        .captcha img { border: 1px solid #c8cdd6; border-radius: 8px; max-width: 60%; height: auto; }
+        .captcha a { font-size: .9rem; }
     </style>
 </head>
 <body>
@@ -31,6 +34,16 @@
 
         <label for="contrasena">Contraseña</label>
         <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required>
+
+        <label for="captcha">Escribe el número de la imagen</label>
+        <div class="captcha">
+            <img th:src="'data:image/png;base64,' + ${captcha.imagenBase64()}" width="190" height="64"
+                 alt="Número de verificación de cinco dígitos">
+            <a th:href="@{/login}">Cambiar número</a>
+        </div>
+        <input type="hidden" name="captchaId" th:value="${captcha.id()}">
+        <input id="captcha" name="captcha" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5"
+               autocomplete="off" required style="margin-top:8px">
 
         <button type="submit">Ingresar</button>
     </form>
