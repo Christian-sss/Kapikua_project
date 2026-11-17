@@ -2,36 +2,69 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Alertas')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barraAdmin}"></div>
-    <p class="exito" th:if="${aviso == 'revisada'}">Revisión registrada.</p>
-    <section class="tarjeta">
-        <h1>Alertas pendientes</h1>
-        <p class="nota">Operaciones inusuales. En producción las revisa el oficial de cumplimiento.</p>
-        <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay alertas pendientes.</p>
-        <ul class="lista">
-            <li th:each="a : ${pendientes}">
-                <a th:href="@{/admin/alertas/{id}(id=${a.id()})}">
-                    <div class="titulo"><strong th:text="${a.regla().nombre()}"></strong>
-                        <span class="nota" th:text="${#temporals.format(a.fecha(), 'dd/MM HH:mm')}"></span></div>
-                    <div class="nota" th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()}"></div>
-                    <div style="font-size:.85rem" th:text="${a.detalle()}"></div>
-                </a>
-            </li>
-        </ul>
-    </section>
-    <section class="tarjeta" th:unless="${#lists.isEmpty(revisadas)}">
-        <h2>Revisadas recientemente</h2>
-        <ul class="lista">
-            <li th:each="a : ${revisadas}">
-                <a th:href="@{/admin/alertas/{id}(id=${a.id()})}">
-                    <div class="titulo"><span th:text="${a.regla().nombre()}"></span>
-                        <span th:class="${a.estado().name() == 'ESCALADA'} ? 'etiqueta urgente' : 'etiqueta'" th:text="${a.estado().name() == 'ESCALADA'} ? 'Escalada' : 'Descartada'"></span></div>
-                    <div class="nota" th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()}"></div>
-                </a>
-            </li>
-        </ul>
-    </section>
+<header th:replace="~{fragmentos :: barraAdmin('alertas')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span> Cumplimiento</p>
+            <h1>Alertas de operaciones inusuales</h1>
+            <p>Revisa cada alerta y registra tu decisión. En producción las revisa el oficial de cumplimiento.</p>
+        </div>
+
+        <div class="notice info" th:if="${aviso == 'revisada'}" style="margin-bottom: var(--space-5)">
+            <svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg><div>Revisión registrada.</div></div>
+
+        <div class="kpis cols-3" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))">
+            <div class="kpi hl"><small><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg>Pendientes</small><b th:text="${#lists.size(pendientes)}">0</b><span class="delta">Por revisar</span></div>
+            <div class="kpi"><small><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg>Escaladas recientes</small>
+                <b th:text="${#lists.size(revisadas.?[estado().name() == 'ESCALADA'])}">0</b><span class="delta">Entre las últimas revisadas</span></div>
+            <div class="kpi"><small><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>Descartadas recientes</small>
+                <b th:text="${#lists.size(revisadas.?[estado().name() != 'ESCALADA'])}">0</b><span class="delta">Operaciones justificadas</span></div>
+        </div>
+
+        <div class="grid layout-aside">
+            <section class="card card-flush" aria-labelledby="t-pend">
+                <div class="card-head"><h2 id="t-pend">Pendientes</h2></div>
+                <ul class="row-list" style="margin-top: var(--space-4)" th:unless="${#lists.isEmpty(pendientes)}">
+                    <li th:each="a : ${pendientes}">
+                        <a class="row-item" th:href="@{/admin/alertas/{id}(id=${a.id()})}">
+                            <span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-layers')}"></svg></span>
+                            <span class="row-txt">
+                                <b th:text="${a.regla().nombre()}">Regla</b>
+                                <small th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()} + ' · ' + ${#temporals.format(a.fecha(), 'dd/MM HH:mm')}"></small>
+                                <small th:text="${a.detalle()}"></small>
+                            </span>
+                            <span class="row-end"><span class="badge warning">PENDIENTE</span></span>
+                        </a>
+                    </li>
+                </ul>
+                <div class="empty" th:if="${#lists.isEmpty(pendientes)}">
+                    <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></span>
+                    <b>No hay alertas pendientes</b>
+                </div>
+            </section>
+
+            <section class="card card-flush" th:unless="${#lists.isEmpty(revisadas)}" aria-labelledby="t-rev">
+                <div class="card-head"><h2 id="t-rev">Revisadas recientemente</h2></div>
+                <ul class="row-list" style="margin-top: var(--space-4)">
+                    <li th:each="a : ${revisadas}">
+                        <a class="row-item" th:href="@{/admin/alertas/{id}(id=${a.id()})}">
+                            <span class="ico-box" th:classappend="${a.estado().name() == 'ESCALADA'} ? 'danger'">
+                                <svg th:replace="~{fragmentos :: icono(${a.estado().name() == 'ESCALADA'} ? 'i-ban' : 'i-check')}"></svg></span>
+                            <span class="row-txt">
+                                <b th:text="${a.regla().nombre()}">Regla</b>
+                                <small th:text="${a.cliente().nombre()} + ' · DNI ' + ${a.cliente().dniEnmascarado()}"></small>
+                            </span>
+                            <span class="row-end"><span class="badge" th:classappend="${a.estado().name() == 'ESCALADA'} ? 'danger' : 'success'"
+                                  th:text="${a.estado().name() == 'ESCALADA'} ? 'ESCALADA' : 'DESCARTADA'"></span></span>
+                        </a>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>

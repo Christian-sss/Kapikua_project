@@ -1,0 +1,95 @@
+/* ==========================================================================
+   KAPIKUA · Billetera (CU-03 a CU-06)
+   billetera.html, recarga.html, transferencia.html, pago-negocio.html
+   ========================================================================== */
+
+/* --- Tarjeta de saldo (misma del landing, a tamaño completo) --- */
+.balance-hero {
+  position: relative; overflow: hidden;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #027B71 0%, #014D47 100%);
+  color: #FFFFFF; box-shadow: var(--shadow-lg);
+}
+.balance-hero::before {
+  content: ""; position: absolute; right: -80px; top: -120px; width: 320px; height: 320px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 20, .22), transparent 65%);
+}
+.balance-hero > * { position: relative; }
+.balance-hero .split-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+.balance-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.balance-label { font-size: var(--fs-sm); opacity: .85; }
+.balance-amount { margin-top: 4px; font-size: clamp(2rem, 1.5rem + 2.4vw, 2.75rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.balance-amount.is-updated { animation: flash-amarillo 1.4s var(--ease); }
+@keyframes flash-amarillo { 0%, 40% { color: var(--kp-amarillo); } 100% { color: #FFFFFF; } }
+.balance-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, .14); font-size: var(--fs-xs); font-weight: 700; }
+.balance-chip .icon { width: 14px; height: 14px; }
+
+.balance-split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-5); }
+.balance-split > div { padding: var(--space-3); border-radius: var(--radius-md); background: rgba(255, 255, 255, .1); }
+.balance-split small { display: block; font-size: var(--fs-xs); opacity: .8; }
+.balance-split b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.balance-split .apartado b { color: var(--kp-amarillo); }
+
+/* --- Accesos rápidos --- */
+.quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
+.quick-action {
+  display: grid; justify-items: center; gap: 8px; padding: var(--space-3) var(--space-1);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface);
+  color: var(--color-text); font-size: var(--fs-xs); font-weight: 700; text-align: center; text-decoration: none !important;
+  transition: border-color .18s var(--ease), transform .18s var(--ease);
+}
+.quick-action:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+.quick-action .ico-box { width: 42px; height: 42px; }
+
+/* --- Movimientos --- */
+.mov-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; }
+.mov-ico .icon { width: 18px; height: 18px; }
+.mov-ico.in { background: var(--color-accent-verde-bg); color: var(--color-primary); }
+.mov-ico.out { background: var(--color-accent-amarillo-bg); color: var(--color-text); }
+.mov-amt { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mov-amt.in { color: var(--color-primary); }
+.row-item.is-new { animation: mov-new 1.6s var(--ease); }
+@keyframes mov-new { 0% { background: var(--color-accent-verde-bg); } 100% { background: transparent; } }
+.mov-day { padding: var(--space-2) var(--space-5); background: var(--color-surface-2); color: var(--color-text-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+@media (max-width: 479px) { .mov-day { padding-inline: var(--space-4); } }
+
+.mov-filters { padding: 0 var(--space-5) var(--space-4); }
+@media (max-width: 479px) { .mov-filters { padding-inline: var(--space-4); } }
+
+/* --- Límites del mes (topes SBS) --- */
+.limit { display: grid; gap: 6px; }
+.limit + .limit { margin-top: var(--space-4); }
+.limit-top { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--fs-sm); }
+.limit-top b { font-variant-numeric: tabular-nums; }
+.limit small { color: var(--color-text-muted); font-size: var(--fs-xs); }
+
+/* --- Resumen de préstamo en la billetera --- */
+.loan-mini .loan-amount { font-size: var(--fs-2xl); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* --- Operaciones --- */
+.recipient {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md); background: var(--color-accent-verde-bg);
+}
+.recipient b { display: block; }
+.recipient small { color: var(--color-text-2); font-size: var(--fs-xs); }
+
+.quick-amounts { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.quick-amounts button {
+  padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-pill);
+  background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
+}
+.quick-amounts button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* Zona del formulario de Culqi (Culqi Checkout se monta aquí) */
+.culqi-slot {
+  display: grid; gap: var(--space-3); padding: var(--space-5);
+  border: 1.5px dashed var(--color-border-input); border-radius: var(--radius-lg); background: var(--color-surface-2);
+}
+.culqi-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); font-size: var(--fs-xs); color: var(--color-text-2); }
+.culqi-brand b { color: var(--color-text); font-size: var(--fs-sm); }
+
+.op-summary { display: grid; gap: 2px; padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); text-align: center; }
+.op-summary small { color: var(--color-text-2); }
+.op-summary strong { font-size: var(--fs-2xl); font-weight: 800; font-variant-numeric: tabular-nums; }

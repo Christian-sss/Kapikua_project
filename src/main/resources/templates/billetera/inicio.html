@@ -2,79 +2,138 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Mi billetera')}"></head>
 <body>
-<main>
-    <div class="barra">
-        <strong th:text="'Hola, ' + ${usuario.nombres()}">Hola</strong>
-        <a th:href="@{/credito}">Mi crédito</a>
-        <a th:href="@{/reclamos}">Reclamos</a>
-        <form th:action="@{/logout}" method="post">
-            <button type="submit" class="enlace-boton">Cerrar sesión</button>
-        </form>
-    </div>
+<header th:replace="~{fragmentos :: barra('billetera')}"></header>
 
-    <div class="tarjeta exito" th:if="${comprobante}">
-        <h2>Operación realizada</h2>
-        <div class="fila"><span>Monto</span><strong th:text="${comprobante.monto()}"></strong></div>
-        <div class="fila"><span>Para / desde</span><span th:text="${comprobante.contraparte()}"></span></div>
-        <div class="fila"><span>N.° de operación</span><span th:text="${comprobante.transaccionId()}"></span></div>
-        <div class="fila"><span>Saldo disponible</span><span th:text="${comprobante.saldoPosterior()}"></span></div>
-        <a class="nota" th:href="@{/reclamos/nuevo(operacion=${comprobante.transaccionId()})}">¿Un problema con esta
-            operación? Presenta un reclamo</a>
-    </div>
+<main class="app-main" id="contenido-pagina">
+    <div class="container">
+        <div class="page-head">
+            <p class="eyebrow"><span class="dot"></span> Mi billetera</p>
+            <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
+        </div>
 
-    <div id="contenido" th:fragment="contenido"
-         th:data-fragmento="@{/billetera/fragmentos/contenido(desde=${filtroDesde},hasta=${filtroHasta})}"
-         th:data-eventos="@{/eventos}">
-        <section class="tarjeta">
-            <p class="nota"
-               th:text="${b.nombreNegocio() != null ? b.nombreNegocio() + ' · ' : ''} + 'Celular ' + ${b.celular()}"></p>
-            <p class="nota">Saldo disponible</p>
-            <p class="saldo" th:text="${b.saldoDisponible()}">S/ 0.00</p>
-            <div class="fila"><span>Saldo total</span><span th:text="${b.saldo()}"></span></div>
-            <div class="fila"><span>Apartado para tu cuota</span><span th:text="${b.saldoApartado()}"></span></div>
-            <div class="acciones" style="margin-top:16px">
-                <a th:href="@{/billetera/transferir}">Transferir</a>
-                <a th:href="@{/billetera/pagar}">Pagar</a>
-            </div>
-        </section>
-
-        <section class="tarjeta">
-            <h2>Tus límites de este mes</h2>
-            <div class="fila"><span>Pagos y transferencias: usado / disponible</span>
-                <span th:text="${b.pagosUsados()} + ' / ' + ${b.pagosDisponibles()}"></span></div>
-            <div class="fila"><span>Máximo por operación</span><span th:text="${b.topePorOperacion()}"></span></div>
-            <div class="fila"><span>Saldo máximo</span><span th:text="${b.saldoMaximo()}"></span></div>
-        </section>
-
-        <section class="tarjeta">
-            <h2>Movimientos</h2>
-            <form class="filtro" th:action="@{/billetera}" method="get">
-                <div><label for="desde">Desde</label><input id="desde" type="date" name="desde" th:value="${b.desde()}">
-                </div>
-                <div><label for="hasta">Hasta</label><input id="hasta" type="date" name="hasta" th:value="${b.hasta()}">
-                </div>
-                <button type="submit">Filtrar</button>
-            </form>
-
-            <p class="nota" th:if="${#lists.isEmpty(movimientos)}" style="margin-top:12px">
-                No tienes movimientos en estas fechas.
+        <!-- Comprobante de la última operación -->
+        <section class="card receipt op-card" th:if="${comprobante}" style="margin-bottom: var(--space-6)"
+                 aria-labelledby="t-comprobante">
+            <div class="receipt-ico"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></div>
+            <h2 id="t-comprobante" th:text="${param.detalle != null} ? 'Detalle del movimiento' : 'Operación realizada'">Operación realizada</h2>
+            <div class="receipt-amount" th:text="${comprobante.monto()}">S/ 0.00</div>
+            <dl class="kv">
+                <div><dt>Para / desde</dt><dd th:text="${comprobante.contraparte()}"></dd></div>
+                <div><dt>N.° de operación</dt><dd th:text="${comprobante.transaccionId()}"></dd></div>
+                <div class="total"><dt>Saldo disponible</dt><dd th:text="${comprobante.saldoPosterior()}"></dd></div>
+            </dl>
+            <p class="small" style="margin-top: var(--space-4)">
+                <a th:href="@{/reclamos/nuevo(operacion=${comprobante.transaccionId()})}">¿Un problema con esta operación? Presenta un reclamo</a>
             </p>
-            <ul class="movimientos" th:unless="${#lists.isEmpty(movimientos)}">
-                <li th:each="m : ${movimientos}">
-                    <div>
-                        <div th:text="${m.etiqueta()}"></div>
-                        <div class="detalle"
-                             th:text="${m.fecha()} + (${m.detalle()} != null ? ' · ' + ${m.detalle()} : '')"></div>
-                    </div>
-                    <div class="monto">
-                        <div th:text="${m.monto()}" th:classappend="${m.entrada()} ? 'entrada' : 'salida'"></div>
-                        <div class="detalle" th:text="'Saldo ' + ${m.saldo()}"></div>
-                    </div>
-                </li>
-            </ul>
+            <a class="btn btn-outline btn-block" th:if="${param.detalle != null}" th:href="@{/billetera}" style="margin-top: var(--space-4)">Cerrar detalle</a>
         </section>
+
+        <div id="contenido" th:fragment="contenido"
+             th:data-fragmento="@{/billetera/fragmentos/contenido(desde=${filtroDesde},hasta=${filtroHasta})}"
+             th:data-eventos="@{/eventos}">
+            <div class="grid layout-aside">
+                <!-- ===================== Columna principal ===================== -->
+                <div class="stack-lg">
+                    <section aria-labelledby="t-saldo">
+                        <div class="balance-hero">
+                            <div class="balance-top">
+                                <span class="balance-label" id="t-saldo">Saldo total</span>
+                                <span class="balance-chip"><svg th:replace="~{fragmentos :: icono('i-shield')}"></svg>
+                                    <span th:text="${b.nombreNegocio() != null ? b.nombreNegocio() + ' · ' : ''} + 'Cel. ' + ${b.celular()}">Cel.</span></span>
+                            </div>
+                            <div class="balance-amount" th:text="${b.saldo()}">S/ 0.00</div>
+                            <div class="balance-split">
+                                <div><small>Disponible</small><b th:text="${b.saldoDisponible()}">S/ 0.00</b></div>
+                                <div class="apartado"><small>Apartado para tu cuota</small><b th:text="${b.saldoApartado()}">S/ 0.00</b></div>
+                            </div>
+                            <div class="split-bar" aria-hidden="true"><span></span><span></span></div>
+                        </div>
+                        <nav class="quick-actions" aria-label="Operaciones">
+                            <a class="quick-action" th:href="@{/billetera/transferir}"><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-send')}"></svg></span>Transferir</a>
+                            <a class="quick-action" th:href="@{/billetera/pagar}"><span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-store')}"></svg></span>Pagar</a>
+                            <a class="quick-action" th:href="@{/credito}"><span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span>Crédito</a>
+                            <a class="quick-action" th:href="@{/nivel}"><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg></span>Mi nivel</a>
+                        </nav>
+                    </section>
+
+                    <section class="card card-flush" aria-labelledby="t-movs">
+                        <div class="card-head">
+                            <div>
+                                <h2 id="t-movs">Movimientos</h2>
+                                <p class="card-sub">Tus operaciones en las fechas elegidas.</p>
+                            </div>
+                        </div>
+                        <form class="toolbar mov-filters" th:action="@{/billetera}" method="get">
+                            <div class="field"><label for="desde">Desde</label><input class="input" id="desde" type="date" name="desde" th:value="${b.desde()}"></div>
+                            <div class="field"><label for="hasta">Hasta</label><input class="input" id="hasta" type="date" name="hasta" th:value="${b.hasta()}"></div>
+                            <button class="btn btn-outline" type="submit"><svg th:replace="~{fragmentos :: icono('i-filter')}"></svg>Filtrar</button>
+                        </form>
+
+                        <ul class="row-list" th:unless="${#lists.isEmpty(movimientos)}">
+                            <li th:each="m : ${movimientos}"
+                                th:with="ico=${#strings.contains(m.etiqueta(), 'Transferencia')} ? 'i-send'
+                                    : (${#strings.contains(m.etiqueta(), 'cuota') or #strings.contains(m.etiqueta(), 'anticipado')} ? 'i-calendar'
+                                    : (${#strings.contains(m.etiqueta(), 'Desembolso')} ? 'i-coins'
+                                    : (${#strings.contains(m.etiqueta(), 'Carga')} ? 'i-card' : 'i-store')))">
+                                <a class="row-item" th:href="@{/billetera(operacion=${m.transaccionId()},detalle=true)}"
+                                   th:attr="aria-label='Ver el detalle: ' + ${m.etiqueta()} + ' ' + ${m.monto()}">
+                                    <span class="mov-ico" th:classappend="${m.entrada()} ? 'in' : 'out'"><svg th:replace="~{fragmentos :: icono(${ico})}"></svg></span>
+                                    <span class="row-txt">
+                                        <b th:text="${m.etiqueta()}">Movimiento</b>
+                                        <small th:text="${m.fecha()} + (${m.detalle()} != null ? ' · ' + ${m.detalle()} : '')"></small>
+                                    </span>
+                                    <span class="row-end">
+                                        <span class="mov-amt" th:classappend="${m.entrada()} ? 'in'" th:text="${m.monto()}"></span>
+                                        <small class="muted xs" th:text="'Saldo ' + ${m.saldo()}"></small>
+                                    </span>
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div class="empty" th:if="${#lists.isEmpty(movimientos)}">
+                            <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-history')}"></svg></span>
+                            <b>No tienes movimientos en estas fechas</b>
+                            <p class="small">Comparte tu número para empezar a recibir pagos.</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- ===================== Columna lateral ===================== -->
+                <aside class="stack-lg">
+                    <section class="card" aria-labelledby="t-limites"
+                             th:with="usado=${b.pagosUsados().valor().doubleValue()},
+                                      total=${b.pagosUsados().valor().doubleValue() + b.pagosDisponibles().valor().doubleValue()},
+                                      saldo=${b.saldo().valor().doubleValue()},
+                                      tope=${b.saldoMaximo().valor().doubleValue()}">
+                        <div class="card-head"><h2 id="t-limites">Límites del mes</h2></div>
+                        <div class="limit">
+                            <div class="limit-top"><span>Pagos y transferencias</span><b th:text="${b.pagosUsados()}">S/ 0.00</b></div>
+                            <div class="meter" role="meter" aria-label="Pagos y transferencias del mes">
+                                <span th:style="'width:' + ${total > 0 ? (usado * 100 / total) : 0} + '%'"></span></div>
+                            <small th:text="'Te quedan ' + ${b.pagosDisponibles()}">Te quedan</small>
+                        </div>
+                        <div class="limit">
+                            <div class="limit-top"><span>Tope de saldo</span><b><span th:text="${b.saldo()}"></span> <span class="muted" th:text="'/ ' + ${b.saldoMaximo()}"></span></b></div>
+                            <div class="meter" role="meter" aria-label="Saldo frente al tope">
+                                <span th:style="'width:' + ${tope > 0 ? (saldo * 100 / tope) : 0} + '%'"></span></div>
+                        </div>
+                        <p class="notice" style="margin-top: var(--space-4)">
+                            <svg th:replace="~{fragmentos :: icono('i-info')}"></svg>
+                            <span class="small">Ninguna operación puede superar <b style="display:inline" th:text="${b.topePorOperacion()}"></b>. El saldo no genera intereses.</span>
+                        </p>
+                    </section>
+
+                    <section class="card loan-mini" aria-labelledby="t-credito">
+                        <div class="card-head"><h2 id="t-credito">Tu crédito</h2></div>
+                        <p class="muted small">Sigue tu préstamo, paga tus cuotas o simula un crédito nuevo.</p>
+                        <a class="btn btn-outline btn-block" th:href="@{/credito}" style="margin-top: var(--space-4)">Ver mi crédito</a>
+                    </section>
+                </aside>
+            </div>
+        </div>
     </div>
 </main>
+
 <script th:src="@{/js/billetera-en-vivo.js}" defer></script>
 </body>
 </html>

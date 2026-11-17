@@ -1,0 +1,115 @@
+/* ==========================================================================
+   KAPIKUA · Créditos (CU-07 a CU-12)
+   simulador.html, solicitud-credito.html, aval.html, hoja-resumen.html, prestamo.html
+   ========================================================================== */
+
+/* --- Escalera de niveles (RN-14) --- */
+.ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
+.ladder li {
+  display: grid; gap: 2px; padding: var(--space-3); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); background: var(--color-surface); font-size: var(--fs-xs); color: var(--color-text-2);
+}
+.ladder li b { color: var(--color-text); font-size: var(--fs-sm); }
+.ladder li.is-current { border-color: transparent; background: var(--kp-amarillo); color: #20312D; }
+.ladder li.is-current b { color: #20312D; }
+.ladder li.is-done { background: var(--color-accent-verde-bg); border-color: transparent; }
+@media (max-width: 479px) { .ladder li { padding: var(--space-2); } .ladder li span { display: none; } }
+
+/* --- Resultado del simulador --- */
+.sim-result {
+  position: relative; overflow: hidden; padding: var(--space-5);
+  border-radius: var(--radius-lg); background: linear-gradient(135deg, #027B71 0%, #014D47 100%); color: #FFFFFF;
+}
+.sim-result .split-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+.sim-result small { opacity: .8; font-size: var(--fs-sm); }
+.sim-result .big { font-size: clamp(2rem, 1.5rem + 2.4vw, 2.75rem); font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.sim-figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-top: var(--space-4); }
+.sim-figures > div { padding: var(--space-3); border-radius: var(--radius-md); background: rgba(255, 255, 255, .1); }
+.sim-figures small { display: block; font-size: var(--fs-xs); }
+.sim-figures b { font-variant-numeric: tabular-nums; }
+@media (max-width: 400px) { .sim-figures { grid-template-columns: 1fr 1fr; } }
+
+.range-row { display: grid; grid-template-columns: 1fr auto; gap: var(--space-3); align-items: center; }
+input[type="range"] { width: 100%; accent-color: var(--color-primary); }
+.range-val { min-width: 90px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* --- Recomendación de la evaluación (CU-08) --- */
+.verdict { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); border: 1.5px solid var(--color-border); background: var(--color-surface); }
+.verdict-head { display: flex; align-items: center; gap: var(--space-3); }
+.verdict-head h3 { font-size: var(--fs-xl); }
+.verdict.apto { border-color: var(--kp-verde); background: var(--color-accent-verde-bg); }
+.verdict.ajuste { border-color: var(--kp-dorado); background: var(--color-accent-amarillo-bg); }
+.verdict.noapto { border-color: color-mix(in srgb, var(--color-danger) 50%, transparent); background: color-mix(in srgb, var(--color-danger) 8%, transparent); }
+.verdict.noapto .ico-box { background: color-mix(in srgb, var(--color-danger) 15%, transparent); color: var(--color-danger); }
+.verdict.ajuste .ico-box { background: var(--kp-amarillo); color: #20312D; }
+
+.score { display: grid; gap: 6px; }
+.score-top { display: flex; justify-content: space-between; font-size: var(--fs-sm); }
+.score-top b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.score-bar { position: relative; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--color-danger) 0 50%, var(--kp-dorado) 50% 65%, var(--kp-verde) 65% 100%); opacity: .9; }
+.score-bar i { position: absolute; top: -4px; width: 4px; height: 18px; border-radius: 2px; background: var(--color-text); box-shadow: 0 0 0 2px var(--color-surface); transform: translateX(-50%); }
+.score-legend { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: .7rem; }
+
+.factors { display: grid; gap: var(--space-2); }
+.factors li { display: grid; grid-template-columns: 1fr 90px auto; gap: var(--space-3); align-items: center; font-size: var(--fs-sm); }
+.factors li b { font-variant-numeric: tabular-nums; min-width: 2.5rem; text-align: right; }
+
+/* Línea de estado de la oferta */
+.timeline { display: grid; gap: 0; }
+.timeline li { position: relative; display: grid; grid-template-columns: 28px 1fr; gap: var(--space-3); padding-bottom: var(--space-4); }
+.timeline li::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--color-border); }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li:last-child::before { display: none; }
+.timeline .dot-ico { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-surface-2); color: var(--color-text-muted); border: 2px solid var(--color-border); }
+.timeline .dot-ico .icon { width: 14px; height: 14px; }
+.timeline li.is-done .dot-ico { background: var(--kp-verde); border-color: var(--kp-verde); color: #04211A; }
+.timeline li.is-current .dot-ico { background: var(--kp-amarillo); border-color: var(--kp-amarillo); color: #20312D; }
+.timeline b { display: block; font-size: var(--fs-sm); }
+.timeline small { color: var(--color-text-2); font-size: var(--fs-xs); }
+
+/* --- Avales (CU-09) --- */
+.aval-slots { display: grid; gap: var(--space-3); }
+.aval-slot { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.aval-slot.empty-slot { border-style: dashed; color: var(--color-text-muted); }
+.aval-slot b { display: block; font-size: var(--fs-sm); }
+.aval-slot small { color: var(--color-text-2); font-size: var(--fs-xs); }
+.countdown { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.duty-list { display: grid; gap: var(--space-3); }
+.duty-list li { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3); align-items: start; font-size: var(--fs-sm); }
+.duty-list .ico-box { width: 36px; height: 36px; }
+
+/* --- Hoja resumen (CU-10) --- */
+.doc { position: relative; overflow: hidden; }
+.doc::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: linear-gradient(90deg, var(--kp-amarillo) 50%, var(--kp-verde) 50%); }
+.doc-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-4); margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); }
+.doc-head small { color: var(--color-text-2); font-size: var(--fs-xs); }
+.figures { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+@media (min-width: 640px) { .figures { grid-template-columns: repeat(4, 1fr); } }
+.figure { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); }
+.figure small { display: block; color: var(--color-text-2); font-size: var(--fs-xs); }
+.figure b { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.figure.hl { background: var(--color-accent-verde-bg); }
+.figure.hl b { color: var(--color-primary); }
+
+/* --- Préstamo (CU-11, CU-12) --- */
+.loan-hero { display: grid; gap: var(--space-4); }
+@media (min-width: 640px) { .loan-hero { grid-template-columns: 1.3fr 1fr; align-items: center; } }
+.loan-progress { display: grid; gap: 6px; }
+.loan-progress .meter { height: 12px; border-radius: 6px; }
+.loan-progress .meter > span { border-radius: 6px; background: linear-gradient(90deg, var(--kp-amarillo), var(--kp-verde)); }
+
+.cuota-state { font-weight: 700; }
+.table tr.is-next td { background: var(--color-accent-amarillo-bg); }
+.table tr.is-paid td { color: var(--color-text-2); }
+
+.pay-box { display: grid; gap: var(--space-4); }
+.prepay-preview { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.prepay-preview > div { padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface-2); }
+.prepay-preview small { display: block; color: var(--color-text-2); font-size: var(--fs-xs); }
+.prepay-preview b { font-variant-numeric: tabular-nums; }
+.prepay-preview .new b { color: var(--color-primary); }
+
+summary.row-item { list-style: none; }
+summary.row-item::-webkit-details-marker { display: none; }
+details[open] > summary.row-item > .icon:last-child { transform: rotate(180deg); }

@@ -66,11 +66,13 @@ class BilleteraController {
         };
     }
 
-    record MovimientoVista(String fecha, String etiqueta, String detalle, String monto, boolean entrada, String saldo) {}
+    /** transaccionId permite abrir el detalle del movimiento (CU-03, paso 5) con /billetera?operacion=. */
+    record MovimientoVista(Long transaccionId, String fecha, String etiqueta, String detalle, String monto,
+                           boolean entrada, String saldo) {}
 
     private MovimientoVista vista(LineaMovimiento m) {
         var fecha = m.fecha().atZoneSameInstant(clock.getZone()).format(FECHA);
-        return new MovimientoVista(fecha, etiqueta(m.tipo().codigo(), m.esEntrada()), m.descripcion(),
+        return new MovimientoVista(m.transaccionId(), fecha, etiqueta(m.tipo().codigo(), m.esEntrada()), m.descripcion(),
                 (m.esEntrada() ? "+ " : "− ") + m.montoAbsoluto(), m.esEntrada(),
                 "S/ " + m.saldoPosterior().toPlainString());
     }

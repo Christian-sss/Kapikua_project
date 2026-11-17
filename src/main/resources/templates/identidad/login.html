@@ -1,54 +1,88 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Iniciar sesión · Kapikua</title>
-    <style>
-        body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f6f7f9; color: #1d2433; }
-        main { max-width: 420px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 20px; }
-        h1 { font-size: 1.4rem; margin: 0 0 16px; }
-        label { display: block; font-size: .9rem; margin: 12px 0 4px; }
-        input[type=text], input[type=password] {
-            width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #c8cdd6; border-radius: 8px; font-size: 1rem;
-        }
-        .error { background: #fde8e7; color: #b42318; padding: 10px; border-radius: 8px; }
-        .aviso { background: #e7f0fd; color: #1849a9; padding: 10px; border-radius: 8px; }
-        button { width: 100%; margin-top: 20px; padding: 12px; border: 0; border-radius: 8px; background: #1f5eff; color: #fff; font-size: 1rem; }
-        p.pie { text-align: center; font-size: .9rem; margin-top: 16px; }
-        .captcha { display: flex; align-items: center; gap: 12px; }
-        .captcha img { border: 1px solid #c8cdd6; border-radius: 8px; max-width: 60%; height: auto; }
-        .captcha a { font-size: .9rem; }
-    </style>
-</head>
+<head th:replace="~{fragmentos :: cabecera('Iniciar sesión')}"></head>
 <body>
-<main>
-    <h1>Ingresa a Kapikua</h1>
+<header th:replace="~{fragmentos :: barraPublica('registro')}"></header>
 
-    <p class="aviso" th:if="${aviso}" th:text="${aviso}"></p>
-    <p class="error" th:if="${error}" th:text="${error}"></p>
-
-    <form th:action="@{/login}" method="post">
-        <label for="usuario">Correo o DNI</label>
-        <input id="usuario" name="usuario" type="text" th:value="${usuario}" autocomplete="username" required>
-
-        <label for="contrasena">Contraseña</label>
-        <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required>
-
-        <label for="captcha">Escribe el número de la imagen</label>
-        <div class="captcha">
-            <img th:src="'data:image/png;base64,' + ${captcha.imagenBase64()}" width="190" height="64"
-                 alt="Número de verificación de cinco dígitos">
-            <a th:href="@{/login}">Cambiar número</a>
+<main class="auth-main" id="contenido">
+    <aside class="auth-aside" aria-hidden="true">
+        <p class="eyebrow"><span class="dot"></span> Billetera digital · Microcréditos</p>
+        <h2>Tu dinero al instante.<br><span>Tu crédito, a tu medida.</span></h2>
+        <p>Revisa tu saldo, envía dinero por celular y sigue tu préstamo en tiempo real, desde tu celular o tu PC.</p>
+        <ul class="auth-points">
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-bolt')}"></svg></span> Saldo y movimientos sin recargar la página</li>
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-lock')}"></svg></span> Código de un solo uso en cada operación de riesgo</li>
+            <li><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-shield')}"></svg></span> Créditos otorgados por Financiera Ayni Sur</li>
+        </ul>
+        <div class="auth-mini-card">
+            <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-bolt')}"></svg></span>
+            <div><b>Recibiste S/ 25.50</b><small>de Diego P*** · ahora</small></div>
         </div>
-        <input type="hidden" name="captchaId" th:value="${captcha.id()}">
-        <input id="captcha" name="captcha" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5"
-               autocomplete="off" required style="margin-top:8px">
+    </aside>
 
-        <button type="submit">Ingresar</button>
-    </form>
+    <section class="auth-panel">
+        <div class="auth-box">
+            <div class="auth-head">
+                <p class="eyebrow"><span class="dot"></span> Bienvenido de nuevo</p>
+                <h1>Iniciar sesión</h1>
+                <p>Ingresa con tu correo o tu DNI y tu contraseña.</p>
+            </div>
 
-    <p class="pie">¿No tienes cuenta? <a th:href="@{/registro}">Crea tu cuenta</a></p>
+            <div class="stack" style="margin-bottom: var(--space-5)" th:if="${aviso != null or error != null}">
+                <div class="notice info" th:if="${aviso}">
+                    <svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>
+                    <div th:text="${aviso}">Aviso</div>
+                </div>
+                <div class="notice danger" th:if="${error}">
+                    <svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg>
+                    <div><b>No pudimos iniciar tu sesión</b><span th:text="${error}">Revisa tus datos.</span></div>
+                </div>
+            </div>
+
+            <form class="form" th:action="@{/login}" method="post">
+                <div class="field">
+                    <label for="usuario">Correo o DNI</label>
+                    <input class="input" id="usuario" name="usuario" type="text" th:value="${usuario}"
+                           autocomplete="username" inputmode="email" required>
+                </div>
+                <div class="field">
+                    <label for="contrasena">Contraseña</label>
+                    <div class="input-group">
+                        <input class="input" id="contrasena" name="contrasena" type="password"
+                               autocomplete="current-password" required>
+                        <button class="icon-btn suffix-btn" type="button" style="width:40px;height:40px;border:0"
+                                aria-label="Mostrar contraseña" data-toggle-password="contrasena">
+                            <svg th:replace="~{fragmentos :: icono('i-eye')}"></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="captcha-cabeza">
+                        <label for="captcha">Escribe el número de la imagen</label>
+                        <a class="link-btn" th:href="@{/login}">Cambiar número</a>
+                    </div>
+                    <div class="captcha captcha-fila">
+                        <img th:src="'data:image/png;base64,' + ${captcha.imagenBase64()}" width="190" height="64"
+                             alt="Número de verificación de cinco dígitos">
+                        <input class="input" id="captcha" name="captcha" type="text" inputmode="numeric" pattern="[0-9]{5}"
+                               maxlength="5" autocomplete="off" required>
+                    </div>
+                    <input type="hidden" name="captchaId" th:value="${captcha.id()}">
+                </div>
+                <button class="btn btn-primary btn-lg btn-block" type="submit">
+                    Ingresar <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg>
+                </button>
+            </form>
+
+            <p class="auth-alt">¿Aún no tienes billetera? <a th:href="@{/registro}">Crea tu cuenta</a></p>
+
+            <div class="notice auth-seguridad">
+                <svg th:replace="~{fragmentos :: icono('i-shield')}"></svg>
+                <div class="small">Tu contraseña se guarda cifrada. KAPIKUA nunca te pedirá tu contraseña ni tu código por teléfono.</div>
+            </div>
+        </div>
+    </section>
 </main>
+
 </body>
 </html>

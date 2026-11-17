@@ -34,6 +34,14 @@ public class RegistroForm {
     @Pattern(regexp = "^9[0-9]{8}$", message = "El celular tiene 9 dígitos y empieza con 9")
     private String celular;
 
+    @NotBlank(message = "Ingresa tus nombres")
+    @Size(max = 100, message = "Máximo 100 caracteres")
+    private String nombres;
+
+    @NotBlank(message = "Ingresa tus apellidos")
+    @Size(max = 100, message = "Máximo 100 caracteres")
+    private String apellidos;
+
     @Size(max = 100)
     private String nombreNegocio;
 
@@ -44,7 +52,7 @@ public class RegistroForm {
 
     RegistrarUsuarioCommand aComando() {
         var negocio = nombreNegocio == null || nombreNegocio.isBlank() ? null : nombreNegocio.trim();
-        return new RegistrarUsuarioCommand(dni, fechaNacimiento, correo, celular, negocio,
+        return new RegistrarUsuarioCommand(dni, fechaNacimiento, nombres, apellidos, correo, celular, negocio,
                 contrasena, aceptaTerminos);
     }
 }

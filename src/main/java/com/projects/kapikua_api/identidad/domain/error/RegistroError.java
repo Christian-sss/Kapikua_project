@@ -37,7 +37,7 @@ public sealed interface RegistroError extends ErrorDominio {
 
     record DniNoValidado() implements RegistroError {
         public String codigo()  { return "ID-07"; }
-        public String mensaje() { return "No pudimos validar tu identidad con RENIEC. Revisa tu DNI y tu fecha de nacimiento."; }
+        public String mensaje() { return "No pudimos validar tu identidad con RENIEC. Revisa tu DNI, tu fecha de nacimiento y que tus nombres y apellidos estén como en tu DNI."; }
     }
 
     record MenorDeEdad() implements RegistroError {

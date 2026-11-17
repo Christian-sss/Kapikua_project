@@ -93,7 +93,10 @@ class CreditoController {
     @PostMapping("/solicitar")
     String solicitar(@AuthenticationPrincipal UsuarioAutenticado u, @RequestParam BigDecimal monto,
                      @RequestParam int cuotas, @RequestParam Destino destino,
-                     @RequestParam(defaultValue = "false") boolean autorizaDatos, Model model) {
+                     @RequestParam(defaultValue = "false") boolean autorizaEvaluacion,
+                     @RequestParam(defaultValue = "false") boolean autorizaEnvio, Model model) {
+        // RN-07: dos consentimientos separados; sin ambos no se evalúa (CU-08, flujo 2a)
+        var autorizaDatos = autorizaEvaluacion && autorizaEnvio;
         if (monto.signum() <= 0 || monto.scale() > 2) {
             return conError(solicitarForm(u, monto, cuotas, model), new ErrorCredito.MontoInvalido(), model);
         }

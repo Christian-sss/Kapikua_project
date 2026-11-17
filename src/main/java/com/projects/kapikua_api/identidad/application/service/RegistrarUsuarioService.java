@@ -74,7 +74,9 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
             return Result.err(new RegistroError.CelularDuplicado());
         }
 
-        var identidad = validadorIdentidad.validar(datos.dni(), datos.fechaNacimiento());
+        var identidad = c.nombres() == null && c.apellidos() == null
+                ? validadorIdentidad.validar(datos.dni(), datos.fechaNacimiento())
+                : validadorIdentidad.validar(datos.dni(), datos.fechaNacimiento(), c.nombres(), c.apellidos());
         var enListas = identidad.isPresent() && validadorIdentidad.figuraEnListas(datos.dni());
 
         var registro = Usuario.registrar(datos, cifrador.cifrar(c.contrasena()), identidad, enListas, versionTerminos,

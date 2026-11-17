@@ -1,0 +1,71 @@
+/* ==========================================================================
+   KAPIKUA · Iniciar sesión y Registro (CU-01, CU-02)
+   Panel de marca a la izquierda (desde 960 px) y formulario a la derecha.
+   ========================================================================== */
+
+.auth-main { flex: 1; display: grid; }
+@media (min-width: 960px) { .auth-main { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+
+/* --- Panel de marca --- */
+.auth-aside {
+  position: relative; display: none; overflow: hidden;
+  padding: var(--space-8) var(--space-7);
+  background: linear-gradient(150deg, #027B71 0%, #014D47 70%, #01332F 100%);
+  color: #FFFFFF;
+}
+@media (min-width: 960px) { .auth-aside { display: flex; flex-direction: column; justify-content: center; gap: var(--space-6); } }
+.auth-aside::before {
+  content: ""; position: absolute; inset: auto -20% -30% auto; width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 20, .28), transparent 65%);
+}
+.auth-aside::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background: linear-gradient(90deg, var(--kp-amarillo) 50%, var(--kp-verde) 50%);
+}
+.auth-aside > * { position: relative; }
+.auth-aside .eyebrow { color: var(--kp-amarillo); }
+.auth-aside .eyebrow .dot { background: var(--kp-amarillo); box-shadow: 0 0 0 4px rgba(255, 224, 20, .2); }
+.auth-aside h2 { color: #FFFFFF; font-size: var(--fs-3xl); font-weight: 800; letter-spacing: -.03em; }
+.auth-aside h2 span { color: var(--kp-amarillo); }
+.auth-aside p { max-width: 30rem; color: rgba(255, 255, 255, .82); font-size: var(--fs-lg); }
+
+.auth-points { display: grid; gap: var(--space-3); }
+.auth-points li { display: flex; align-items: center; gap: var(--space-3); font-weight: 600; }
+.auth-points .ico-box { width: 38px; height: 38px; background: rgba(255, 255, 255, .12); color: var(--kp-amarillo); }
+
+.auth-mini-card {
+  display: flex; align-items: center; gap: var(--space-3); width: fit-content;
+  padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .16); backdrop-filter: blur(6px);
+}
+.auth-mini-card .ico-box { width: 34px; height: 34px; border-radius: 10px; background: var(--kp-amarillo); color: #20312D; }
+.auth-mini-card b { display: block; font-size: var(--fs-sm); }
+.auth-mini-card small { color: rgba(255, 255, 255, .7); font-size: var(--fs-xs); }
+
+/* --- Formulario --- */
+.auth-panel { display: flex; justify-content: center; padding: var(--space-6) var(--gutter) var(--space-8); background: var(--color-bg); }
+@media (min-width: 640px) { .auth-panel { align-items: center; } }
+.auth-box { width: 100%; max-width: 460px; }
+.auth-box.wide { max-width: 620px; }
+.auth-head { display: grid; gap: var(--space-2); margin-bottom: var(--space-6); }
+.auth-head h1 { font-size: var(--fs-2xl); font-weight: 800; }
+.auth-head p { color: var(--color-text-2); }
+
+.auth-alt { margin-top: var(--space-5); text-align: center; color: var(--color-text-2); font-size: var(--fs-sm); }
+.auth-alt a { font-weight: 700; }
+
+.form-legend { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0 calc(-1 * var(--space-1)); color: var(--color-text-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.form-legend::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+
+/* Requisitos de la contraseña (RNF-02) */
+.pwd-rules { display: grid; gap: 4px; font-size: var(--fs-xs); color: var(--color-text-muted); }
+@media (min-width: 480px) { .pwd-rules { grid-template-columns: repeat(2, 1fr); } }
+.pwd-rules li { display: flex; align-items: center; gap: 6px; }
+.pwd-rules li .icon { width: 14px; height: 14px; }
+.pwd-rules li.ok { color: var(--color-primary); }
+
+.form-links { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); font-size: var(--fs-sm); }
+
+/* Resultado del registro */
+.auth-result { text-align: center; }
+.auth-result .receipt-ico { width: 72px; height: 72px; }

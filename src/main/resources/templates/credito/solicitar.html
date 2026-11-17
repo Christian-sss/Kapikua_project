@@ -2,30 +2,72 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Solicitar crédito')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1>Solicitar crédito</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <form th:action="@{/credito/solicitar}" method="post">
-            <label for="monto">Monto (S/)</label>
-            <input id="monto" name="monto" type="number" step="0.01" min="1" th:value="${monto}" required>
-            <label for="cuotas">Cuotas semanales</label>
-            <input id="cuotas" name="cuotas" type="number"
-                   th:attr="min=${opciones != null ? opciones.cuotasMinimas() : 4},max=${opciones != null ? opciones.cuotasMaximas() : 24}"
-                   th:value="${cuotas != null ? cuotas : (opciones != null ? opciones.cuotasMaximas() : 8)}" required>
-            <label for="destino">¿Para qué es?</label>
-            <select id="destino" name="destino">
-                <option th:each="d : ${destinos}" th:value="${d}" th:text="${#strings.replace(#strings.capitalize(#strings.toLowerCase(d)), '_', ' ')}"></option>
-            </select>
-            <label class="check" style="display:flex;gap:8px;margin-top:16px">
-                <input type="checkbox" name="autorizaDatos" value="true">
-                <span>Autorizo que Kapikua evalúe mi solicitud con los datos de mi billetera y los envíe a Financiera Ayni Sur,
-                      la entidad que decide y otorga el crédito.</span>
-            </label>
-            <button type="submit" class="principal">Evaluar mi solicitud</button>
+<header th:replace="~{fragmentos :: barra('credito')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container container-md">
+        <div class="page-head">
+            <a class="back-link" th:href="@{/credito/simular}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Simulador</a>
+            <h1>Solicitar crédito</h1>
+            <p>KAPIKUA evalúa tu solicitud con los datos de tu billetera y te recomienda condiciones. Financiera Ayni Sur decide y te desembolsa.</p>
+        </div>
+
+        <form class="card" th:action="@{/credito/solicitar}" method="post"
+              th:with="minimo=${opciones != null ? opciones.cuotasMinimas() : 4},
+                       maximo=${opciones != null ? opciones.cuotasMaximas() : 24},
+                       elegido=${cuotas != null ? cuotas : (opciones != null ? opciones.cuotasMaximas() : 8)}">
+            <ol th:replace="~{fragmentos :: pasos('Solicitud', 'Recomendación', 'Oferta', 1)}"></ol>
+
+            <div class="stack">
+                <h2 class="card-title">¿Cuánto necesitas?</h2>
+
+                <div class="notice danger" th:if="${error}">
+                    <svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg>
+                    <div th:text="${error}">Error</div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label for="monto">Monto</label>
+                        <div class="input-group"><span class="prefix">S/</span>
+                            <input class="input input-amount" id="monto" name="monto" type="number" step="0.01" min="1" th:value="${monto}" required></div>
+                        <span class="hint" th:if="${opciones}" th:text="'Máximo ' + ${opciones.montoMaximo()} + '.'"></span>
+                    </div>
+                    <div class="field">
+                        <label for="cuotas">Cuotas semanales</label>
+                        <select class="input" id="cuotas" name="cuotas" required>
+                            <option th:each="k : ${#numbers.sequence(minimo, maximo)}" th:value="${k}" th:text="${k}"
+                                    th:selected="${k == elegido}"></option>
+                        </select>
+                        <span class="hint" th:if="${opciones}" th:text="'Nivel ' + ${opciones.nivel()} + ': de ' + ${minimo} + ' a ' + ${maximo} + ' cuotas.'"></span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="destino">Destino del crédito</label>
+                    <select class="input" id="destino" name="destino" required>
+                        <option th:each="d : ${destinos}" th:value="${d}"
+                                th:text="${#strings.replace(#strings.capitalize(#strings.toLowerCase(d)), '_', ' ')}"></option>
+                    </select>
+                </div>
+
+                <p class="form-legend">Tus consentimientos</p>
+                <p class="muted small">Son separados y puedes revocarlos cuando quieras. Sin ellos no podemos evaluar tu solicitud.</p>
+                <label class="check">
+                    <input type="checkbox" name="autorizaEvaluacion" value="true">
+                    <span><b>Evaluar con los datos de mi billetera</b><small>Autorizo a Kapikua a usar mis cobros de las últimas 12 semanas y a consultar mi clasificación en la Central de Riesgos de la SBS.</small></span>
+                </label>
+                <label class="check">
+                    <input type="checkbox" name="autorizaEnvio" value="true">
+                    <span><b>Enviar mis datos a la entidad aliada</b><small>Autorizo el envío de mi solicitud, mi evaluación y los datos de mi aval a Financiera Ayni Sur S.A., la entidad que decide y otorga el crédito.</small></span>
+                </label>
+
+                <button class="btn btn-primary btn-lg btn-block" type="submit">
+                    <svg th:replace="~{fragmentos :: icono('i-bolt')}"></svg>Evaluar mi solicitud</button>
+            </div>
         </form>
-    </section>
+    </div>
 </main>
+
 </body>
 </html>

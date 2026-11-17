@@ -2,21 +2,38 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabecera('Pagar cuota')}"></head>
 <body>
-<main>
-    <div th:replace="~{fragmentos :: barra}"></div>
-    <section class="tarjeta">
-        <h1 th:text="${#lists.size(v.cuotas()) == 1} ? 'Pagar la cuota ' + ${v.cuotas()[0]} : 'Pagar tus cuotas vencidas'">Pagar</h1>
-        <p class="error" th:if="${error}" th:text="${error}"></p>
-        <div class="fila"><span>Cuotas</span><span th:text="${#strings.listJoin(v.cuotas(), ', ')}"></span></div>
-        <div class="fila" th:unless="${v.moratorio().esCero()}"><span>Interés moratorio (incluido)</span><span th:text="${v.moratorio()}"></span></div>
-        <div class="fila"><span>Sale de lo apartado de tus ventas</span><span th:text="${v.deApartado()}"></span></div>
-        <div class="fila"><span>Total a pagar</span><strong th:text="${v.total()}"></strong></div>
-        <p class="nota" style="margin-top:8px">El pago se aplica primero al interés moratorio, luego al interés y al final al capital.</p>
-        <form th:action="@{/credito/prestamo/pagar}" method="post">
-            <input type="hidden" name="referencia" th:value="${v.referencia()}">
-            <button type="submit" class="principal">Pagar</button>
-        </form>
-    </section>
+<header th:replace="~{fragmentos :: barra('prestamo')}"></header>
+
+<main class="app-main" id="contenido">
+    <div class="container">
+        <div class="op-card">
+            <div class="page-head">
+                <a class="back-link" th:href="@{/credito/prestamo}"><svg th:replace="~{fragmentos :: icono('i-back')}"></svg>Mi préstamo</a>
+                <h1 th:text="${#lists.size(v.cuotas()) == 1} ? 'Pagar la cuota ' + ${v.cuotas()[0]} : 'Pagar tus cuotas vencidas'">Pagar</h1>
+            </div>
+
+            <form class="card stack" th:action="@{/credito/prestamo/pagar}" method="post">
+                <input type="hidden" name="referencia" th:value="${v.referencia()}">
+                <div class="notice danger" th:if="${error}"><svg th:replace="~{fragmentos :: icono('i-x-circle')}"></svg><div th:text="${error}">Error</div></div>
+
+                <div class="op-summary">
+                    <small th:text="'Cuotas ' + ${#strings.listJoin(v.cuotas(), ', ')}">Cuotas</small>
+                    <strong th:text="${v.total()}">S/ 0.00</strong>
+                </div>
+                <dl class="kv">
+                    <div th:unless="${v.moratorio().esCero()}"><dt>Interés moratorio (incluido)</dt><dd th:text="${v.moratorio()}"></dd></div>
+                    <div><dt>Sale de lo apartado de tus ventas</dt><dd class="text-in" th:text="${v.deApartado()}"></dd></div>
+                    <div class="total"><dt>Total a pagar</dt><dd th:text="${v.total()}"></dd></div>
+                </dl>
+                <p class="xs muted">El pago se aplica primero al interés moratorio, luego al interés y al final al capital.</p>
+                <div class="btn-row">
+                    <a class="btn btn-outline" th:href="@{/credito/prestamo}">Cancelar</a>
+                    <button class="btn btn-primary btn-lg" type="submit" th:text="'Pagar ' + ${v.total()}">Pagar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </main>
+
 </body>
 </html>
