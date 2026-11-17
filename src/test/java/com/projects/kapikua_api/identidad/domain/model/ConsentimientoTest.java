@@ -22,7 +22,8 @@ class ConsentimientoTest {
     static final Optional<IdentidadVerificada> RENIEC = Optional.of(new IdentidadVerificada("Ana", "Quispe"));
 
     static Result<Usuario, RegistroError> registrar(String passwordHash, String correo, LocalDate nacimiento, OffsetDateTime ahora) {
-        return Usuario.registrar("45678912", correo, passwordHash, nacimiento, RENIEC, false, "1.0", "987654321", null, ahora);
+        return Usuario.registrar(new DatosRegistroUsuario("45678912", correo, nacimiento), passwordHash, RENIEC, false,
+                "1.0", ahora);
     }
 
     static Usuario usuario() {
@@ -102,15 +103,6 @@ class ConsentimientoTest {
         assertThatThrownBy(() -> registrar(" ", "ana@correo.pe", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> registrar(null, "ana@correo.pe", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> registrar("h", "ana@correo.pe", LocalDate.of(1990, 1, 1), null)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void unUsuarioYaExistenteNoVuelveARegistrarElEventoAlGuardarse() {
-        var u = usuario();
-        org.springframework.test.util.ReflectionTestUtils.setField(u, "celularRegistro", null);
-        org.springframework.test.util.ReflectionTestUtils.setField(u, "id", 5L);
-        u.alGuardarseNuevo();
-        assertThat(u.extraerEventos()).isEmpty();
     }
 
     @Test

@@ -35,16 +35,21 @@ class OfertaTest {
         return ((Result.Err<?, ErrorCredito>) r).error();
     }
 
+    private static CambioEstado cambio(Result<CambioEstado, ErrorCredito> resultado) {
+        assertThat(resultado).isInstanceOf(Result.Ok.class);
+        return ((Result.Ok<CambioEstado, ErrorCredito>) resultado).valor();
+    }
+
     @Test
     void naceEnPendienteEfaYVenceALosSieteDias() {
         var o = nueva();
-        assertThat(o.getEstado()).isEqualTo(EstadoOferta.PENDIENTE_EFA);
+        assertThat(o.getEstado()).isEqualTo("PENDIENTE_EFA");
         assertThat(o.getVigenteHasta()).isEqualTo(LocalDate.of(2026, 11, 16));
 
         assertThat(o.actualizarVencimientos(AHORA.plusDays(7), LIMA, HORAS_48)).isFalse();
         assertThat(o.actualizarVencimientos(LocalDate.of(2026, 11, 17).atStartOfDay(LIMA).toOffsetDateTime(), LIMA, HORAS_48))
                 .isTrue();
-        assertThat(o.getEstado()).isEqualTo(EstadoOferta.VENCIDA);
+        assertThat(o.getEstado()).isEqualTo("VENCIDA");
     }
 
     @Test
@@ -81,7 +86,7 @@ class OfertaTest {
         o.designarAval(LUIS, true, 3, AHORA);
         assertThat(o.actualizarVencimientos(AHORA.plusHours(47), LIMA, HORAS_48)).isFalse();
         assertThat(o.actualizarVencimientos(AHORA.plusHours(48), LIMA, HORAS_48)).isTrue();
-        assertThat(o.getAvales().getFirst().getEstado()).isEqualTo(EstadoAval.RECHAZADO);
+        assertThat(o.getAvales().getFirst().getEstado()).isEqualTo("RECHAZADO");
         assertThat(err(o.responderAval(LUIS, true, 10, "x", AHORA.plusHours(49))))
                 .isInstanceOf(ErrorCredito.InvitacionNoEncontrada.class);
     }
@@ -113,38 +118,72 @@ class OfertaTest {
 
         o.designarAval(LUIS, true, 3, AHORA);
         o.responderAval(LUIS, true, 8, "x", AHORA);
-        o.confirmar("EFA-S-1", CONDICIONES);
+        var confirmada = cambio(o.confirmar("EFA-S-1", CONDICIONES, AHORA));
+        assertThat(confirmada.anterior()).isEqualTo("PENDIENTE_EFA");
+        assertThat(confirmada.nuevo()).isEqualTo("CONFIRMADA");
         assertThat(err(o.aceptar(true, AHORA.plusDays(8), LIMA))).isInstanceOf(ErrorCredito.OfertaNoVigente.class);
-        assertThat(o.aceptar(true, AHORA.plusDays(1), LIMA)).isInstanceOf(Result.Ok.class);
-        assertThat(o.getEstado()).isEqualTo(EstadoOferta.ACEPTADA);
+        var fechaAceptacion = AHORA.plusDays(1);
+        var aceptada = cambio(o.aceptar(true, fechaAceptacion, LIMA));
+        assertThat(aceptada.anterior()).isEqualTo("CONFIRMADA");
+        assertThat(aceptada.nuevo()).isEqualTo("ACEPTADA");
+        assertThat(aceptada.fecha()).isEqualTo(fechaAceptacion);
+        assertThat(o.getEstado()).isEqualTo("ACEPTADA");
+        assertThat(err(o.vencer(AHORA.plusDays(8), LIMA))).isInstanceOf(ErrorCredito.OfertaEstadoInvalido.class);
+        assertThat(o.getEstado()).isEqualTo("ACEPTADA");
     }
 
     @Test
     void sinAvalAceptadoNoSePuedeAceptarEnNivelesUnoYDos() {
         var o = nueva();
-        o.confirmar("EFA-S-2", CONDICIONES);
+        o.confirmar("EFA-S-2", CONDICIONES, AHORA);
         assertThat(err(o.aceptar(true, AHORA, LIMA))).isInstanceOf(ErrorCredito.AvalRequerido.class);
     }
 
     @Test
     void laEntidadAliadaPuedeDenegarConMotivo() {
         var o = nueva();
-        o.denegar("EFA-S-3", "Política interna");
-        assertThat(o.getEstado()).isEqualTo(EstadoOferta.DENEGADA);
+        var denegada = cambio(o.denegar("EFA-S-3", "Política interna", AHORA));
+        assertThat(denegada.nuevo()).isEqualTo("DENEGADA");
+        assertThat(denegada.motivo()).isEqualTo("Política interna");
+        assertThat(o.getEstado()).isEqualTo("DENEGADA");
         assertThat(o.getMotivoDenegacion()).isEqualTo("Política interna");
-        assertThat(err(o.confirmar("EFA-S-3", CONDICIONES))).isInstanceOf(ErrorCredito.OfertaEstadoInvalido.class);
+        assertThat(err(o.confirmar("EFA-S-3", CONDICIONES, AHORA))).isInstanceOf(ErrorCredito.OfertaEstadoInvalido.class);
+    }
+
+    @Test
+    void unaConfirmacionInvalidaDejaLaOfertaListaParaReintentar() {
+        var o = nueva();
+        assertThat(err(o.confirmar("EFA-S-3", null, AHORA))).isInstanceOf(ErrorCredito.RespuestaEfaInvalida.class);
+        assertThat(o.getEstado()).isEqualTo("PENDIENTE_EFA");
+        assertThat(o.getCodigoSolicitudEfa()).isNull();
+        assertThat(o.listaParaEfa(false)).isTrue();
+        assertThat(o.confirmar("EFA-S-3", CONDICIONES, AHORA)).isInstanceOf(Result.Ok.class);
+    }
+
+    @Test
+    void elAvalAceptadoSeActivaUnaVezYElLiberadoEsFinal() {
+        var a = Aval.invitar(ANA, LUIS, AHORA);
+        assertThat(err(a.activar(AHORA))).isInstanceOf(ErrorCredito.AvalEstadoInvalido.class);
+        assertThat(cambio(a.aceptar(10, "Chrome", AHORA.plusHours(1))).nuevo()).isEqualTo("ACEPTADO");
+        var activacion = AHORA.plusDays(15);
+        assertThat(cambio(a.activar(activacion)).nuevo()).isEqualTo("ACTIVADO");
+        assertThat(err(a.activar(activacion.plusDays(1)))).isInstanceOf(ErrorCredito.AvalEstadoInvalido.class);
+        assertThat(a.getFechaActivacion()).isEqualTo(activacion);
+        assertThat(cambio(a.liberar(activacion.plusDays(2))).nuevo()).isEqualTo("LIBERADO");
+        assertThat(err(a.liberar(activacion.plusDays(3)))).isInstanceOf(ErrorCredito.AvalEstadoInvalido.class);
+        assertThat(a.tieneGarantia()).isFalse();
     }
 
     @Test
     void elPrestamoNaceVigenteConSuCronogramaYElCargoAutorizado() {
         var o = nueva();
-        o.confirmar("EFA-S-4", CONDICIONES);
+        o.confirmar("EFA-S-4", CONDICIONES, AHORA);
         o.aceptar(false, AHORA, LIMA);
         var oferta = Oferta.reconstituir(99L, o.getEvaluacionId(), o.getUsuarioId(), o.getCodigoSolicitudEfa(),
                 o.getEstado(), o.getCondiciones(), null, o.getFecha(), o.getVigenteHasta(), 0L, o.getAvales());
         var p = Prestamo.desembolsar(oferta, "EFA-C-1", 8, new ConstanciaAceptacion(AHORA, "Chrome", "HR-1.0"), AHORA, LIMA);
 
-        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.VIGENTE);
+        assertThat(p.getEstado()).isEqualTo("VIGENTE");
         assertThat(p.getCuotas()).hasSize(8);
         assertThat(p.capitalPendiente()).isEqualTo(Dinero.de("800"));
         assertThat(p.isCargoAutorizado()).isTrue();

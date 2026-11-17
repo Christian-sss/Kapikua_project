@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 class LoginController {
+
     private static final String VISTA = "identidad/login";
 
     private final AutenticarUseCase autenticar;
@@ -47,15 +48,15 @@ class LoginController {
                     HttpServletRequest request,
                     HttpServletResponse response) {
         return switch (autenticar.autenticar(usuario, contrasena)) {
-            case Result.Ok<SesionEmitida, AutenticacionError> ok -> {
-                cookie.escribir(request, response, ok.valor().token(), jwt.duracion());
-                yield "redirect:" + inicioDe(ok.valor().rol());
-            }
-            case Result.Err<SesionEmitida, AutenticacionError> err -> {
-                model.addAttribute("error", err.error().mensaje());
-                model.addAttribute("usuario", usuario);
-                yield VISTA;
-            }
+                case Result.Ok<SesionEmitida, AutenticacionError> ok -> {
+                    cookie.escribir(request, response, ok.valor().token(), jwt.duracion());
+                    yield "redirect:" + inicioDe(ok.valor().rol());
+                }
+                case Result.Err<SesionEmitida, AutenticacionError> err -> {
+                    model.addAttribute("error", err.error().mensaje());
+                    model.addAttribute("usuario", usuario);
+                    yield VISTA;
+                }
         };
     }
 

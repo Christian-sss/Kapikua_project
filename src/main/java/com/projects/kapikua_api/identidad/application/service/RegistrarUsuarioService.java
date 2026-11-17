@@ -7,10 +7,12 @@ import com.projects.kapikua_api.identidad.application.port.out.CifradorContrasen
 import com.projects.kapikua_api.identidad.application.port.out.UsuarioRepositoryPort;
 import com.projects.kapikua_api.identidad.application.port.out.ValidadorIdentidad;
 import com.projects.kapikua_api.identidad.domain.error.RegistroError;
-import com.projects.kapikua_api.identidad.domain.service.PoliticaContrasena;
+import com.projects.kapikua_api.identidad.domain.model.DatosRegistroUsuario;
 import com.projects.kapikua_api.identidad.domain.model.Usuario;
+import com.projects.kapikua_api.identidad.domain.service.PoliticaContrasena;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
+import com.projects.kapikua_api.shared.evento.UsuarioRegistrado;
 import com.projects.kapikua_api.shared.puerto.PublicadorEventos;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
 
     @Override
     public Result<UsuarioId, RegistroError> registrar(RegistrarUsuarioCommand c) {
+
         if (!c.aceptaTerminos()) {
             return Result.err(new RegistroError.TerminosNoAceptados());
         }
@@ -57,29 +60,32 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
         if (politica instanceof Result.Err<Void, RegistroError> err) {
             return Result.err(err.error());
         }
-        if (c.dni() != null && usuarios.existeDni(c.dni())) {
+        var datos = new DatosRegistroUsuario(c.dni(), c.correo(), c.fechaNacimiento());
+        if (datos.dni() != null && usuarios.existeDni(datos.dni())) {
             return Result.err(new RegistroError.DniDuplicado());
         }
-        if (c.correo() != null && usuarios.existeCorreo(c.correo().trim().toLowerCase())) {
+        if (c.correo() != null && usuarios.existeCorreo(datos.correo())) {
             return Result.err(new RegistroError.CorreoDuplicado());
+        }
+        if (c.celular() == null) {
+            return Result.err(new RegistroError.DatoInvalido("celular"));
         }
         if (!celularDisponible.estaLibre(c.celular())) {
             return Result.err(new RegistroError.CelularDuplicado());
         }
 
-        var identidad = validadorIdentidad.validar(c.dni(), c.fechaNacimiento());
-        var enListas = identidad.isPresent() && validadorIdentidad.figuraEnListas(c.dni());
+        var identidad = validadorIdentidad.validar(datos.dni(), datos.fechaNacimiento());
+        var enListas = identidad.isPresent() && validadorIdentidad.figuraEnListas(datos.dni());
 
-        var registro = Usuario.registrar(c.dni(), c.correo(), cifrador.cifrar(c.contrasena()),
-                c.fechaNacimiento(), identidad, enListas, versionTerminos, c.celular(), c.nombreNegocio(),
+        var registro = Usuario.registrar(datos, cifrador.cifrar(c.contrasena()), identidad, enListas, versionTerminos,
                 OffsetDateTime.now(clock));
 
         return switch (registro) {
             case Result.Err<Usuario, RegistroError> err -> Result.err(err.error());
             case Result.Ok<Usuario, RegistroError> ok -> Result.ok(transaccion.execute(estado -> {
-                var guardado = usuarios.guardar(ok.valor());
-                publicador.publicarDe(guardado);
-                return guardado.usuarioId();
+                var usuarioId = usuarios.guardar(ok.valor()).usuarioId();
+                publicador.publicar(new UsuarioRegistrado(usuarioId, c.celular(), c.nombreNegocio()));
+                return usuarioId;
             }));
         };
     }

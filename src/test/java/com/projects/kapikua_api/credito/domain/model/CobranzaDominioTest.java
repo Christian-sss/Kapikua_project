@@ -34,11 +34,11 @@ class CobranzaDominioTest {
         var cuotas = new ArrayList<Cuota>();
         for (var c : cronograma.cuotas()) {
             cuotas.add(Cuota.reconstituir((long) c.numero() * 10, c.numero(), c.vencimiento(), c.capital(), c.interes(),
-                    Dinero.CERO, Dinero.CERO, Dinero.CERO, null, EstadoCuota.PENDIENTE));
+                    Dinero.CERO, Dinero.CERO, Dinero.CERO, null, "PENDIENTE"));
         }
         return Prestamo.reconstituir(1L, 7L, ANA, "AYNI_SUR", "EFA-C-1", Dinero.de("800"), new BigDecimal("95"),
                 new BigDecimal("95"), 8, new ConstanciaAceptacion(AHORA, "x", "HR-1.0"), true, AHORA, null,
-                EstadoPrestamo.VIGENTE, AHORA, 0L, cuotas, false);
+                "VIGENTE", AHORA, 0L, cuotas, false);
     }
 
     private static Cuota cuota(Prestamo p, int numero) {
@@ -48,12 +48,12 @@ class CobranzaDominioTest {
     @Test
     void elPagoVaPrimeroAlMoratorioLuegoAlInteresYAlFinalAlCapital() {
         var c = Cuota.reconstituir(1L, 1, DESEMBOLSO, Dinero.de("100"), Dinero.de("9.40"), Dinero.de("1.20"),
-                Dinero.CERO, Dinero.CERO, null, EstadoCuota.VENCIDA);
-        assertThat(c.imputar(Dinero.de("5"))).isEqualTo(new Imputacion(Dinero.de("1.20"), Dinero.de("3.80"), Dinero.CERO));
-        c.pagar(Dinero.de("5"), Dinero.CERO, DESEMBOLSO);
-        assertThat(c.imputar(c.pendiente())).isEqualTo(new Imputacion(Dinero.CERO, Dinero.de("5.60"), Dinero.de("100")));
-        c.pagar(c.pendiente(), Dinero.CERO, DESEMBOLSO.plusDays(1));
-        assertThat(c.getEstado()).isEqualTo(EstadoCuota.PAGADA);
+                Dinero.CERO, Dinero.CERO, null, "VENCIDA");
+        var primerPago = ok(c.imputar(Dinero.de("5"), Dinero.CERO, DESEMBOLSO));
+        assertThat(primerPago.imputacion()).isEqualTo(new Imputacion(Dinero.de("1.20"), Dinero.de("3.80"), Dinero.CERO));
+        var segundoPago = ok(c.imputar(c.pendiente(), Dinero.CERO, DESEMBOLSO.plusDays(1)));
+        assertThat(segundoPago.imputacion()).isEqualTo(new Imputacion(Dinero.CERO, Dinero.de("5.60"), Dinero.de("100")));
+        assertThat(c.getEstado()).isEqualTo("PAGADA");
         assertThat(c.getFechaPago()).isEqualTo(DESEMBOLSO.plusDays(1));
     }
 
@@ -61,9 +61,9 @@ class CobranzaDominioTest {
     void laMoraEsInteresDiarioSobreElCapitalVencidoSinCapitalizarYNuncaBaja() {
         var p = prestamo();
         var c1 = cuota(p, 1);
-        p.vencerImpagas(c1.getFechaVencimiento());
-        assertThat(c1.getEstado()).isEqualTo(EstadoCuota.VENCIDA);
-        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.EN_MORA);
+        p.vencerImpagas(c1.getFechaVencimiento(), AHORA);
+        assertThat(c1.getEstado()).isEqualTo("VENCIDA");
+        assertThat(p.getEstado()).isEqualTo("EN_MORA");
 
         var diezDias = c1.getFechaVencimiento().plusDays(10);
         p.actualizarMora(diezDias, MORATORIA);
@@ -97,11 +97,12 @@ class CobranzaDominioTest {
         p.registrarRetencion(100L, Dinero.de("40"), AHORA);
         var sobrante = p.aplicarPago(List.of(c1), c1.pendiente(), true, 900L, Origen.DEUDOR, true,
                 c1.getFechaVencimiento(), AHORA);
-        assertThat(sobrante).isEqualTo(Dinero.CERO);
-        assertThat(c1.getEstado()).isEqualTo(EstadoCuota.PAGADA);
+        assertThat(ok(sobrante)).isEqualTo(Dinero.CERO);
+        assertThat(c1.getEstado()).isEqualTo("PAGADA");
         assertThat(c1.getMontoApartado()).isEqualTo(Dinero.CERO);
         assertThat(p.pagosNuevos()).singleElement().satisfies(pago -> {
             assertThat(pago.automatico()).isTrue();
+            assertThat(pago.modalidad().codigo()).isEqualTo("REGULAR");
             assertThat(pago.imputacion().total()).isEqualTo(pago.monto());
         });
         assertThat(p.cuotaObjetivo().orElseThrow().getNumero()).isEqualTo(2);
@@ -112,10 +113,10 @@ class CobranzaDominioTest {
         var p = prestamo();
         var c1 = cuota(p, 1);
         p.aplicarPago(List.of(c1), Dinero.de("50"), false, 900L, Origen.DEUDOR, true, c1.getFechaVencimiento(), AHORA);
-        p.vencerImpagas(c1.getFechaVencimiento());
-        assertThat(c1.getEstado()).isEqualTo(EstadoCuota.VENCIDA);
+        p.vencerImpagas(c1.getFechaVencimiento(), AHORA);
+        assertThat(c1.getEstado()).isEqualTo("VENCIDA");
         assertThat(p.totalVencido()).isEqualTo(c1.pendiente());
-        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.EN_MORA);
+        assertThat(p.getEstado()).isEqualTo("EN_MORA");
     }
 
     @Test
@@ -124,8 +125,8 @@ class CobranzaDominioTest {
         var capital = p.montoAnticipadoTotal();
         assertThat(capital).isEqualTo(Dinero.de("800"));
         p.aplicarAnticipado(capital, ModalidadPago.TOTAL, Dinero.CERO, 901L, AHORA);
-        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.PAGADO);
-        assertThat(p.getCuotas()).allSatisfy(c -> assertThat(c.getEstado()).isEqualTo(EstadoCuota.ANULADA));
+        assertThat(p.getEstado()).isEqualTo("PAGADO");
+        assertThat(p.getCuotas()).allSatisfy(c -> assertThat(c.getEstado()).isEqualTo("ANULADA"));
         assertThat(p.pagosNuevos()).singleElement().satisfies(pago -> {
             assertThat(pago.tipo()).isEqualTo(TipoPago.ANTICIPADO);
             assertThat(pago.imputacion()).isEqualTo(Imputacion.soloCapital(capital));
@@ -137,7 +138,7 @@ class CobranzaDominioTest {
         var p = prestamo();
         var cuotaAntes = cuota(p, 1).total();
         p.aplicarAnticipado(Dinero.de("300"), ModalidadPago.REDUCIR_CUOTA, Dinero.CERO, 902L, AHORA);
-        assertThat(p.getCuotas()).allSatisfy(c -> assertThat(c.getEstado()).isEqualTo(EstadoCuota.PENDIENTE));
+        assertThat(p.getCuotas()).allSatisfy(c -> assertThat(c.getEstado()).isEqualTo("PENDIENTE"));
         assertThat(p.capitalPendiente()).isEqualTo(Dinero.de("500"));
         assertThat(cuota(p, 1).total()).isLessThan(cuotaAntes);
     }
@@ -147,9 +148,9 @@ class CobranzaDominioTest {
         var p = prestamo();
         var cuotaAntes = cuota(p, 1).total();
         p.aplicarAnticipado(Dinero.de("300"), ModalidadPago.REDUCIR_PLAZO, Dinero.CERO, 903L, AHORA);
-        var vivas = p.getCuotas().stream().filter(c -> c.getEstado() == EstadoCuota.PENDIENTE).toList();
+        var vivas = p.getCuotas().stream().filter(Cuota::esPendiente).toList();
         assertThat(vivas.size()).isLessThan(8);
-        assertThat(p.getCuotas().getLast().getEstado()).isEqualTo(EstadoCuota.ANULADA);
+        assertThat(p.getCuotas().getLast().getEstado()).isEqualTo("ANULADA");
         assertThat(p.capitalPendiente()).isEqualTo(Dinero.de("500"));
         assertThat(vivas.getFirst().total()).isEqualTo(cuotaAntes);
     }
@@ -159,7 +160,7 @@ class CobranzaDominioTest {
         var p = prestamo();
         assertThat(err(p.verificarAnticipado(Dinero.de("800"), ModalidadPago.REDUCIR_CUOTA)))
                 .isInstanceOf(ErrorCredito.MontoAnticipadoInvalido.class);
-        p.vencerImpagas(cuota(p, 1).getFechaVencimiento());
+        p.vencerImpagas(cuota(p, 1).getFechaVencimiento(), AHORA);
         assertThat(err(p.verificarAnticipado(Dinero.de("100"), ModalidadPago.REDUCIR_CUOTA)))
                 .isInstanceOf(ErrorCredito.HayCuotasVencidas.class);
     }
@@ -186,15 +187,68 @@ class CobranzaDominioTest {
         assertThat(o.escalarAval(9, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.AVISADO);
         assertThat(o.escalarAval(10, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.NINGUNO);
         assertThat(o.escalarAval(15, 9, 15, AHORA)).isEqualTo(Oferta.Escalamiento.ACTIVADO);
-        assertThat(o.avalAceptadoOActivo().orElseThrow().getEstado()).isEqualTo(EstadoAval.ACTIVADO);
+        assertThat(o.avalAceptadoOActivo().orElseThrow().getEstado()).isEqualTo("ACTIVADO");
 
         o.liberarAval(AHORA.plusDays(20));
-        assertThat(o.getAvales().getFirst().getEstado()).isEqualTo(EstadoAval.LIBERADO);
+        assertThat(o.getAvales().getFirst().getEstado()).isEqualTo("LIBERADO");
     }
 
     private static ErrorCredito err(Result<?, ErrorCredito> r) {
         assertThat(r).isInstanceOf(Result.Err.class);
         return ((Result.Err<?, ErrorCredito>) r).error();
+    }
+
+    private static <T> T ok(Result<T, ErrorCredito> resultado) {
+        if (resultado instanceof Result.Err<T, ErrorCredito> err) throw new AssertionError(err.error().mensaje());
+        return ((Result.Ok<T, ErrorCredito>) resultado).valor();
+    }
+
+    @Test
+    void unaCuotaVencidaRechazaLaAnulacionYUnaPagadaRechazaOtroPago() {
+        var c = cuota(prestamo(), 1);
+        var vencimiento = c.getFechaVencimiento();
+        var fecha = AHORA.plusDays(7);
+        assertThat(c.vencer(vencimiento.minusDays(1), fecha).esOk()).isFalse();
+        var vencida = ok(c.vencer(vencimiento, fecha));
+        assertThat(vencida.anterior()).isEqualTo("PENDIENTE");
+        assertThat(vencida.nuevo()).isEqualTo("VENCIDA");
+        assertThat(vencida.fecha()).isEqualTo(fecha);
+        assertThat(c.anular(fecha).esOk()).isFalse();
+        var pendiente = c.pendiente();
+        ok(c.imputar(pendiente, Dinero.CERO, vencimiento));
+        assertThat(c.imputar(Dinero.de("1"), Dinero.CERO, vencimiento).esOk()).isFalse();
+        assertThat(c.getMontoPagado()).isEqualTo(pendiente);
+        assertThat(c.getEstado()).isEqualTo("PAGADA");
+    }
+
+    @Test
+    void unPagoRegularExcesivoNoModificaLasCuotasNiEmiteEventos() {
+        var p = prestamo();
+        var c1 = cuota(p, 1);
+        var monto = c1.pendiente().sumar(Dinero.de("1"));
+        assertThat(p.aplicarPago(List.of(c1), monto, false, 900L, Origen.DEUDOR, false, DESEMBOLSO, AHORA).esOk())
+                .isFalse();
+        assertThat(c1.getMontoPagado()).isEqualTo(Dinero.CERO);
+        assertThat(p.pagosNuevos()).isEmpty();
+        assertThat(p.extraerEventos()).isEmpty();
+    }
+
+    @Test
+    void unaLiquidacionIncompletaSeRechazaYElPrestamoPagadoEsFinal() {
+        var p = prestamo();
+        assertThat(err(p.cerrar(AHORA))).isInstanceOf(ErrorCredito.PrestamoConSaldoPendiente.class);
+        assertThat(p.aplicarAnticipado(Dinero.de("1"), ModalidadPago.TOTAL, Dinero.CERO, 901L, AHORA).esOk())
+                .isFalse();
+        assertThat(p.getCuotas()).allMatch(Cuota::esPendiente);
+        assertThat(p.pagosNuevos()).isEmpty();
+
+        ok(p.aplicarAnticipado(p.montoAnticipadoTotal(), ModalidadPago.TOTAL, Dinero.CERO, 902L, AHORA));
+        p.extraerEventos();
+        assertThat(p.marcarEnMora(AHORA).esOk()).isFalse();
+        assertThat(p.cerrar(AHORA).esOk()).isFalse();
+        assertThat(p.registrarRetencion(903L, Dinero.de("1"), AHORA).esOk()).isFalse();
+        assertThat(p.getEstado()).isEqualTo("PAGADO");
+        assertThat(p.extraerEventos()).isEmpty();
     }
 
     @Test
@@ -224,9 +278,10 @@ class CobranzaDominioTest {
     void siElAvalPagoAlgunaCuotaElPrestamoPagadoLoIndica() {
         var p = prestamo();
         var c1 = cuota(p, 1);
-        p.vencerImpagas(c1.getFechaVencimiento());
-        p.aplicarPago(List.of(c1), c1.pendiente(), false, 900L, Origen.AVAL, false, c1.getFechaVencimiento(), AHORA);
-        p.aplicarAnticipado(p.montoAnticipadoTotal(), ModalidadPago.TOTAL, Dinero.CERO, 901L, AHORA);
+        p.vencerImpagas(c1.getFechaVencimiento(), AHORA);
+        ok(p.aplicarPago(List.of(c1), c1.pendiente(), false, 900L, Origen.AVAL, false, c1.getFechaVencimiento(), AHORA));
+        assertThat(p.getEstado()).isEqualTo("VIGENTE");
+        ok(p.aplicarAnticipado(p.montoAnticipadoTotal(), ModalidadPago.TOTAL, Dinero.CERO, 901L, AHORA));
         assertThat(p.extraerEventos()).filteredOn(PrestamoPagado.class::isInstance).singleElement()
                 .isInstanceOfSatisfying(PrestamoPagado.class, e -> assertThat(e.pagadoPorAval()).isTrue());
     }
@@ -235,11 +290,11 @@ class CobranzaDominioTest {
     void revisarAtrasoRegistraLosDiasSoloSiHayCuotasVencidas() {
         var p = prestamo();
         var c1 = cuota(p, 1);
-        assertThat(p.revisarAtraso(c1.getFechaVencimiento().minusDays(1))).isZero();
+        assertThat(p.revisarAtraso(c1.getFechaVencimiento().minusDays(1), AHORA)).isZero();
         assertThat(p.extraerEventos()).isEmpty();
-        assertThat(p.revisarAtraso(c1.getFechaVencimiento().plusDays(3))).isEqualTo(3);
+        assertThat(p.revisarAtraso(c1.getFechaVencimiento().plusDays(3), AHORA)).isEqualTo(3);
         assertThat(p.extraerEventos()).singleElement().isInstanceOfSatisfying(AtrasoDetectado.class,
                 e -> assertThat(e.dias()).isEqualTo(3));
-        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.EN_MORA);
+        assertThat(p.getEstado()).isEqualTo("EN_MORA");
     }
 }

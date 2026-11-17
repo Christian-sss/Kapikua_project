@@ -26,6 +26,16 @@ public class ConsultarIdentidadService implements ConsultarIdentidadUseCase {
     }
 
     @Override
+    public String nombreEnmascarado(UsuarioId usuarioId) {
+        return usuarios.porId(usuarioId).map(usuario -> {
+            var primerNombre = usuario.getNombres().trim().split("\\s+")[0];
+            var apellidos = usuario.getApellidos();
+            var inicial = apellidos.isBlank() ? "" : Character.toUpperCase(apellidos.trim().charAt(0)) + ".";
+            return primerNombre + " " + inicial;
+        }).orElse("Usuario Kapikua");
+    }
+
+    @Override
     public boolean consentimientoVigente(UsuarioId usuarioId, TipoConsentimiento tipo) {
         return usuarios.porId(usuarioId).map(u -> u.tieneConsentimientoVigente(tipo)).orElse(false);
     }

@@ -6,8 +6,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
-public record CobrosDelPeriodo(int semanas, Dinero totalCobrado, int semanasConCobros, int cantidadCobros,
-                               int pagadoresDistintos, long diasAntiguedad) {
+public record CobrosDelPeriodo(
+        int semanas,
+        Dinero totalCobrado,
+        int semanasConCobros,
+        int cantidadCobros,
+        int pagadoresDistintos,
+        long diasAntiguedad
+
+) {
     public CobrosDelPeriodo {
         Objects.requireNonNull(totalCobrado);
         if (semanas < 0 || semanasConCobros < 0 || semanasConCobros > semanas || cantidadCobros < 0

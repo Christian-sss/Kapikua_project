@@ -24,7 +24,7 @@
             <p class="nota" th:if="${g.cuotasVencidas() == 0}">Al día.</p>
             <p class="error" th:if="${g.cuotasVencidas() > 0}"
                th:text="${g.cuotasVencidas()} + ' cuota(s) vencida(s) por ' + ${g.vencido()}
-                        + (${g.estadoAval().name() == 'ACTIVADO'} ? '. Se está reteniendo de tus ventas hasta cubrirlas.' : '. Si llega a 15 días, se retendrá de tus ventas.')"></p>
+                        + (${g.estadoAval() == 'ACTIVADO'} ? '. Se está reteniendo de tus ventas hasta cubrirlas.' : '. Si llega a 15 días, se retendrá de tus ventas.')"></p>
         </div>
     </section>
 

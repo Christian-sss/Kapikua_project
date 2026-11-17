@@ -21,7 +21,7 @@ class TopesSBSTest {
 
     private static Billetera billetera(long id, String saldo, String apartado, String negocio) {
         return Billetera.reconstituir(id, new UsuarioId(id), new Celular("98765432" + id), negocio,
-                Dinero.de(saldo), Dinero.de(apartado), EstadoBilletera.ACTIVA, null, AHORA, 0L);
+                Dinero.de(saldo), Dinero.de(apartado), "ACTIVA", null, AHORA, 0L);
     }
 
     private static AcumuladoMensual acumulado(String recargas, String pagos) {
@@ -44,26 +44,26 @@ class TopesSBSTest {
     @Test
     void rn01AceptaJustoElTopeYRechazaUnCentimoMas() {
         var b = billetera(1, "0", "0", null);
-        assertThat(TopesSBS.validarRecarga(b, Dinero.de("3300"), AcumuladoMensual.VACIO, TOPES)).isInstanceOf(Result.Ok.class);
-        assertThat(error(TopesSBS.validarRecarga(b, Dinero.de("3300.01"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("3300"), AcumuladoMensual.VACIO, TOPES)).isInstanceOf(Result.Ok.class);
+        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("3300.01"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.TopePorOperacion.class);
     }
 
     @Test
     void rn02ElSaldoNoPuedeSuperarElMaximo() {
         var casiLlena = billetera(1, "10000", "0", null);
-        assertThat(error(TopesSBS.validarRecarga(casiLlena, Dinero.de("450.01"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, casiLlena, Dinero.de("450.01"), AcumuladoMensual.VACIO, TOPES)))
                 .isEqualTo(new ErrorBilletera.TopeSaldoPropio(Dinero.de("450")));
 
         var origen = billetera(2, "1000", "0", null);
-        assertThat(error(TopesSBS.validarEnvio(origen, casiLlena, Dinero.de("500"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, origen, casiLlena, Dinero.de("500"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.DestinoNoPuedeRecibir.class);
     }
 
     @Test
     void rn03TopeMensualDeRecargas() {
         var b = billetera(1, "0", "0", null);
-        assertThat(error(TopesSBS.validarRecarga(b, Dinero.de("500"), acumulado("10000", "0"), TOPES)))
+        assertThat(error(TopesSBS.validar(TiposTransaccion.RECARGA, b, Dinero.de("500"), acumulado("10000", "0"), TOPES)))
                 .isEqualTo(new ErrorBilletera.TopeRecargasMes(Dinero.de("450")));
     }
 
@@ -71,10 +71,31 @@ class TopesSBSTest {
     void rn04TopeMensualDePagosYTransferencias() {
         var origen = billetera(1, "3000", "0", null);
         var destino = billetera(2, "0", "0", "Bodega");
-        assertThat(error(TopesSBS.validarEnvio(origen, destino, Dinero.de("200"), acumulado("0", "15300"), TOPES)))
+        assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.PAGO_NEGOCIO, origen, destino, Dinero.de("200"),
+                acumulado("0", "15300"), TOPES)))
                 .isEqualTo(new ErrorBilletera.TopePagosMes(Dinero.de("100")));
-        assertThat(TopesSBS.validarEnvio(origen, destino, Dinero.de("100"), acumulado("0", "15300"), TOPES))
+        assertThat(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("100"), acumulado("0", "15300"), TOPES))
                 .isInstanceOf(Result.Ok.class);
+    }
+
+    @Test
+    void elDesembolsoValidaElSaldoSinConsumirElTopeMensualDeRecargas() {
+        var b = billetera(1, "10000", "0", null);
+        var topesDelMesAgotados = acumulado("10450", "15400");
+        assertThat(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("450"), topesDelMesAgotados, TOPES).esOk())
+                .isTrue();
+        assertThat(error(TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, Dinero.de("450.01"),
+                topesDelMesAgotados, TOPES))).isEqualTo(new ErrorBilletera.TopeSaldoPropio(Dinero.de("450")));
+    }
+
+    @Test
+    void losPagosDeCreditoRespetanElTopePorOperacionSinConsumirLosTopesDelMes() {
+        var b = billetera(1, "5000", "0", null);
+        var topesDelMesAgotados = acumulado("10450", "15400");
+        assertThat(TopesSBS.validar(TiposTransaccion.PAGO_CUOTA, b, Dinero.de("3300"), topesDelMesAgotados, TOPES).esOk())
+                .isTrue();
+        assertThat(error(TopesSBS.validar(TiposTransaccion.PAGO_ANTICIPADO, b, Dinero.de("3300.01"),
+                topesDelMesAgotados, TOPES))).isEqualTo(new ErrorBilletera.TopePorOperacion(Dinero.de("3300")));
     }
 
     @Test
@@ -82,7 +103,7 @@ class TopesSBSTest {
         var origen = billetera(1, "100", "40", null);
         var destino = billetera(2, "0", "0", null);
         assertThat(origen.saldoDisponible()).isEqualTo(Dinero.de("60"));
-        assertThat(error(TopesSBS.validarEnvio(origen, destino, Dinero.de("60.01"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("60.01"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.SaldoInsuficiente.class);
         assertThat(error(origen.debitar(Dinero.de("60.01")))).isInstanceOf(ErrorBilletera.SaldoInsuficiente.class);
         assertThat(origen.debitar(Dinero.de("60"))).isInstanceOf(Result.Ok.class);
@@ -92,12 +113,12 @@ class TopesSBSTest {
     @Test
     void noSePuedeEnviarASiMismoNiDesdeUnaBilleteraBloqueada() {
         var b = billetera(1, "100", "0", null);
-        assertThat(error(TopesSBS.validarEnvio(b, b, Dinero.de("10"), AcumuladoMensual.VACIO, TOPES)))
+        assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, b, b, Dinero.de("10"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.OperacionConSiMismo.class);
 
         var bloqueada = Billetera.reconstituir(3L, new UsuarioId(3L), new Celular("987654323"), null,
-                Dinero.de("100"), Dinero.CERO, EstadoBilletera.BLOQUEADA, "Cumplimiento", AHORA, 0L);
-        assertThat(error(TopesSBS.validarEnvio(bloqueada, b, Dinero.de("10"), AcumuladoMensual.VACIO, TOPES)))
+                Dinero.de("100"), Dinero.CERO, "BLOQUEADA", "Cumplimiento", AHORA, 0L);
+        assertThat(error(TopesSBS.validarEnvio(TiposTransaccion.TRANSFERENCIA, bloqueada, b, Dinero.de("10"), AcumuladoMensual.VACIO, TOPES)))
                 .isInstanceOf(ErrorBilletera.BilleteraBloqueada.class);
     }
 
@@ -108,7 +129,7 @@ class TopesSBSTest {
         origen.debitar(Dinero.de("30"));
         destino.acreditar(Dinero.de("30"), TOPES.saldoMaximo(), true);
 
-        var t = Transaccion.entreBilleteras(TipoTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("30"),
+        var t = Transaccion.entreBilleteras(TiposTransaccion.TRANSFERENCIA, origen, destino, Dinero.de("30"),
                 "ref-1", null, AHORA);
         assertThat(t.movimientos()).containsExactly(
                 new Transaccion.Movimiento(1L, new BigDecimal("-30.00"), Dinero.de("70")),

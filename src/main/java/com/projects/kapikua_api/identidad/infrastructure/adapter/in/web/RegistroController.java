@@ -20,7 +20,7 @@ class RegistroController {
 
     private final RegistrarUsuarioUseCase registrarUsuario;
 
-    RegistroController(RegistrarUsuarioUseCase registrarUsuario) {
+    public RegistroController(RegistrarUsuarioUseCase registrarUsuario) {
         this.registrarUsuario = registrarUsuario;
     }
 

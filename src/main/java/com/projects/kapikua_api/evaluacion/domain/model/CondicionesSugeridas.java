@@ -6,7 +6,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
-public record CondicionesSugeridas(Dinero monto, int cuotas, BigDecimal tea, Dinero cuota, int porcentajeRetencion) {
+public record CondicionesSugeridas(
+        Dinero monto,
+        int cuotas,
+        BigDecimal tea,
+        Dinero cuota,
+        int porcentajeRetencion
+) {
     private static final CondicionesSugeridas NINGUNA = new CondicionesSugeridas(Dinero.CERO, 0, BigDecimal.ZERO,
             Dinero.CERO, 0);
 

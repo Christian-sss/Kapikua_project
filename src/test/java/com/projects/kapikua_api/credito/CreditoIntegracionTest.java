@@ -11,9 +11,6 @@ import com.projects.kapikua_api.credito.application.port.in.SimularCreditoUseCas
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase.ResultadoSolicitud;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.credito.domain.model.EstadoAval;
-import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
-import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
 import com.projects.kapikua_api.shared.Dinero;
@@ -113,14 +110,14 @@ class CreditoIntegracionTest {
         assertThat(r.recomendacion()).isEqualTo("APTO_CON_AJUSTE");
         assertThat(r.requiereAval()).isTrue();
         var o = oferta(ana.id(), r.ofertaId());
-        assertThat(o.estado()).isEqualTo(EstadoOferta.PENDIENTE_EFA);
+        assertThat(o.estado()).isEqualTo("PENDIENTE_EFA");
         assertThat(o.puedeDesignarAval()).isTrue();
         assertThat(o.puedeAceptar()).isFalse();
 
         avalAcepta(ana, r.ofertaId(), luis);
         o = oferta(ana.id(), r.ofertaId());
-        assertThat(o.estado()).isEqualTo(EstadoOferta.CONFIRMADA);
-        assertThat(o.avales()).singleElement().satisfies(a -> assertThat(a.estado()).isEqualTo(EstadoAval.ACEPTADO));
+        assertThat(o.estado()).isEqualTo("CONFIRMADA");
+        assertThat(o.avales()).singleElement().satisfies(a -> assertThat(a.estado()).isEqualTo("ACEPTADO"));
 
         HojaResumen hoja = ok(aceptar.hojaResumen(ana.id(), r.ofertaId()));
         assertThat(hoja.tasaMoratoriaMaxima()).isEqualByComparingTo("17.20");
@@ -132,7 +129,7 @@ class CreditoIntegracionTest {
 
         var panel = consultar.panel(ana.id());
         assertThat(panel.prestamo().id()).isEqualTo(prestamoId);
-        assertThat(panel.prestamo().estado()).isEqualTo(EstadoPrestamo.VIGENTE);
+        assertThat(panel.prestamo().estado()).isEqualTo("VIGENTE");
         assertThat(panel.prestamo().cuotas()).hasSize(8);
         assertThat(panel.prestamo().capitalPendiente()).isEqualTo(hoja.condiciones().monto());
         assertThat(datos.saldo(ana.id())).isEqualByComparingTo(saldoAntes.add(hoja.condiciones().monto().valor()));
@@ -210,7 +207,7 @@ class CreditoIntegracionTest {
         ok(avales.designar(ana.id(), r.ofertaId(), luis.celular()));
         ok(avales.invitacion(luis.id(), r.ofertaId()));
         assertThat(err(avales.responder(luis.id(), r.ofertaId(), true, "000000x", "x"))).isInstanceOf(ErrorCredito.CodigoNoValido.class);
-        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo(EstadoOferta.PENDIENTE_EFA);
+        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo("PENDIENTE_EFA");
         assertThat(err(avales.invitacion(datos.cliente('5').id(), r.ofertaId()))).isInstanceOf(ErrorCredito.OfertaNoEncontrada.class);
     }
 
@@ -220,7 +217,7 @@ class CreditoIntegracionTest {
         var r = solicitar(ana.id(), "1000", 8);
         avalAcepta(ana, r.ofertaId(), datos.cliente('5'));
         var o = oferta(ana.id(), r.ofertaId());
-        assertThat(o.estado()).isEqualTo(EstadoOferta.DENEGADA);
+        assertThat(o.estado()).isEqualTo("DENEGADA");
         assertThat(o.motivoDenegacion()).contains("política interna");
         assertThat(err(aceptar.hojaResumen(ana.id(), r.ofertaId()))).isInstanceOf(ErrorCredito.OfertaEstadoInvalido.class);
     }
@@ -235,7 +232,7 @@ class CreditoIntegracionTest {
         assertThat(err(aceptar.aceptar(ana.id(), r.ofertaId(), "x", "x", false))).isInstanceOf(ErrorCredito.CargoNoAutorizado.class);
         assertThat(err(aceptar.aceptar(ana.id(), r.ofertaId(), "000000x", "x", true))).isInstanceOf(ErrorCredito.CodigoNoValido.class);
         assertThat(consultar.panel(ana.id()).prestamo()).isNull();
-        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo(EstadoOferta.CONFIRMADA);
+        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo("CONFIRMADA");
     }
 
     @Test
@@ -250,7 +247,7 @@ class CreditoIntegracionTest {
         assertThat(e).isInstanceOf(ErrorCredito.DesembolsoNoPermitido.class);
         assertThat(consultar.panel(ana.id()).prestamo()).isNull();
         assertThat(datos.saldo(ana.id())).isEqualByComparingTo(new BigDecimal("10000"));
-        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo(EstadoOferta.CONFIRMADA);
+        assertThat(oferta(ana.id(), r.ofertaId()).estado()).isEqualTo("CONFIRMADA");
     }
 
     @Test
@@ -271,7 +268,7 @@ class CreditoIntegracionTest {
         var r = solicitar(pedro.id(), "1000", 16);
         assertThat(r.requiereAval()).isFalse();
         var o = oferta(pedro.id(), r.ofertaId());
-        assertThat(o.estado()).isEqualTo(EstadoOferta.CONFIRMADA);
+        assertThat(o.estado()).isEqualTo("CONFIRMADA");
         assertThat(o.puedeAceptar()).isTrue();
         assertThat(o.tea()).isEqualByComparingTo("80");
     }

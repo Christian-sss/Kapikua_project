@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 @Controller
 @RequestMapping("/credito")
 class CreditoController {
+
     private final ConsultarCreditoUseCase consultar;
     private final SimularCreditoUseCase simular;
     private final SolicitarCreditoUseCase solicitar;
@@ -148,7 +149,8 @@ class CreditoController {
                 model.addAttribute("h", ok.valor());
                 yield "credito/hoja";
             }
-            case Result.Err<AceptarOfertaUseCase.HojaResumen, ErrorCredito> err -> conError(oferta(u, id, null, model), err.error(), model);
+            case Result.Err<AceptarOfertaUseCase.HojaResumen, ErrorCredito> err ->
+                    conError(oferta(u, id, null, model), err.error(), model);
         };
     }
 
@@ -183,7 +185,8 @@ class CreditoController {
             return conError(invitacion(u, ofertaId, model), new ErrorCredito.GarantiaNoAutorizada(), model);
         }
         return switch (avales.responder(u.usuarioId(), ofertaId, acepta, codigo, request.getHeader(HttpHeaders.USER_AGENT))) {
-            case Result.Ok<Void, ErrorCredito> ok -> "redirect:/credito?aviso=" + (acepta ? "aval-aceptado" : "aval-rechazado");
+            case Result.Ok<Void, ErrorCredito> ok ->
+                    "redirect:/credito?aviso=" + (acepta ? "aval-aceptado" : "aval-rechazado");
             case Result.Err<Void, ErrorCredito> err -> conError(invitacion(u, ofertaId, model), err.error(), model);
         };
     }

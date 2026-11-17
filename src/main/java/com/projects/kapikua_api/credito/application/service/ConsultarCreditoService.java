@@ -6,8 +6,7 @@ import com.projects.kapikua_api.credito.application.port.out.OfertaRepositoryPor
 import com.projects.kapikua_api.credito.application.port.out.PrestamoRepositoryPort;
 import com.projects.kapikua_api.credito.application.port.out.ReglasCredito;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.credito.domain.model.EstadoAval;
-import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
+import com.projects.kapikua_api.credito.domain.model.Aval;
 import com.projects.kapikua_api.credito.domain.model.Oferta;
 import com.projects.kapikua_api.credito.domain.model.Prestamo;
 import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluacion;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -42,7 +42,7 @@ public class ConsultarCreditoService implements ConsultarCreditoUseCase {
         var prestamo = prestamos.activoDe(usuarioId).map(this::detalle).orElse(null);
         DetalleOferta oferta = null;
         var ultima = ofertas.ultimaDe(usuarioId);
-        if (ultima.isPresent() && ultima.get().getEstado() != EstadoOferta.ACEPTADA) {
+        if (ultima.isPresent() && !ultima.get().estaAceptada()) {
             var r = oferta(usuarioId, ultima.get().getId());
             if (r instanceof Result.Ok<DetalleOferta, ErrorCredito> ok) oferta = ok.valor();
         }
@@ -78,27 +78,26 @@ public class ConsultarCreditoService implements ConsultarCreditoUseCase {
 
         var plazo = plazoAval();
         var avales = o.getAvales().stream().map(a -> new AvalVista(clientes.nombreEnmascarado(a.getUsuarioAvalId()),
-                a.getEstado(), a.getEstado() == EstadoAval.PENDIENTE ? a.venceEn(plazo, o.finVigencia(clock.getZone())) : null))
+                a.getEstado(), a.esPendiente() ? a.venceEn(plazo, o.finVigencia(clock.getZone())) : null))
                 .toList();
         var confirmada = o.getCondiciones() != null;
         var c = e.condiciones();
-        var enCurso = o.getEstado() == EstadoOferta.PENDIENTE_EFA;
         return Result.ok(new DetalleOferta(o.getId(), o.getEstado(), e.recomendacion(), e.motivo(),
                 confirmada ? o.getCondiciones().monto() : c.monto(),
                 confirmada ? o.getCondiciones().cuotas() : c.cuotas(),
                 confirmada ? o.getCondiciones().tea() : c.tea(),
                 confirmada ? o.getCondiciones().cuota() : c.cuota(),
                 confirmada, e.requiereAval(), avales, o.getVigenteHasta(), o.getMotivoDenegacion(),
-                enCurso && e.requiereAval() && o.avalAceptado().isEmpty()
-                        && o.getAvales().stream().noneMatch(a -> a.getEstado().enCurso()),
+                o.esperaDecisionEfa() && e.requiereAval() && o.avalAceptado().isEmpty()
+                        && o.getAvales().stream().noneMatch(Aval::enCurso),
                 o.listaParaEfa(e.requiereAval()),
-                o.getEstado() == EstadoOferta.CONFIRMADA,
+                o.estaConfirmada(),
                 o.getCondiciones()));
     }
 
     private DetallePrestamo detalle(Prestamo p) {
         var aval = ofertas.porId(p.getOfertaId()).flatMap(Oferta::avalAceptadoOActivo)
-                .map(a -> clientes.nombreEnmascarado(a.getUsuarioAvalId()) + " (" + a.getEstado().name().toLowerCase() + ")")
+                .map(a -> clientes.nombreEnmascarado(a.getUsuarioAvalId()) + " (" + a.getEstado().toLowerCase(Locale.ROOT) + ")")
                 .orElse(null);
         return new DetallePrestamo(p.getId(), p.getEstado(), p.getCodigoCreditoEfa(), p.getMonto(), p.getTea(),
                 p.getTcea(), p.getPorcentajeRetencion(), p.capitalPendiente(), p.getConstancia(), aval, p.getCuotas(),

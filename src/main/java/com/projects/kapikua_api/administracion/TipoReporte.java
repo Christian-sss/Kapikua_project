@@ -3,7 +3,7 @@ package com.projects.kapikua_api.administracion;
 import java.util.List;
 
 public enum TipoReporte {
-    CLIENTES("Clientes", "Estado de la billetera", List.of("ACTIVA", "BLOQUEADA")),
+    CLIENTES("Clientes", "Estado de la billetera", List.of("ACTIVA", "RETENIDA", "BLOQUEADA")),
     TRANSACCIONES("Transacciones", "Tipo", List.of("RECARGA", "TRANSFERENCIA", "PAGO_NEGOCIO", "DESEMBOLSO", "PAGO_CUOTA", "PAGO_ANTICIPADO")),
     CREDITOS("Créditos", "Estado del préstamo", List.of("VIGENTE", "EN_MORA", "PAGADO")),
     COBRANZA("Cobranza", "Estado de la cuota", List.of("PENDIENTE", "PAGADA", "VENCIDA"));

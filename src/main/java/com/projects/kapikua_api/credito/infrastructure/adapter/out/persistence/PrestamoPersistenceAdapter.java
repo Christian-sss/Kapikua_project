@@ -3,9 +3,6 @@ package com.projects.kapikua_api.credito.infrastructure.adapter.out.persistence;
 import com.projects.kapikua_api.credito.application.port.out.PrestamoRepositoryPort;
 import com.projects.kapikua_api.credito.domain.model.ConstanciaAceptacion;
 import com.projects.kapikua_api.credito.domain.model.Cuota;
-import com.projects.kapikua_api.credito.domain.model.EstadoCuota;
-import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
-import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
 import com.projects.kapikua_api.credito.domain.model.Origen;
 import com.projects.kapikua_api.credito.domain.model.Prestamo;
 import com.projects.kapikua_api.credito.domain.model.TipoPago;
@@ -43,7 +40,7 @@ import java.util.Optional;
 
 @Repository
 class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
-    private static final List<EstadoPrestamo> ACTIVOS = List.of(EstadoPrestamo.VIGENTE, EstadoPrestamo.EN_MORA);
+    private static final List<String> ACTIVOS = List.of("VIGENTE", "EN_MORA");
 
     private final PrestamoJpaRepository repositorio;
     private final EntityManager em;
@@ -67,7 +64,7 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
 
     @Override
     public boolean tienePrestamoEnMora(UsuarioId usuarioId) {
-        return repositorio.existsByUsuarioIdAndEstado(usuarioId.valor(), EstadoPrestamo.EN_MORA);
+        return repositorio.existsByUsuarioIdAndEstado(usuarioId.valor(), "EN_MORA");
     }
 
     @Override
@@ -128,7 +125,7 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
             pj.tipo = pago.tipo();
             pj.origen = pago.origen();
             pj.automatico = pago.automatico();
-            pj.modalidad = pago.modalidad();
+            pj.modalidad = pago.modalidad().esAnticipada() ? pago.modalidad().codigo() : null;
             pj.monto = pago.monto().valor();
             pj.imputadoMoratorio = pago.imputacion().moratorio().valor();
             pj.imputadoInteres = pago.imputacion().interes().valor();
@@ -215,9 +212,9 @@ class PrestamoPersistenceAdapter implements PrestamoRepositoryPort {
 }
 
 interface PrestamoJpaRepository extends JpaRepository<PrestamoJpa, Long> {
-    Optional<PrestamoJpa> findFirstByUsuarioIdAndEstadoIn(Long usuarioId, Collection<EstadoPrestamo> estados);
+    Optional<PrestamoJpa> findFirstByUsuarioIdAndEstadoIn(Long usuarioId, Collection<String> estados);
 
-    boolean existsByUsuarioIdAndEstado(Long usuarioId, EstadoPrestamo estado);
+    boolean existsByUsuarioIdAndEstado(Long usuarioId, String estado);
 }
 
 @Entity
@@ -273,9 +270,8 @@ class PagoJpa {
     @Column(nullable = false)
     boolean automatico;
 
-    @Enumerated(EnumType.STRING)
     @Column(length = 13)
-    ModalidadPago modalidad;
+    String modalidad;
 
     @Column(nullable = false, precision = 12, scale = 2)
     BigDecimal monto;
@@ -342,9 +338,8 @@ class PrestamoJpa {
     @Column(name = "fecha_revocacion_cargo")
     OffsetDateTime fechaRevocacionCargo;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    EstadoPrestamo estado;
+    String estado;
 
     @Column(name = "fecha_desembolso", nullable = false)
     OffsetDateTime fechaDesembolso;
@@ -398,9 +393,8 @@ class CuotaJpa {
     @Column(name = "fecha_pago")
     LocalDate fechaPago;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    EstadoCuota estado;
+    String estado;
 
     Cuota aDominio() {
         return Cuota.reconstituir(id, numero, fechaVencimiento, Dinero.de(capital), Dinero.de(interes),

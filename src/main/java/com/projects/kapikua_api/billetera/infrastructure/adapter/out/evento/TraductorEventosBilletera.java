@@ -21,7 +21,7 @@ class TraductorEventosBilletera {
 
     @EventListener
     void alRegistrarOperacion(OperacionRegistrada e) {
-        publicador.publicar(new TransaccionRegistrada(e.transaccionId(), e.tipo().name(), e.monto(),
+        publicador.publicar(new TransaccionRegistrada(e.transaccionId(), e.tipo().codigo(), e.monto(),
                 e.billeteraOrigenId(), e.billeteraDestinoId(), e.fecha()));
     }
 

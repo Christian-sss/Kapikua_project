@@ -8,6 +8,7 @@ import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioAutenticado;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 
@@ -54,7 +56,6 @@ class PagosController {
         return switch (pagos.prepararAnticipado(u.usuarioId())) {
             case Result.Ok<VistaAnticipado, ErrorCredito> ok -> {
                 model.addAttribute("v", ok.valor());
-                model.addAttribute("modalidades", ModalidadPago.values());
                 yield "credito/anticipado";
             }
             case Result.Err<VistaAnticipado, ErrorCredito> err -> "redirect:/credito/prestamo";
@@ -62,11 +63,13 @@ class PagosController {
     }
 
     @PostMapping("/anticipado")
-    String anticipado(@AuthenticationPrincipal UsuarioAutenticado u, @RequestParam ModalidadPago modalidad,
+    String anticipado(@AuthenticationPrincipal UsuarioAutenticado u, @RequestParam("modalidad") String codigoModalidad,
                       @RequestParam(required = false) BigDecimal monto, @RequestParam String referencia, Model model) {
+        var modalidad = ModalidadPago.desdeCodigoAnticipado(codigoModalidad)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Modalidad de pago anticipado inválida"));
         var montoPago = monto == null || monto.signum() <= 0 || monto.scale() > 2 ? Dinero.CERO : Dinero.de(monto);
         return switch (pagos.pagarAnticipado(u.usuarioId(), modalidad, montoPago, referencia)) {
-            case Result.Ok<Dinero, ErrorCredito> ok -> modalidad == ModalidadPago.TOTAL
+            case Result.Ok<Dinero, ErrorCredito> ok -> modalidad.esLiquidacionTotal()
                     ? "redirect:/credito?aviso=pagado-total" : "redirect:/credito/prestamo?aviso=anticipado";
             case Result.Err<Dinero, ErrorCredito> err -> {
                 model.addAttribute("error", err.error().mensaje());

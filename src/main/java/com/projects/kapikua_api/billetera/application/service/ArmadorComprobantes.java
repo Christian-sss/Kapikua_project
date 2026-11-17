@@ -43,7 +43,10 @@ class ArmadorComprobantes {
     }
 
     String contraparte(TipoTransaccion tipo, Billetera otra, boolean esEntrada) {
-        if (tipo == TipoTransaccion.PAGO_NEGOCIO && !esEntrada) return otra.getNombreNegocio();
+        if (!esEntrada) {
+            var descripcion = tipo.descripcion(otra);
+            if (descripcion != null) return descripcion;
+        }
         return titulares.nombreEnmascarado(otra.getUsuarioId()) + " · " + otra.getCelular().enmascarado();
     }
 }

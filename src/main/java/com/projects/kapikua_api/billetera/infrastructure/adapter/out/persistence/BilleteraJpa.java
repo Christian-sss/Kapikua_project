@@ -2,13 +2,10 @@ package com.projects.kapikua_api.billetera.infrastructure.adapter.out.persistenc
 
 import com.projects.kapikua_api.billetera.domain.model.Billetera;
 import com.projects.kapikua_api.billetera.domain.model.Celular;
-import com.projects.kapikua_api.billetera.domain.model.EstadoBilletera;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.UsuarioId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -40,9 +37,8 @@ class BilleteraJpa {
     @Column(name = "saldo_apartado", nullable = false, precision = 12, scale = 2)
     BigDecimal saldoApartado;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    EstadoBilletera estado;
+    String estado;
 
     @Column(name = "motivo_bloqueo", length = 150)
     String motivoBloqueo;

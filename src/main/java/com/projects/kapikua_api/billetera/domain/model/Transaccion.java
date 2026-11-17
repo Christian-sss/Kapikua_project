@@ -33,20 +33,20 @@ public record Transaccion(Long id,
     }
 
     public static Transaccion recarga(Billetera destino, Dinero monto, String referencia, OffsetDateTime ahora) {
-        return new Transaccion(null, TipoTransaccion.RECARGA, monto, referencia, null, ahora,
+        return new Transaccion(null, TiposTransaccion.RECARGA, monto, referencia, null, ahora,
                 List.of(new Movimiento(destino.getId(), monto.valor(), destino.getSaldo())));
     }
 
     public static Transaccion desembolso(Billetera destino, Dinero monto, String referencia, String descripcion,
                                          OffsetDateTime ahora) {
-        return new Transaccion(null, TipoTransaccion.DESEMBOLSO, monto, referencia, descripcion, ahora,
+        return new Transaccion(null, TiposTransaccion.DESEMBOLSO, monto, referencia, descripcion, ahora,
                 List.of(new Movimiento(destino.getId(), monto.valor(), destino.getSaldo())));
     }
 
     public static Transaccion pagoACredito(TipoTransaccion tipo, Billetera origen, Dinero monto, String referencia,
                                            String descripcion, OffsetDateTime ahora) {
-        if (tipo != TipoTransaccion.PAGO_CUOTA && tipo != TipoTransaccion.PAGO_ANTICIPADO) {
-            throw new IllegalArgumentException("Tipo no válido para un pago de crédito: " + tipo);
+        if (!tipo.esPagoCredito()) {
+            throw new IllegalArgumentException("Tipo no válido para un pago de crédito: " + tipo.codigo());
         }
         return new Transaccion(null, tipo, monto, referencia, descripcion, ahora,
                 List.of(new Movimiento(origen.getId(), monto.valor().negate(), origen.getSaldo())));
@@ -56,7 +56,7 @@ public record Transaccion(Long id,
                                               Dinero monto, String referencia, String descripcion,
                                               OffsetDateTime ahora) {
         if (!tipo.cuentaComoPagoOTransferencia()) {
-            throw new IllegalArgumentException("Tipo no válido entre billeteras: " + tipo);
+            throw new IllegalArgumentException("Tipo no válido entre billeteras: " + tipo.codigo());
         }
         return new Transaccion(null, tipo, monto, referencia, descripcion, ahora, List.of(
                 new Movimiento(origen.getId(), monto.valor().negate(), origen.getSaldo()),
@@ -77,7 +77,7 @@ public record Transaccion(Long id,
         var destino = movimientos.stream().filter(m -> m.monto().signum() > 0).map(Movimiento::billeteraId).findFirst().orElse(null);
         var eventos = new ArrayList<EventoDominio>();
         eventos.add(new OperacionRegistrada(id, tipo, monto, origen, destino, fecha));
-        if ((tipo == TipoTransaccion.TRANSFERENCIA || tipo == TipoTransaccion.PAGO_NEGOCIO) && destino != null) {
+        if (tipo.generaCobroRecibido() && destino != null) {
             eventos.add(new CobroRecibido(destino, id, monto));
         }
         return eventos;

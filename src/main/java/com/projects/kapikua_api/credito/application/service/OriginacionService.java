@@ -81,9 +81,9 @@ public class OriginacionService implements SimularCreditoUseCase, SolicitarCredi
         if (!autorizaDatos) return Result.err(new ErrorCredito.ConsentimientoRequerido());
         if (prestamos.activoDe(usuarioId).isPresent()) return Result.err(new ErrorCredito.PrestamoActivoExistente());
         var anterior = ofertas.ultimaDe(usuarioId);
-        if (anterior.isPresent() && anterior.get().getEstado().enCurso()) {
+        if (anterior.isPresent() && anterior.get().enCurso()) {
             var alDia = soporte.actualizada(anterior.get().getId(), usuarioId);
-            if (alDia instanceof Result.Ok<Oferta, ErrorCredito> ok && ok.valor().getEstado().enCurso()) {
+            if (alDia instanceof Result.Ok<Oferta, ErrorCredito> ok && ok.valor().enCurso()) {
                 return Result.err(new ErrorCredito.OfertaEnCurso());
             }
         }

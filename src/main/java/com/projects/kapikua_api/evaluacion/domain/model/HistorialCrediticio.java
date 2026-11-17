@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.util.Objects;
 
+@Getter
 public final class HistorialCrediticio {
     private final UsuarioId usuarioId;
     private int nivel;
@@ -38,6 +39,8 @@ public final class HistorialCrediticio {
     ) {
         return new HistorialCrediticio(usuarioId, nivel, creditosPagadosEnNivel, maxDiasAtraso, bloqueadoInterno, version);
     }
+
+
 
     public boolean esNuevo() {
         return nivel == 1 && creditosPagadosEnNivel == 0 && maxDiasAtraso == 0;

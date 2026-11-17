@@ -8,10 +8,11 @@ import com.projects.kapikua_api.credito.application.port.out.OperacionesBilleter
 import com.projects.kapikua_api.credito.application.port.out.PrestamoRepositoryPort;
 import com.projects.kapikua_api.credito.application.port.out.ReglasCredito;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.credito.domain.service.CalculadoraFrancesa;
+import com.projects.kapikua_api.credito.domain.model.CambioEstado;
 import com.projects.kapikua_api.credito.domain.model.ConstanciaAceptacion;
 import com.projects.kapikua_api.credito.domain.model.Oferta;
 import com.projects.kapikua_api.credito.domain.model.Prestamo;
+import com.projects.kapikua_api.credito.domain.service.CalculadoraFrancesa;
 import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluacion;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -110,10 +111,12 @@ public class AceptacionService implements AceptarOfertaUseCase {
         var porcentaje = p.evaluacion().condiciones().porcentajeRetencion();
         var resultado = ejecutor.ejecutarResultado(() -> {
             var o = ofertas.porId(ofertaId).orElseThrow();
-            var aceptada = o.aceptar(p.evaluacion().requiereAval(), soporte.ahora(), clock.getZone());
-            if (aceptada instanceof Result.Err<Void, ErrorCredito> err) return Result.<Long, ErrorCredito>err(err.error());
-            var guardada = ofertas.guardar(o);
             var ahora = soporte.ahora();
+            var aceptada = o.aceptar(p.evaluacion().requiereAval(), ahora, clock.getZone());
+            if (aceptada instanceof Result.Err<CambioEstado, ErrorCredito> err) {
+                return Result.<Long, ErrorCredito>err(err.error());
+            }
+            var guardada = ofertas.guardar(o);
             var nuevo = Prestamo.desembolsar(guardada, codigoCredito, porcentaje,
                     new ConstanciaAceptacion(ahora, dispositivo, versionHojaResumen), ahora, clock.getZone());
             var prestamo = prestamos.registrar(nuevo);

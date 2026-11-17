@@ -1,6 +1,7 @@
 package com.projects.kapikua_api.billetera.domain.model;
 
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
+import com.projects.kapikua_api.billetera.domain.event.EstadoCambiado;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -9,6 +10,9 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 
 public final class Billetera {
+
+    private static final int MAXIMO_CARACTERES_MOTIVO = 150;
+
     private final Long id;
     private final UsuarioId usuarioId;
     private final Celular celular;
@@ -16,12 +20,12 @@ public final class Billetera {
     private Dinero saldo;
     private Dinero saldoApartado;
     private EstadoBilletera estado;
-    private String motivoBloqueo;
+    private String motivoEstado;
     private final OffsetDateTime fechaApertura;
     private final Long version;
 
     private Billetera(Long id, UsuarioId usuarioId, Celular celular, String nombreNegocio, Dinero saldo,
-                      Dinero saldoApartado, EstadoBilletera estado, String motivoBloqueo,
+                      Dinero saldoApartado, EstadoBilletera estado, String motivoEstado,
                       OffsetDateTime fechaApertura, Long version) {
         this.id = id;
         this.usuarioId = Objects.requireNonNull(usuarioId);
@@ -30,7 +34,7 @@ public final class Billetera {
         this.saldo = Objects.requireNonNull(saldo);
         this.saldoApartado = Objects.requireNonNull(saldoApartado);
         this.estado = Objects.requireNonNull(estado);
-        this.motivoBloqueo = motivoBloqueo;
+        this.motivoEstado = motivoEstado;
         this.fechaApertura = Objects.requireNonNull(fechaApertura);
         this.version = version;
     }
@@ -41,10 +45,10 @@ public final class Billetera {
     }
 
     public static Billetera reconstituir(Long id, UsuarioId usuarioId, Celular celular, String nombreNegocio,
-                                         Dinero saldo, Dinero saldoApartado, EstadoBilletera estado,
-                                         String motivoBloqueo, OffsetDateTime fechaApertura, Long version) {
-        return new Billetera(id, usuarioId, celular, nombreNegocio, saldo, saldoApartado, estado,
-                motivoBloqueo, fechaApertura, version);
+                                         Dinero saldo, Dinero saldoApartado, String estado,
+                                         String motivoEstado, OffsetDateTime fechaApertura, Long version) {
+        return new Billetera(id, usuarioId, celular, nombreNegocio, saldo, saldoApartado, EstadoBilletera.desdeNombre(estado),
+                motivoEstado, fechaApertura, version);
     }
 
     public Dinero saldoDisponible() {
@@ -52,7 +56,11 @@ public final class Billetera {
     }
 
     public boolean estaActiva() {
-        return estado == EstadoBilletera.ACTIVA;
+        return estado.estaActiva();
+    }
+
+    public boolean estaBloqueada() {
+        return estado.estaBloqueada();
     }
 
     public boolean esNegocio() {
@@ -64,49 +72,91 @@ public final class Billetera {
     }
 
     public Result<Void, ErrorBilletera> debitar(Dinero monto) {
-        if (!estaActiva()) return Result.err(new ErrorBilletera.BilleteraBloqueada());
-        if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
-        if (saldoDisponible().menorQue(monto)) return Result.err(new ErrorBilletera.SaldoInsuficiente());
-        saldo = saldo.restar(monto);
-        return Result.ok();
+        return validarSalida().flatMap(ignorado -> {
+            if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
+            if (saldoDisponible().menorQue(monto)) return Result.err(new ErrorBilletera.SaldoInsuficiente());
+            saldo = saldo.restar(monto);
+            return Result.ok();
+        });
     }
 
     public Result<Void, ErrorBilletera> acreditar(Dinero monto, Dinero saldoMaximo, boolean esDestinoAjeno) {
-        if (!estaActiva()) {
-            return Result.err(esDestinoAjeno ? new ErrorBilletera.DestinatarioNoEncontrado()
-                    : new ErrorBilletera.BilleteraBloqueada());
-        }
-        if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
-        if (saldo.sumar(monto).mayorQue(saldoMaximo)) {
-            return Result.err(esDestinoAjeno ? new ErrorBilletera.DestinoNoPuedeRecibir()
-                    : new ErrorBilletera.TopeSaldoPropio(puedeRecibir(saldoMaximo)));
-        }
-        saldo = saldo.sumar(monto);
-        return Result.ok();
+        return validarAcreditacion(monto, saldoMaximo, esDestinoAjeno).map(ignorado -> {
+            saldo = saldo.sumar(monto);
+            return null;
+        });
     }
 
-    public Dinero apartar(Dinero monto) {
-        var posible = monto.menorQue(saldoDisponible()) ? monto : saldoDisponible();
-        saldoApartado = saldoApartado.sumar(posible);
-        return posible;
+    public Result<Void, ErrorBilletera> validarSalida() {
+        return estado.validarSalida();
     }
 
-    public void liberarApartado(Dinero monto) {
-        saldoApartado = saldoApartado.mayorQue(monto) ? saldoApartado.restar(monto) : Dinero.CERO;
+    public Result<Void, ErrorBilletera> validarRecepcion(boolean esDestinoAjeno) {
+        return estado.validarRecepcion(esDestinoAjeno);
     }
 
-    public void consumirApartado(Dinero monto) {
-        if (monto.mayorQue(saldoApartado)) throw new IllegalArgumentException("No hay tanto apartado");
-        saldoApartado = saldoApartado.restar(monto);
-        saldo = saldo.restar(monto);
+    public Result<Void, ErrorBilletera> validarAcreditacion(Dinero monto, Dinero saldoMaximo, boolean esDestinoAjeno) {
+        return validarRecepcion(esDestinoAjeno).flatMap(ignorado -> {
+            if (monto.esCero()) return Result.err(new ErrorBilletera.MontoInvalido());
+            if (saldo.sumar(monto).mayorQue(saldoMaximo)) {
+                return Result.err(esDestinoAjeno ? new ErrorBilletera.DestinoNoPuedeRecibir()
+                        : new ErrorBilletera.TopeSaldoPropio(puedeRecibir(saldoMaximo)));
+            }
+            return Result.ok();
+        });
     }
 
-    public void bloquear(String motivo) {
-        if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("El bloqueo requiere un motivo");
-        if (!estaActiva()) return;
-        estado = EstadoBilletera.BLOQUEADA;
+    public Result<Dinero, ErrorBilletera> apartar(Dinero monto) {
+        return validarSalida().map(ignorado -> {
+            var disponible = saldoDisponible();
+            var posible = monto.menorQue(disponible) ? monto : disponible;
+            saldoApartado = saldoApartado.sumar(posible);
+            return posible;
+        });
+    }
+
+    public Result<Dinero, ErrorBilletera> liberarApartado(Dinero monto) {
+        return validarSalida().map(ignorado -> {
+            var liberado = monto.menorQue(saldoApartado) ? monto : saldoApartado;
+            saldoApartado = saldoApartado.restar(liberado);
+            return liberado;
+        });
+    }
+
+    public Result<Dinero, ErrorBilletera> consumirApartado(Dinero monto) {
+        return validarSalida().flatMap(ignorado -> {
+            if (monto.mayorQue(saldoApartado)) return Result.err(new ErrorBilletera.SaldoApartadoInsuficiente());
+            saldoApartado = saldoApartado.restar(monto);
+            saldo = saldo.restar(monto);
+            return Result.ok(monto);
+        });
+    }
+
+    public Result<EstadoCambiado, ErrorBilletera> bloquear(String motivo, OffsetDateTime fecha) {
+        return normalizarMotivo(motivo)
+                .flatMap(valor -> estado.bloquear().map(nuevo -> cambiarEstado(nuevo, valor, fecha)));
+    }
+
+    public Result<EstadoCambiado, ErrorBilletera> retener(String motivo, OffsetDateTime fecha) {
+        return normalizarMotivo(motivo)
+                .flatMap(valor -> estado.retener().map(nuevo -> cambiarEstado(nuevo, valor, fecha)));
+    }
+
+    public Result<EstadoCambiado, ErrorBilletera> reactivar(OffsetDateTime fecha) {
+        return estado.reactivar().map(nuevo -> cambiarEstado(nuevo, null, fecha));
+    }
+
+    private EstadoCambiado cambiarEstado(EstadoBilletera nuevo, String motivo, OffsetDateTime fecha) {
+        var evento = new EstadoCambiado(id, estado.nombre(), nuevo.nombre(), motivo, Objects.requireNonNull(fecha));
+        estado = nuevo;
+        motivoEstado = motivo;
+        return evento;
+    }
+
+    private static Result<String, ErrorBilletera> normalizarMotivo(String motivo) {
+        if (motivo == null || motivo.isBlank()) return Result.err(new ErrorBilletera.MotivoEstadoInvalido());
         var texto = motivo.strip();
-        motivoBloqueo = texto.length() > 150 ? texto.substring(0, 150) : texto;
+        return Result.ok(texto.substring(0, Math.min(MAXIMO_CARACTERES_MOTIVO, texto.length())));
     }
 
     public Long getId() {
@@ -133,12 +183,12 @@ public final class Billetera {
         return saldoApartado;
     }
 
-    public EstadoBilletera getEstado() {
-        return estado;
+    public String getEstado() {
+        return estado.nombre();
     }
 
     public String getMotivoBloqueo() {
-        return motivoBloqueo;
+        return motivoEstado;
     }
 
     public OffsetDateTime getFechaApertura() {

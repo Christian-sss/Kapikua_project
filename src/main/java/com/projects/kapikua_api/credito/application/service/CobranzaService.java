@@ -62,7 +62,10 @@ public class CobranzaService implements CobranzaUseCase {
             var monto = p.montoARetener(cobro);
             var apartado = monto.esCero() ? Dinero.CERO : billetera.apartar(usuarioId, monto);
             if (!apartado.esCero()) {
-                p.registrarRetencion(transaccionVentaId, apartado, ahora);
+                var retencion = p.registrarRetencion(transaccionVentaId, apartado, ahora);
+                if (retencion instanceof Result.Err<Dinero, ErrorCredito> err) {
+                    throw new IllegalStateException(err.error().mensaje());
+                }
                 prestamos.guardar(p);
                 publicador.publicarDe(p);
                 return;
@@ -84,10 +87,13 @@ public class CobranzaService implements CobranzaUseCase {
             if (!(cargo instanceof Result.Ok<Cargo, ErrorCredito> ok) || !ok.valor().nuevo() || ok.valor().cobrado().esCero()) continue;
 
             var primeraVencida = p.cuotasVencidas().getFirst().getId();
-            var sobrante = p.aplicarPago(p.cuotasVencidas(), ok.valor().cobrado(), false, ok.valor().transaccionId(),
-                    Origen.AVAL, true, LocalDate.now(clock), ahora);
-            p.registrarRetencionDeAval(primeraVencida, transaccionVentaId, ok.valor().cobrado(), ahora);
-            cierre.cerrar(p, sobrante);
+            var resultado = p.registrarRetencionDeAval(primeraVencida, transaccionVentaId, ok.valor().cobrado(), ahora)
+                    .flatMap(retencion -> p.aplicarPago(p.cuotasVencidas(), ok.valor().cobrado(), false,
+                            ok.valor().transaccionId(), Origen.AVAL, true, LocalDate.now(clock), ahora))
+                    .flatMap(sobrante -> cierre.cerrar(p, sobrante));
+            if (resultado instanceof Result.Err<Boolean, ErrorCredito> err) {
+                throw new IllegalStateException(err.error().mensaje());
+            }
             return;
         }
     }
@@ -113,7 +119,13 @@ public class CobranzaService implements CobranzaUseCase {
         var enMora = 0; var avisos = 0; var activados = 0; var pagados = 0; var errores = 0;
         for (var id : prestamos.idsConCobroPendiente(hoy)) {
             try {
-                var c = ejecutor.ejecutar(() -> procesar(id, hoy, reglas));
+                var resultado = ejecutor.ejecutarResultado(() -> procesar(id, hoy, reglas));
+                if (resultado instanceof Result.Err<Conteo, ErrorCredito> err) {
+                    errores++;
+                    log.error("No se pudo procesar el cobro del préstamo {}: {}", id, err.error().mensaje());
+                    continue;
+                }
+                var c = ((Result.Ok<Conteo, ErrorCredito>) resultado).valor();
                 revisados++;
                 cuotas += c.cuotasCobradas();
                 cobrado = cobrado.sumar(c.cobrado());
@@ -132,9 +144,9 @@ public class CobranzaService implements CobranzaUseCase {
         return resumen;
     }
 
-    private Conteo procesar(Long prestamoId, LocalDate hoy, ReglasCredito.Reglas reglas) {
+    private Result<Conteo, ErrorCredito> procesar(Long prestamoId, LocalDate hoy, ReglasCredito.Reglas reglas) {
         var p = prestamos.porId(prestamoId).orElseThrow();
-        if (!p.estaActivo()) return new Conteo(0, Dinero.CERO, false, false, false, false);
+        if (!p.estaActivo()) return Result.ok(new Conteo(0, Dinero.CERO, false, false, false, false));
         var ahora = soporte.ahora();
         p.actualizarMora(hoy, reglas.tasaMoratoriaMaxima());
 
@@ -150,13 +162,15 @@ public class CobranzaService implements CobranzaUseCase {
                         "Cuota " + cuota.getNumero() + " del crédito " + p.getCodigoCreditoEfa());
                 if (!(cargo instanceof Result.Ok<Cargo, ErrorCredito> ok) || !ok.valor().nuevo()
                         || ok.valor().cobrado().esCero()) continue;
-                sobrante = sobrante.sumar(p.aplicarPago(List.of(cuota), ok.valor().cobrado(), true,
-                        ok.valor().transaccionId(), Origen.DEUDOR, true, hoy, ahora));
+                var aplicado = p.aplicarPago(List.of(cuota), ok.valor().cobrado(), true,
+                        ok.valor().transaccionId(), Origen.DEUDOR, true, hoy, ahora);
+                if (aplicado instanceof Result.Err<Dinero, ErrorCredito> err) return Result.err(err.error());
+                sobrante = sobrante.sumar(((Result.Ok<Dinero, ErrorCredito>) aplicado).valor());
                 if (cuota.getMontoPagado().equals(cuota.total())) cobradas++;
                 total = total.sumar(ok.valor().cobrado());
             }
         }
-        var dias = p.revisarAtraso(hoy);
+        var dias = p.revisarAtraso(hoy, ahora);
 
         var escalamiento = Oferta.Escalamiento.NINGUNO;
         if (dias > 0) {
@@ -164,8 +178,10 @@ public class CobranzaService implements CobranzaUseCase {
             escalamiento = oferta.escalarAval(dias, reglas.diasAvisoAval(), reglas.diasActivacionAval(), ahora);
             if (escalamiento != Oferta.Escalamiento.NINGUNO) ofertas.guardar(oferta);
         }
-        var pagado = cierre.cerrar(p, sobrante);
-        return new Conteo(cobradas, total, dias > 0, escalamiento == Oferta.Escalamiento.AVISADO,
-                escalamiento == Oferta.Escalamiento.ACTIVADO, pagado);
+        var cierrePrestamo = cierre.cerrar(p, sobrante);
+        if (cierrePrestamo instanceof Result.Err<Boolean, ErrorCredito> err) return Result.err(err.error());
+        var pagado = ((Result.Ok<Boolean, ErrorCredito>) cierrePrestamo).valor();
+        return Result.ok(new Conteo(cobradas, total, dias > 0, escalamiento == Oferta.Escalamiento.AVISADO,
+                escalamiento == Oferta.Escalamiento.ACTIVADO, pagado));
     }
 }

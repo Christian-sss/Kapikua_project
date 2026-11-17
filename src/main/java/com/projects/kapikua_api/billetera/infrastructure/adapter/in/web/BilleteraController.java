@@ -4,7 +4,6 @@ import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilletera
 import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase.ResumenBilletera;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort.LineaMovimiento;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
-import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
 import com.projects.kapikua_api.shared.UsuarioAutenticado;
 import com.projects.kapikua_api.shared.Result;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -71,19 +70,20 @@ class BilleteraController {
 
     private MovimientoVista vista(LineaMovimiento m) {
         var fecha = m.fecha().atZoneSameInstant(clock.getZone()).format(FECHA);
-        return new MovimientoVista(fecha, etiqueta(m.tipo(), m.esEntrada()), m.descripcion(),
+        return new MovimientoVista(fecha, etiqueta(m.tipo().codigo(), m.esEntrada()), m.descripcion(),
                 (m.esEntrada() ? "+ " : "− ") + m.montoAbsoluto(), m.esEntrada(),
                 "S/ " + m.saldoPosterior().toPlainString());
     }
 
-    static String etiqueta(TipoTransaccion tipo, boolean entrada) {
+    static String etiqueta(String tipo, boolean entrada) {
         return switch (tipo) {
-            case RECARGA -> "Recarga con tarjeta";
-            case TRANSFERENCIA -> entrada ? "Transferencia recibida" : "Transferencia enviada";
-            case PAGO_NEGOCIO -> entrada ? "Cobro de un cliente" : "Pago a negocio";
-            case DESEMBOLSO -> "Desembolso de crédito";
-            case PAGO_CUOTA -> "Pago de cuota";
-            case PAGO_ANTICIPADO -> "Pago anticipado";
+            case "RECARGA" -> "Recarga con tarjeta";
+            case "TRANSFERENCIA" -> entrada ? "Transferencia recibida" : "Transferencia enviada";
+            case "PAGO_NEGOCIO" -> entrada ? "Cobro de un cliente" : "Pago a negocio";
+            case "DESEMBOLSO" -> "Desembolso de crédito";
+            case "PAGO_CUOTA" -> "Pago de cuota";
+            case "PAGO_ANTICIPADO" -> "Pago anticipado";
+            default -> tipo;
         };
     }
 }

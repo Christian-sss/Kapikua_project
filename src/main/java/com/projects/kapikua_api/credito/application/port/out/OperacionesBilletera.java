@@ -16,7 +16,7 @@ public interface OperacionesBilletera {
 
     Dinero apartar(UsuarioId usuarioId, Dinero monto);
 
-    void liberarApartado(UsuarioId usuarioId, Dinero monto);
+    Result<Void, ErrorCredito> liberarApartado(UsuarioId usuarioId, Dinero monto);
 
     Result<Cargo, ErrorCredito> cobrar(UsuarioId usuarioId, Dinero monto, Dinero usarApartado, boolean exigirTodo,
                                        boolean anticipado, String referencia, String descripcion);

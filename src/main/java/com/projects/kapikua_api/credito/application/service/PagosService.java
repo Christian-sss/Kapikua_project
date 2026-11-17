@@ -7,7 +7,6 @@ import com.projects.kapikua_api.credito.application.port.out.PrestamoRepositoryP
 import com.projects.kapikua_api.credito.application.port.out.ReglasCredito;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.credito.domain.model.Cuota;
-import com.projects.kapikua_api.credito.domain.model.EstadoCuota;
 import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
 import com.projects.kapikua_api.credito.domain.model.Origen;
 import com.projects.kapikua_api.credito.domain.model.Prestamo;
@@ -62,16 +61,13 @@ public class PagosService implements PagarPrestamoUseCase {
                     "Pago de " + (a.cuotas().size() == 1 ? "la cuota " : "las cuotas ")
                             + a.cuotas().stream().map(c -> String.valueOf(c.getNumero())).reduce((x, y) -> x + ", " + y).orElse("")
                             + " del crédito " + p.getCodigoCreditoEfa());
-            if (cargo instanceof Result.Err<Cargo, ErrorCredito>) {
-                return Result.<Dinero, ErrorCredito>err(new ErrorCredito.SaldoInsuficienteParaPagar(a.total().toString()));
-            }
+            if (cargo instanceof Result.Err<Cargo, ErrorCredito> err) return Result.<Dinero, ErrorCredito>err(err.error());
             var c = ((Result.Ok<Cargo, ErrorCredito>) cargo).valor();
             if (!c.nuevo()) return Result.<Dinero, ErrorCredito>ok(c.cobrado());
             var ahora = soporte.ahora();
-            var sobrante = p.aplicarPago(a.cuotas(), c.cobrado(), true, c.transaccionId(), Origen.DEUDOR, false,
-                    LocalDate.now(clock), ahora);
-            cierre.cerrar(p, sobrante);
-            return Result.<Dinero, ErrorCredito>ok(c.cobrado());
+            return p.aplicarPago(a.cuotas(), c.cobrado(), true, c.transaccionId(), Origen.DEUDOR, false,
+                            LocalDate.now(clock), ahora)
+                    .flatMap(sobrante -> cierre.cerrar(p, sobrante)).map(pagado -> c.cobrado());
         });
     }
 
@@ -99,7 +95,7 @@ public class PagosService implements PagarPrestamoUseCase {
         var activo = prestamos.activoDe(usuarioId);
         if (activo.isEmpty()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
         var p = activo.get();
-        var pendientes = (int) p.getCuotas().stream().filter(c -> c.getEstado() == EstadoCuota.PENDIENTE).count();
+        var pendientes = (int) p.getCuotas().stream().filter(Cuota::esPendiente).count();
         return Result.ok(new VistaAnticipado(p.capitalPendiente(), pendientes, !p.cuotasVencidas().isEmpty(),
                 UUID.randomUUID().toString()));
     }
@@ -111,22 +107,19 @@ public class PagosService implements PagarPrestamoUseCase {
             var activo = prestamos.activoDe(usuarioId);
             if (activo.isEmpty()) return Result.<Dinero, ErrorCredito>err(new ErrorCredito.PrestamoNoEncontrado());
             var p = activo.get();
-            var aPagar = modalidad == ModalidadPago.TOTAL ? p.montoAnticipadoTotal() : monto;
+            var aPagar = modalidad.montoACobrar(p, monto);
             var verificacion = p.verificarAnticipado(aPagar, modalidad);
             if (verificacion instanceof Result.Err<Void, ErrorCredito> err) return Result.<Dinero, ErrorCredito>err(err.error());
 
-            var usarApartado = modalidad == ModalidadPago.TOTAL ? p.totalApartado() : Dinero.CERO;
+            var usarApartado = modalidad.apartadoAUsar(p);
             var cargo = billetera.cobrar(usuarioId, aPagar, usarApartado, true, true, referencia,
                     "Pago anticipado del crédito " + p.getCodigoCreditoEfa());
-            if (cargo instanceof Result.Err<Cargo, ErrorCredito>) {
-                return Result.<Dinero, ErrorCredito>err(new ErrorCredito.SaldoInsuficienteParaPagar(aPagar.toString()));
-            }
+            if (cargo instanceof Result.Err<Cargo, ErrorCredito> err) return Result.<Dinero, ErrorCredito>err(err.error());
             var c = ((Result.Ok<Cargo, ErrorCredito>) cargo).valor();
             if (!c.nuevo()) return Result.<Dinero, ErrorCredito>ok(c.cobrado());
             var ahora = soporte.ahora();
-            var sobrante = p.aplicarAnticipado(c.cobrado(), modalidad, c.deApartado(), c.transaccionId(), ahora);
-            cierre.cerrar(p, sobrante);
-            return Result.<Dinero, ErrorCredito>ok(c.cobrado());
+            return p.aplicarAnticipado(c.cobrado(), modalidad, c.deApartado(), c.transaccionId(), ahora)
+                    .flatMap(sobrante -> cierre.cerrar(p, sobrante)).map(pagado -> c.cobrado());
         });
     }
 
@@ -136,12 +129,11 @@ public class PagosService implements PagarPrestamoUseCase {
             var activo = prestamos.activoDe(usuarioId);
             if (activo.isEmpty()) return Result.<Dinero, ErrorCredito>err(new ErrorCredito.PrestamoNoEncontrado());
             var p = activo.get();
-            var revocado = p.revocarCargo(soporte.ahora());
-            if (revocado instanceof Result.Ok<Dinero, ErrorCredito> ok) {
-                billetera.liberarApartado(usuarioId, ok.valor());
-                prestamos.guardar(p);
-            }
-            return revocado;
+            return p.revocarCargo(soporte.ahora()).flatMap(liberado ->
+                    billetera.liberarApartado(usuarioId, liberado).map(ok -> {
+                        prestamos.guardar(p);
+                        return liberado;
+                    }));
         });
     }
 }

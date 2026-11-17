@@ -10,8 +10,6 @@ import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase
 import com.projects.kapikua_api.credito.application.port.in.PagarPrestamoUseCase;
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.credito.domain.model.EstadoAval;
-import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
 import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
@@ -139,8 +137,8 @@ class CobranzaIntegracionTest {
         cobranza.ejecutarCobroDiario(hoy);
 
         var p = prestamo(e.ana().id());
-        assertThat(p.cuotas().getFirst().getEstado().name()).isEqualTo("PAGADA");
-        assertThat(p.estado()).isEqualTo(EstadoPrestamo.VIGENTE);
+        assertThat(p.cuotas().getFirst().getEstado()).isEqualTo("PAGADA");
+        assertThat(p.estado()).isEqualTo("VIGENTE");
         assertThat(pagos(e.prestamoId(), "DEUDOR")).isEqualTo(1);
         assertThat(datos.saldo(e.ana().id())).isEqualByComparingTo(saldoAntes.subtract(cuota1.valor()));
         assertThat(apartado(e.ana().id())).isEqualByComparingTo("0");
@@ -154,7 +152,7 @@ class CobranzaIntegracionTest {
 
         cobranza.ejecutarCobroDiario(v1);
         var p = prestamo(e.ana().id());
-        assertThat(p.estado()).isEqualTo(EstadoPrestamo.EN_MORA);
+        assertThat(p.estado()).isEqualTo("EN_MORA");
         assertThat(p.cuotasVencidas()).isEqualTo(1);
 
         cobranza.ejecutarCobroDiario(v1.plusDays(8));
@@ -190,18 +188,22 @@ class CobranzaIntegracionTest {
         ok(pagos.pagarCuotas(e.ana().id(), ref));
         ok(pagos.pagarCuotas(e.ana().id(), ref));
         assertThat(pagos(e.prestamoId(), "DEUDOR")).isEqualTo(1);
-        assertThat(prestamo(e.ana().id()).cuotas().getFirst().getEstado().name()).isEqualTo("PAGADA");
+        assertThat(prestamo(e.ana().id()).cuotas().getFirst().getEstado()).isEqualTo("PAGADA");
 
         var vista = ok(pagos.prepararAnticipado(e.ana().id()));
         ok(pagos.pagarAnticipado(e.ana().id(), ModalidadPago.TOTAL, Dinero.CERO, vista.referencia()));
 
         assertThat(consultar.panel(e.ana().id()).prestamo()).isNull();
+        assertThat(jdbc.queryForObject("select modalidad from credito.pago where prestamo_id = ? and tipo = 'CUOTA'",
+                String.class, e.prestamoId())).isNull();
+        assertThat(jdbc.queryForObject("select modalidad from credito.pago where prestamo_id = ? and tipo = 'ANTICIPADO'",
+                String.class, e.prestamoId())).isEqualTo("TOTAL");
         assertThat(jdbc.queryForObject("select estado from credito.prestamo where id = ?", String.class, e.prestamoId()))
                 .isEqualTo("PAGADO");
         assertThat(jdbc.queryForObject("""
                 select a.estado from credito.aval a join credito.prestamo p on p.oferta_id = a.oferta_id
                 where p.id = ? and a.estado in ('LIBERADO', 'ACEPTADO')""", String.class, e.prestamoId()))
-                .isEqualTo(EstadoAval.LIBERADO.name());
+                .isEqualTo("LIBERADO");
         assertThat(jdbc.queryForObject("select nivel from evaluacion.historial_crediticio where usuario_id = ?",
                 Integer.class, e.ana().id().valor())).isEqualTo(2);
         assertThat(apartado(e.ana().id())).isEqualByComparingTo("0");
@@ -216,7 +218,7 @@ class CobranzaIntegracionTest {
         ok(pagos.pagarAnticipado(e.ana().id(), ModalidadPago.REDUCIR_PLAZO, Dinero.de("300"), vista.referencia()));
         var despues = prestamo(e.ana().id());
         assertThat(despues.capitalPendiente()).isEqualTo(antes.capitalPendiente().restar(Dinero.de("300")));
-        assertThat(despues.cuotas().stream().filter(c -> c.getEstado().name().equals("ANULADA")).count()).isGreaterThan(0);
+        assertThat(despues.cuotas().stream().filter(c -> c.getEstado().equals("ANULADA")).count()).isGreaterThan(0);
         assertThat(jdbc.queryForObject("select modalidad from credito.pago where prestamo_id = ? and tipo = 'ANTICIPADO'",
                 String.class, e.prestamoId())).isEqualTo("REDUCIR_PLAZO");
     }
@@ -233,7 +235,7 @@ class CobranzaIntegracionTest {
         assertThat(apartado(e.ana().id())).isEqualByComparingTo("0");
 
         cobranza.ejecutarCobroDiario(vencimiento(e.ana().id(), 1));
-        assertThat(prestamo(e.ana().id()).estado()).isEqualTo(EstadoPrestamo.EN_MORA);
+        assertThat(prestamo(e.ana().id()).estado()).isEqualTo("EN_MORA");
         assertThat(pagos(e.prestamoId(), "DEUDOR")).isZero();
     }
 

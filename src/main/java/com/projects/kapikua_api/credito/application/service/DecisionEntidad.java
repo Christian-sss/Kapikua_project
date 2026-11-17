@@ -54,12 +54,13 @@ class DecisionEntidad {
         var decision = ((Result.Ok<RespuestaEfa, ErrorCredito>) respuesta).valor();
         return ejecutor.ejecutarResultado(() -> {
             var o = ofertas.porId(ofertaId).orElseThrow();
+            var ahora = soporte.ahora();
             var aplicada = switch (decision) {
-                case RespuestaEfa.Confirmada conf -> o.confirmar(conf.codigoSolicitud(), conf.condiciones());
-                case RespuestaEfa.Denegada den -> o.denegar(den.codigoSolicitud(), den.motivo());
+                case RespuestaEfa.Confirmada conf -> o.confirmar(conf.codigoSolicitud(), conf.condiciones(), ahora);
+                case RespuestaEfa.Denegada den -> o.denegar(den.codigoSolicitud(), den.motivo(), ahora);
             };
             if (aplicada.esOk()) ofertas.guardar(o);
-            return aplicada;
+            return aplicada.map(cambio -> null);
         });
     }
 }

@@ -4,6 +4,8 @@ import com.projects.kapikua_api.billetera.application.port.in.Comprobante;
 import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase;
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
 import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase.VistaPrevia;
+import com.projects.kapikua_api.billetera.application.port.in.GestionarEstadoBilleteraUseCase;
+import com.projects.kapikua_api.billetera.application.port.in.OperacionesCreditoUseCase;
 import com.projects.kapikua_api.billetera.application.port.in.RecargarSaldoUseCase;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
@@ -12,6 +14,7 @@ import com.projects.kapikua_api.identidad.domain.error.RegistroError;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
+import com.projects.kapikua_api.shared.puerto.EjecutorTransaccional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "KAPIKUA_DB_PRUEBAS", matches = "jdbc:postgresql:.+")
@@ -41,6 +45,9 @@ class BilleteraIntegracionTest {
     @Autowired RecargarSaldoUseCase recargar;
     @Autowired EnviarDineroUseCase enviar;
     @Autowired ConsultarBilleteraUseCase consultar;
+    @Autowired GestionarEstadoBilleteraUseCase gestionarEstado;
+    @Autowired OperacionesCreditoUseCase credito;
+    @Autowired EjecutorTransaccional ejecutor;
     @Autowired JdbcTemplate jdbc;
 
     private record Cliente(UsuarioId id, String celular) {}
@@ -89,6 +96,39 @@ class BilleteraIntegracionTest {
     }
 
     @Test
+    void siFallaLaAperturaDeBilleteraSeRevierteElRegistroYSePuedeReintentar() {
+        var dni = "73982461";
+        var correo = "registro.rollback@prueba.pe";
+        var nacimiento = LocalDate.of(1990, 1, 1);
+        var contrasena = "Kapikua2026";
+        var invalido = new RegistrarUsuarioCommand(dni, nacimiento, correo, "123", "Bodega", contrasena, true);
+
+        assertThatThrownBy(() -> registrar.registrar(invalido))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No se pudo abrir la billetera");
+        assertThat(jdbc.queryForObject("select count(*) from identidad.usuario where dni = ?", Integer.class, dni))
+                .isZero();
+
+        var celular = "9" + (10_000_000 + ThreadLocalRandom.current().nextInt(89_999_999));
+        var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, nacimiento, correo, celular, "Bodega",
+                contrasena, true));
+        assertThat(resultado).isInstanceOf(Result.Ok.class);
+        var id = ((Result.Ok<UsuarioId, RegistroError>) resultado).valor();
+        assertThat(saldo(new Cliente(id, celular))).isEqualTo(Dinero.CERO);
+        assertThat(jdbc.queryForObject("""
+                select count(*) from identidad.consentimiento
+                where usuario_id = ? and tipo = 'TERMINOS_SERVICIO' and revocado_en is null
+                """, Integer.class, id.valor())).isEqualTo(1);
+    }
+
+    @Test
+    void noSeRegistraUnUsuarioSinCelular() {
+        var resultado = registrar.registrar(new RegistrarUsuarioCommand("73982462", LocalDate.of(1990, 1, 1),
+                "registro.sin.celular@prueba.pe", null, null, "Kapikua2026", true));
+        assertThat(resultado).isEqualTo(Result.err(new RegistroError.DatoInvalido("celular")));
+    }
+
+    @Test
     void laRecargaRepetidaConLaMismaReferenciaNoDuplicaElSaldo() {
         var luis = registrarCliente(null);
         var referencia = UUID.randomUUID().toString();
@@ -133,6 +173,54 @@ class BilleteraIntegracionTest {
         ok(recargar.recargar(luis.id(), Dinero.de("100"), "tok_aprobado", UUID.randomUUID().toString()));
         assertThat(err(enviar.prepararPagoNegocio(luis.id(), ana.celular(), Dinero.de("10"), UUID.randomUUID().toString())))
                 .isInstanceOf(ErrorBilletera.NoEsNegocio.class);
+    }
+
+    @Test
+    void laBilleteraRetenidaRecibeFondosYRecuperaLasSalidasAlReactivarse() {
+        var titular = registrarCliente(null);
+        var negocio = registrarCliente("Bodega");
+        var billeteraId = jdbc.queryForObject("select id from billetera.billetera where usuario_id = ?",
+                Long.class, titular.id().valor());
+
+        ok(gestionarEstado.retener(billeteraId, "Revisión de cumplimiento"));
+        assertThat(jdbc.queryForObject("select estado from billetera.billetera where id = ?", String.class, billeteraId))
+                .isEqualTo("RETENIDA");
+        assertThat(consultar.bloqueada(billeteraId)).isFalse();
+        ok(recargar.recargar(titular.id(), Dinero.de("100"), "tok_aprobado", UUID.randomUUID().toString()));
+        assertThat(err(enviar.pagarNegocio(titular.id(), negocio.celular(), Dinero.de("25"), UUID.randomUUID().toString())))
+                .isInstanceOf(ErrorBilletera.BilleteraRetenida.class);
+        assertThat(saldo(titular)).isEqualTo(Dinero.de("100"));
+
+        ok(gestionarEstado.reactivar(billeteraId));
+        ok(enviar.pagarNegocio(titular.id(), negocio.celular(), Dinero.de("25"), UUID.randomUUID().toString()));
+        assertThat(saldo(titular)).isEqualTo(Dinero.de("75"));
+        assertThat(saldo(negocio)).isEqualTo(Dinero.de("25"));
+    }
+
+    @Test
+    void losDosPagosDeCreditoConservanSuCodigoEnLosMovimientos() {
+        var titular = registrarCliente(null);
+        ok(recargar.recargar(titular.id(), Dinero.de("200"), "tok_aprobado", UUID.randomUUID().toString()));
+
+        var cuota = ok(ejecutor.ejecutarResultado(() -> credito.cobrar(titular.id(), Dinero.de("25"), Dinero.CERO,
+                true, false, UUID.randomUUID().toString(), "Pago de cuota")));
+        var anticipo = ok(ejecutor.ejecutarResultado(() -> credito.cobrar(titular.id(), Dinero.de("35"), Dinero.CERO,
+                true, true, UUID.randomUUID().toString(), "Pago anticipado")));
+
+        var resumen = ok(consultar.resumen(titular.id(), null, null));
+        assertThat(resumen.saldo()).isEqualTo(Dinero.de("140"));
+        assertThat(resumen.pagosUsados()).isEqualTo(Dinero.CERO);
+        assertThat(resumen.movimientos()).filteredOn(m -> !m.esEntrada()).satisfiesExactlyInAnyOrder(
+                m -> {
+                    assertThat(m.transaccionId()).isEqualTo(cuota.transaccionId());
+                    assertThat(m.tipo().codigo()).isEqualTo("PAGO_CUOTA");
+                    assertThat(m.montoAbsoluto()).isEqualTo(Dinero.de("25"));
+                },
+                m -> {
+                    assertThat(m.transaccionId()).isEqualTo(anticipo.transaccionId());
+                    assertThat(m.tipo().codigo()).isEqualTo("PAGO_ANTICIPADO");
+                    assertThat(m.montoAbsoluto()).isEqualTo(Dinero.de("35"));
+                });
     }
 
     @Test

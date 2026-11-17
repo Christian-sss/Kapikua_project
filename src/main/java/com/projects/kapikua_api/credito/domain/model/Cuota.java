@@ -1,12 +1,14 @@
 package com.projects.kapikua_api.credito.domain.model;
 
+import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.credito.domain.service.CalculadoraFrancesa;
-
 import com.projects.kapikua_api.shared.Dinero;
+import com.projects.kapikua_api.shared.Result;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
@@ -44,9 +46,9 @@ public final class Cuota {
 
     public static Cuota reconstituir(Long id, int numero, LocalDate fechaVencimiento, Dinero capital, Dinero interes,
                                      Dinero interesMoratorio, Dinero montoPagado, Dinero montoApartado,
-                                     LocalDate fechaPago, EstadoCuota estado) {
+                                     LocalDate fechaPago, String estado) {
         return new Cuota(id, numero, fechaVencimiento, capital, interes, interesMoratorio, montoPagado, montoApartado,
-                fechaPago, estado);
+                fechaPago, EstadoCuota.desdeNombre(estado));
     }
 
     public Dinero total() {
@@ -58,8 +60,12 @@ public final class Cuota {
     }
 
     public boolean porCobrar() {
-        return estado == EstadoCuota.PENDIENTE || estado == EstadoCuota.VENCIDA;
+        return estado.porCobrar();
     }
+
+    public boolean esPendiente() { return estado.esPendiente(); }
+
+    public boolean estaVencida() { return estado.estaVencida(); }
 
     public boolean vencidaAl(LocalDate hoy) {
         return porCobrar() && hoy.isAfter(fechaVencimiento);
@@ -75,8 +81,13 @@ public final class Cuota {
         return montoApartado.faltaPara(pendiente());
     }
 
-    public Imputacion imputar(Dinero monto) {
-        if (monto.mayorQue(pendiente())) throw new IllegalArgumentException("El pago supera lo pendiente de la cuota");
+    record PagoImputado(Imputacion imputacion, Dinero sobrante) {}
+
+    Result<PagoImputado, ErrorCredito> imputar(Dinero monto, Dinero deApartado, LocalDate hoy) {
+        return estado.imputar(this, monto, deApartado, hoy);
+    }
+
+    private Imputacion calcularImputacion(Dinero monto) {
         var pagado = montoPagado;
         var moratorioPendiente = pagado.faltaPara(interesMoratorio);
         var tras = pagado.mayorQue(interesMoratorio) ? pagado.restar(interesMoratorio) : Dinero.CERO;
@@ -94,19 +105,21 @@ public final class Cuota {
         montoApartado = montoApartado.sumar(monto);
     }
 
-    Dinero pagar(Dinero monto, Dinero deApartado, LocalDate hoy) {
-        if (!porCobrar()) throw new IllegalStateException("La cuota " + numero + " no está por cobrar");
-        if (monto.mayorQue(pendiente())) throw new IllegalArgumentException("El pago supera lo pendiente de la cuota");
-        montoPagado = montoPagado.sumar(monto);
-        montoApartado = montoApartado.mayorQue(deApartado) ? montoApartado.restar(deApartado) : Dinero.CERO;
-        if (pendiente().esCero()) {
-            estado = EstadoCuota.PAGADA;
-            fechaPago = hoy;
-            var sobrante = montoApartado;
-            montoApartado = Dinero.CERO;
-            return sobrante;
+    Result<PagoImputado, ErrorCredito> aplicarImputacion(Dinero monto, Dinero deApartado, LocalDate hoy) {
+        Objects.requireNonNull(hoy);
+        if (monto.esCero() || monto.mayorQue(pendiente())) {
+            return Result.err(new ErrorCredito.PagoCuotaInvalido(numero));
         }
-        return Dinero.CERO;
+        var imputacion = calcularImputacion(monto);
+        var apartadoRestante = montoApartado.mayorQue(deApartado) ? montoApartado.restar(deApartado) : Dinero.CERO;
+        montoPagado = montoPagado.sumar(monto);
+        montoApartado = apartadoRestante;
+        if (!pendiente().esCero()) {
+            return Result.ok(new PagoImputado(imputacion, Dinero.CERO));
+        }
+        estado = EstadoCuota.PAGADA;
+        fechaPago = hoy;
+        return Result.ok(new PagoImputado(imputacion, liberarApartado()));
     }
 
     void actualizarMoratorio(LocalDate hoy, BigDecimal tasaDiaria) {
@@ -117,26 +130,38 @@ public final class Cuota {
         if (calculado.mayorQue(interesMoratorio)) interesMoratorio = calculado;
     }
 
-    void vencer() {
-        if (estado == EstadoCuota.PENDIENTE) estado = EstadoCuota.VENCIDA;
+    Result<CambioEstado, ErrorCredito> vencer(LocalDate hoy, OffsetDateTime ahora) {
+        return estado.vencer(this, hoy, ahora);
     }
 
-    Dinero anular() {
-        if (estado != EstadoCuota.PENDIENTE || !montoPagado.esCero()) {
-            throw new IllegalStateException("Solo se anula una cuota pendiente sin pagos");
-        }
-        estado = EstadoCuota.ANULADA;
-        var sobrante = montoApartado;
-        montoApartado = Dinero.CERO;
-        return sobrante;
+    Result<CambioEstado, ErrorCredito> anular(OffsetDateTime ahora) {
+        return estado.anular(this, ahora);
     }
 
-    void reprogramar(Dinero nuevoCapital, Dinero nuevoInteres) {
-        if (estado != EstadoCuota.PENDIENTE || !montoPagado.esCero()) {
-            throw new IllegalStateException("Solo se reprograma una cuota pendiente sin pagos");
-        }
-        capital = nuevoCapital;
-        interes = nuevoInteres;
+    CambioEstado aplicarAnulacion(OffsetDateTime ahora) {
+        var cambio = cambiarEstado(EstadoCuota.ANULADA, "Cuota anulada por pago anticipado", ahora);
+        liberarApartado();
+        return cambio;
+    }
+
+    CambioEstado cambiarEstado(EstadoCuota nuevo, String motivo, OffsetDateTime ahora) {
+        var cambio = new CambioEstado(estado.nombre(), nuevo.nombre(), motivo, ahora);
+        estado = nuevo;
+        return cambio;
+    }
+
+    Result<Void, ErrorCredito> verificarReprogramable() {
+        return estado.verificarReprogramable(this);
+    }
+
+    Result<Void, ErrorCredito> reprogramar(Dinero nuevoCapital, Dinero nuevoInteres) {
+        Objects.requireNonNull(nuevoCapital);
+        Objects.requireNonNull(nuevoInteres);
+        return verificarReprogramable().map(ignorado -> {
+            capital = nuevoCapital;
+            interes = nuevoInteres;
+            return null;
+        });
     }
 
     Dinero liberarApartado() {
@@ -158,5 +183,5 @@ public final class Cuota {
     public Dinero getMontoPagado() { return montoPagado; }
     public Dinero getMontoApartado() { return montoApartado; }
     public LocalDate getFechaPago() { return fechaPago; }
-    public EstadoCuota getEstado() { return estado; }
+    public String getEstado() { return estado.nombre(); }
 }

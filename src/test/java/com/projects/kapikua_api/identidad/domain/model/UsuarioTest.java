@@ -19,11 +19,12 @@ class UsuarioTest {
 
     private Result<Usuario, RegistroError> registrar(String dni, String correo, LocalDate nacimiento,
                                                      Optional<IdentidadVerificada> reniec, boolean enListas) {
-        return Usuario.registrar(dni, correo, "$2a$10$hash", nacimiento, reniec, enListas, "1.0", "987654321", "Bodega", AHORA);
+        return Usuario.registrar(new DatosRegistroUsuario(dni, correo, nacimiento), "$2a$10$hash", reniec, enListas,
+                "1.0", AHORA);
     }
 
     private Usuario registradoOk() {
-        var r = registrar("45678912", "Ana@Correo.PE", LocalDate.of(1990, 5, 20), RENIEC_OK, false);
+        var r = registrar("45678912", " Ana@Correo.PE ", LocalDate.of(1990, 5, 20), RENIEC_OK, false);
         assertThat(r).isInstanceOf(Result.Ok.class);
         return ((Result.Ok<Usuario, RegistroError>) r).valor();
     }
@@ -86,9 +87,9 @@ class UsuarioTest {
 
     @Test
     void rechazaDniYCorreoConFormatoInvalido() {
-        assertThat(error(registrar("1234567", "a@b.pe", LocalDate.of(1990, 1, 1), RENIEC_OK, false)))
+        assertThat(error(registrar("1234567", "sin-arroba", null, Optional.empty(), true)))
                 .isEqualTo(new RegistroError.DatoInvalido("DNI"));
-        assertThat(error(registrar("12345678", "sin-arroba", LocalDate.of(1990, 1, 1), RENIEC_OK, false)))
+        assertThat(error(registrar("12345678", "sin-arroba", null, Optional.empty(), true)))
                 .isEqualTo(new RegistroError.DatoInvalido("correo"));
     }
 
@@ -102,14 +103,4 @@ class UsuarioTest {
         assertThatThrownBy(() -> registradoOk().usuarioId()).isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    void elEventoDeRegistroSeRegistraCuandoLaBaseAsignaElId() {
-        var u = ((Result.Ok<Usuario, RegistroError>) registrar("45678912", "ana@correo.pe", LocalDate.of(1990, 5, 20),
-                Optional.of(new IdentidadVerificada("Ana", "Quispe")), false)).valor();
-        assertThat(u.extraerEventos()).isEmpty();
-        org.springframework.test.util.ReflectionTestUtils.setField(u, "id", 5L);
-        u.alGuardarseNuevo();
-        assertThat(u.extraerEventos()).containsExactly(new com.projects.kapikua_api.identidad.domain.event.UsuarioRegistrado(
-                new com.projects.kapikua_api.shared.UsuarioId(5L), "987654321", "Bodega"));
-    }
 }

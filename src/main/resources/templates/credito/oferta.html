@@ -15,7 +15,7 @@
         <div class="fila"><span>Cuotas semanales</span><span th:text="${o.cuotas()} + ' de ' + ${o.cuota()}"></span></div>
         <div class="fila"><span>TEA</span><span th:text="${o.tea().stripTrailingZeros().toPlainString()} + ' %'"></span></div>
         <div class="fila"><span>Vigente hasta</span><span th:text="${#temporals.format(o.vigenteHasta(), 'dd/MM/yyyy')}"></span></div>
-        <p class="aviso" th:if="${o.estado().name() == 'PENDIENTE_EFA' and o.requiereAval()}" style="margin-top:8px">
+        <p class="aviso" th:if="${o.estado() == 'PENDIENTE_EFA' and o.requiereAval()}" style="margin-top:8px">
             En tu nivel necesitas un aval: otro usuario de Kapikua que responde solo por las cuotas vencidas.
         </p>
         <p class="error" th:if="${o.motivoDenegacion()}" th:text="${o.motivoDenegacion()}"></p>

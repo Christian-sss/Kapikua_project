@@ -78,6 +78,11 @@ public sealed interface ErrorCredito extends ErrorDominio {
         public String mensaje() { return "No encontramos esa invitación, o ya no está pendiente."; }
     }
 
+    record AvalEstadoInvalido(String estado) implements ErrorCredito {
+        public String codigo()  { return "CR-35"; }
+        public String mensaje() { return "El aval no permite esta acción (está " + estado + ")."; }
+    }
+
     record CodigoNoValido(String detalle) implements ErrorCredito {
         public String codigo()  { return "CR-16"; }
         public String mensaje() { return detalle; }
@@ -146,6 +151,21 @@ public sealed interface ErrorCredito extends ErrorDominio {
                 + capitalPendiente + "). Para pagar todo, elige pago total."; }
     }
 
+    record MontoLiquidacionInvalido(String capitalPendiente) implements ErrorCredito {
+        public String codigo()  { return "CR-44"; }
+        public String mensaje() { return "Para liquidar el préstamo necesitas pagar el capital pendiente (" + capitalPendiente + ")."; }
+    }
+
+    record PagoRegularInvalido(String detalle) implements ErrorCredito {
+        public String codigo()  { return "CR-45"; }
+        public String mensaje() { return detalle; }
+    }
+
+    record ModalidadPagoInvalida() implements ErrorCredito {
+        public String codigo()  { return "CR-46"; }
+        public String mensaje() { return "Selecciona una modalidad de pago anticipado válida."; }
+    }
+
     record SaldoInsuficienteParaPagar(String necesario) implements ErrorCredito {
         public String codigo()  { return "CR-30"; }
         public String mensaje() { return "No tienes saldo disponible suficiente. Necesitas " + necesario + "."; }
@@ -154,6 +174,56 @@ public sealed interface ErrorCredito extends ErrorDominio {
     record NadaQuePagar() implements ErrorCredito {
         public String codigo()  { return "CR-31"; }
         public String mensaje() { return "No tienes cuotas por pagar."; }
+    }
+
+    record OperacionBilleteraNoPermitida(String detalle) implements ErrorCredito {
+        public String codigo()  { return "CR-33"; }
+        public String mensaje() { return detalle; }
+    }
+
+    record RespuestaEfaInvalida() implements ErrorCredito {
+        public String codigo()  { return "CR-34"; }
+        public String mensaje() { return "La entidad aliada devolvió una confirmación incompleta."; }
+    }
+
+    record OfertaAunVigente() implements ErrorCredito {
+        public String codigo()  { return "CR-36"; }
+        public String mensaje() { return "La oferta aún está dentro de su vigencia."; }
+    }
+
+    record CuotaEstadoInvalido(int numero, String estado) implements ErrorCredito {
+        public String codigo()  { return "CR-37"; }
+        public String mensaje() { return "La cuota " + numero + " no permite esta operación (estado " + estado + ")."; }
+    }
+
+    record CuotaAunNoVence(int numero) implements ErrorCredito {
+        public String codigo()  { return "CR-38"; }
+        public String mensaje() { return "La cuota " + numero + " aún no llegó a su fecha de vencimiento."; }
+    }
+
+    record PagoCuotaInvalido(int numero) implements ErrorCredito {
+        public String codigo()  { return "CR-39"; }
+        public String mensaje() { return "El pago debe ser mayor que cero y no superar lo pendiente de la cuota " + numero + "."; }
+    }
+
+    record PrestamoYaPagado() implements ErrorCredito {
+        public String codigo()  { return "CR-40"; }
+        public String mensaje() { return "El préstamo ya está pagado."; }
+    }
+
+    record PrestamoConSaldoPendiente() implements ErrorCredito {
+        public String codigo()  { return "CR-41"; }
+        public String mensaje() { return "El préstamo aún tiene cuotas por cobrar."; }
+    }
+
+    record PrestamoSinCuotasVencidas() implements ErrorCredito {
+        public String codigo()  { return "CR-42"; }
+        public String mensaje() { return "El préstamo aún no tiene cuotas vencidas."; }
+    }
+
+    record PrestamoYaEnMora() implements ErrorCredito {
+        public String codigo()  { return "CR-43"; }
+        public String mensaje() { return "El préstamo ya está en mora."; }
     }
 
     record ParametrosNoDisponibles() implements ErrorCredito {

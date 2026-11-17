@@ -43,7 +43,7 @@
                          th:text="${#temporals.format(c.fechaVencimiento, 'dd/MM/yyyy')} + ' · ' + ${c.estado}"></div>
                 </div>
                 <div class="monto">
-                    <div th:text="${c.total()}" th:classappend="${c.estado.name() == 'VENCIDA'} ? 'salida' : ''"></div>
+                    <div th:text="${c.total()}" th:classappend="${c.estaVencida()} ? 'salida' : ''"></div>
                     <div class="detalle" th:text="'Pagado ' + ${c.montoPagado}
                          + (${c.interesMoratorio.esCero()} ? '' : ' · mora ' + ${c.interesMoratorio})"></div>
                 </div>

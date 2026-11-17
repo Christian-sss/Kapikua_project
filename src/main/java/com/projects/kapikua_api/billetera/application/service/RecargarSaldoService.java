@@ -9,7 +9,7 @@ import com.projects.kapikua_api.billetera.application.port.out.Titulares;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.billetera.domain.model.Billetera;
-import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
+import com.projects.kapikua_api.billetera.domain.model.TiposTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Topes;
 import com.projects.kapikua_api.billetera.domain.service.TopesSBS;
 import com.projects.kapikua_api.billetera.domain.model.Transaccion;
@@ -61,14 +61,14 @@ public class RecargarSaldoService implements RecargarSaldoUseCase {
     public Result<Comprobante, ErrorBilletera> recargar(UsuarioId usuarioId, Dinero monto, String tokenTarjeta,
                                                         String referenciaFormulario) {
         var previa = validar(usuarioId, monto);
-        if (previa instanceof Result.Err<Billetera, ErrorBilletera> err) return Result.err(err.error());
+        if (previa instanceof Result.Err<RecargaValidada, ErrorBilletera> err) return Result.err(err.error());
 
         var cargo = pasarela.cargar(monto, tokenTarjeta, titulares.correo(usuarioId), referenciaFormulario);
         if (cargo instanceof Result.Err<String, ErrorBilletera> err) return Result.err(err.error());
         var idCargo = ((Result.Ok<String, ErrorBilletera>) cargo).valor();
 
         try {
-            var resultado = ejecutor.ejecutar(() -> validar(usuarioId, monto).flatMap(b -> acreditar(b, monto, idCargo)));
+            var resultado = ejecutor.ejecutarResultado(() -> acreditar(usuarioId, monto, idCargo));
             if (resultado instanceof Result.Err<Comprobante, ErrorBilletera> err) {
                 log.error("Cargo {} cobrado pero no acreditado ({}): requiere devolución manual",
                         idCargo, err.error().codigo());
@@ -84,7 +84,9 @@ public class RecargarSaldoService implements RecargarSaldoUseCase {
         }
     }
 
-    private Result<Billetera, ErrorBilletera> validar(UsuarioId usuarioId, Dinero monto) {
+    private record RecargaValidada(Billetera billetera, Dinero saldoMaximo) {}
+
+    private Result<RecargaValidada, ErrorBilletera> validar(UsuarioId usuarioId, Dinero monto) {
         var billetera = billeteras.porUsuario(usuarioId);
         if (billetera.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
         var topes = parametros.topesVigentes(LocalDate.now(clock));
@@ -92,20 +94,26 @@ public class RecargarSaldoService implements RecargarSaldoUseCase {
         var mes = PeriodoMensual.actual(clock);
         var acumulado = transacciones.acumulado(billetera.get().getId(), mes.desde(), mes.hasta());
         var t = ((Result.Ok<Topes, ErrorBilletera>) topes).valor();
-        return TopesSBS.validarRecarga(billetera.get(), monto, acumulado, t)
-                .flatMap(ok -> billetera.get().acreditar(monto, t.saldoMaximo(), false))
-                .map(ok -> billetera.get());
+        return TopesSBS.validar(TiposTransaccion.RECARGA, billetera.get(), monto, acumulado, t)
+                .map(ok -> new RecargaValidada(billetera.get(), t.saldoMaximo()));
     }
 
-    private Result<Comprobante, ErrorBilletera> acreditar(Billetera billetera, Dinero monto, String idCargo) {
+    private Result<Comprobante, ErrorBilletera> acreditar(UsuarioId usuarioId, Dinero monto, String idCargo) {
         var existente = transacciones.porReferencia(idCargo);
-        if (existente.isPresent()) return Result.ok(comprobante(existente.get(), billetera.getUsuarioId()));
+        if (existente.isPresent()) return Result.ok(comprobante(existente.get(), usuarioId));
+
+        var validacion = validar(usuarioId, monto);
+        if (validacion instanceof Result.Err<RecargaValidada, ErrorBilletera> err) return Result.err(err.error());
+        var datos = ((Result.Ok<RecargaValidada, ErrorBilletera>) validacion).valor();
+        var billetera = datos.billetera();
+        var credito = billetera.acreditar(monto, datos.saldoMaximo(), false);
+        if (credito instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
 
         var guardada = billeteras.guardar(billetera);
         var ahora = OffsetDateTime.now(clock);
         var transaccion = transacciones.registrar(Transaccion.recarga(guardada, monto, idCargo, ahora));
         publicador.publicarTodos(transaccion.eventos());
-        return Result.ok(new Comprobante(transaccion.id(), TipoTransaccion.RECARGA, monto, idCargo,
+        return Result.ok(new Comprobante(transaccion.id(), transaccion.tipo(), monto, idCargo,
                 "Tarjeta", ahora, guardada.saldoDisponible()));
     }
 

@@ -93,4 +93,34 @@ public sealed interface ErrorBilletera extends ErrorDominio {
         public String codigo()  { return "BI-16"; }
         public String mensaje() { return "No es posible operar en este momento. Intenta más tarde."; }
     }
+
+    record BilleteraRetenida() implements ErrorBilletera {
+        public String codigo()  { return "BI-19"; }
+        public String mensaje() { return "La billetera está retenida y solo puede recibir dinero."; }
+    }
+
+    record BilleteraYaActiva() implements ErrorBilletera {
+        public String codigo()  { return "BI-20"; }
+        public String mensaje() { return "La billetera ya está activa."; }
+    }
+
+    record BilleteraYaRetenida() implements ErrorBilletera {
+        public String codigo()  { return "BI-21"; }
+        public String mensaje() { return "La billetera ya está retenida."; }
+    }
+
+    record BilleteraYaBloqueada() implements ErrorBilletera {
+        public String codigo()  { return "BI-22"; }
+        public String mensaje() { return "La billetera ya se encuentra bloqueada."; }
+    }
+
+    record MotivoEstadoInvalido() implements ErrorBilletera {
+        public String codigo()  { return "BI-23"; }
+        public String mensaje() { return "Indica el motivo del cambio de estado de la billetera."; }
+    }
+
+    record SaldoApartadoInsuficiente() implements ErrorBilletera {
+        public String codigo()  { return "BI-24"; }
+        public String mensaje() { return "La billetera no tiene saldo apartado suficiente."; }
+    }
 }

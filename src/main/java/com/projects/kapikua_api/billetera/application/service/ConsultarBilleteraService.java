@@ -6,8 +6,8 @@ import com.projects.kapikua_api.billetera.application.port.out.BilleteraReposito
 import com.projects.kapikua_api.billetera.application.port.out.ParametrosRegulatorios;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
+import com.projects.kapikua_api.billetera.domain.model.Billetera;
 import com.projects.kapikua_api.billetera.domain.model.Celular;
-import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Topes;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -116,15 +116,14 @@ public class ConsultarBilleteraService implements ConsultarBilleteraUseCase {
 
     @Override
     public boolean bloqueada(Long billeteraId) {
-        return billeteras.porId(billeteraId).map(b -> !b.estaActiva()).orElse(false);
+        return billeteras.porId(billeteraId).map(Billetera::estaBloqueada).orElse(false);
     }
 
     @Override
     public List<OperacionTitular> operacionesDelTitular(Long billeteraId, OffsetDateTime desde, OffsetDateTime hasta) {
         return transacciones.movimientos(billeteraId, desde, hasta, 1000).stream()
-                .filter(m -> m.tipo() == TipoTransaccion.RECARGA ? m.esEntrada()
-                        : (m.tipo() == TipoTransaccion.TRANSFERENCIA || m.tipo() == TipoTransaccion.PAGO_NEGOCIO) && !m.esEntrada())
-                .map(m -> new OperacionTitular(m.transaccionId(), m.tipo().name(), m.montoAbsoluto(), m.fecha()))
+                .filter(m -> m.tipo().debeObservarse(m.esEntrada()))
+                .map(m -> new OperacionTitular(m.transaccionId(), m.tipo().codigo(), m.montoAbsoluto(), m.fecha()))
                 .sorted(Comparator.comparing(OperacionTitular::fecha))
                 .toList();
     }

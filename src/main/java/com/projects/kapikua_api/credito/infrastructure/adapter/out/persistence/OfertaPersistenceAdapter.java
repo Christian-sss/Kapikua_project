@@ -3,8 +3,6 @@ package com.projects.kapikua_api.credito.infrastructure.adapter.out.persistence;
 import com.projects.kapikua_api.credito.application.port.out.OfertaRepositoryPort;
 import com.projects.kapikua_api.credito.domain.model.Aval;
 import com.projects.kapikua_api.credito.domain.model.CondicionesCredito;
-import com.projects.kapikua_api.credito.domain.model.EstadoAval;
-import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
 import com.projects.kapikua_api.credito.domain.model.Oferta;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -12,8 +10,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,7 +28,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -40,8 +35,8 @@ import java.util.Optional;
 
 @Repository
 class OfertaPersistenceAdapter implements OfertaRepositoryPort {
-    private static final List<String> GARANTIA_ACTIVA = nombres(EstadoAval.ACEPTADO, EstadoAval.ACTIVADO);
-    private static final List<String> EN_CURSO = nombres(EstadoAval.PENDIENTE, EstadoAval.ACEPTADO, EstadoAval.ACTIVADO);
+    private static final List<String> GARANTIA_ACTIVA = List.of("ACEPTADO", "ACTIVADO");
+    private static final List<String> EN_CURSO = List.of("PENDIENTE", "ACEPTADO", "ACTIVADO");
 
     private final OfertaJpaRepository repositorio;
     private final EntityManager em;
@@ -120,10 +115,6 @@ class OfertaPersistenceAdapter implements OfertaRepositoryPort {
                 .list();
     }
 
-    private static List<String> nombres(EstadoAval... estados) {
-        return Arrays.stream(estados).map(Enum::name).toList();
-    }
-
     @Override
     public Oferta guardar(Oferta o) {
         if (o.getId() == null) {
@@ -200,9 +191,8 @@ class OfertaJpa {
     @Column(name = "codigo_solicitud_efa", unique = true, length = 30)
     String codigoSolicitudEfa;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
-    EstadoOferta estado;
+    String estado;
 
     @Column(precision = 12, scale = 2)
     BigDecimal monto;
@@ -258,9 +248,8 @@ class AvalJpa {
     @Column(name = "usuario_aval_id", nullable = false)
     Long usuarioAvalId;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    EstadoAval estado;
+    String estado;
 
     @Column(name = "porcentaje_retencion_autorizado", precision = 5, scale = 2)
     BigDecimal porcentajeRetencionAutorizado;

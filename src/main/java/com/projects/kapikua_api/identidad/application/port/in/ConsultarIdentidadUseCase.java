@@ -8,6 +8,8 @@ import java.util.Optional;
 public interface ConsultarIdentidadUseCase {
     Optional<DatosIdentidad> porId(UsuarioId usuarioId);
 
+    String nombreEnmascarado(UsuarioId usuarioId);
+
     boolean consentimientoVigente(UsuarioId usuarioId, TipoConsentimiento tipo);
 
     record DatosIdentidad(UsuarioId usuarioId, String dni, String nombres, String apellidos, String correo,

@@ -4,9 +4,6 @@ import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.credito.domain.model.CondicionesCredito;
 import com.projects.kapikua_api.credito.domain.model.ConstanciaAceptacion;
 import com.projects.kapikua_api.credito.domain.model.Cuota;
-import com.projects.kapikua_api.credito.domain.model.EstadoAval;
-import com.projects.kapikua_api.credito.domain.model.EstadoOferta;
-import com.projects.kapikua_api.credito.domain.model.EstadoPrestamo;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -23,20 +20,20 @@ public interface ConsultarCreditoUseCase {
 
     record Panel(DetallePrestamo prestamo, DetalleOferta oferta, List<Invitacion> invitaciones, List<Garantia> garantias) {}
 
-    record Garantia(Long prestamoId, String deudor, EstadoAval estadoAval, EstadoPrestamo estadoPrestamo, Dinero monto,
+    record Garantia(Long prestamoId, String deudor, String estadoAval, String estadoPrestamo, Dinero monto,
                     int cuotasVencidas, Dinero vencido, OffsetDateTime avisadoEl) {}
 
     record Invitacion(Long ofertaId, String deudor, Dinero monto, OffsetDateTime vence) {}
 
-    record DetalleOferta(Long id, EstadoOferta estado, String recomendacion, String motivo,
+    record DetalleOferta(Long id, String estado, String recomendacion, String motivo,
                          Dinero monto, int cuotas, BigDecimal tea, Dinero cuota, boolean condicionesConfirmadas,
                          boolean requiereAval, List<AvalVista> avales, LocalDate vigenteHasta, String motivoDenegacion,
                          boolean puedeDesignarAval, boolean puedeEnviarAEntidad, boolean puedeAceptar,
                          CondicionesCredito condicionesEfa) {}
 
-    record AvalVista(String nombre, EstadoAval estado, OffsetDateTime vence) {}
+    record AvalVista(String nombre, String estado, OffsetDateTime vence) {}
 
-    record DetallePrestamo(Long id, EstadoPrestamo estado, String codigoCredito, Dinero monto, BigDecimal tea,
+    record DetallePrestamo(Long id, String estado, String codigoCredito, Dinero monto, BigDecimal tea,
                            BigDecimal tcea, int porcentajeRetencion, Dinero capitalPendiente,
                            ConstanciaAceptacion constancia, String aval, List<Cuota> cuotas,
                            boolean cargoAutorizado, Dinero apartado, int cuotasVencidas, Dinero vencido) {}

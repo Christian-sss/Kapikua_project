@@ -6,10 +6,12 @@ import com.projects.kapikua_api.billetera.application.port.out.BilleteraReposito
 import com.projects.kapikua_api.billetera.application.port.out.ParametrosRegulatorios;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
+import com.projects.kapikua_api.billetera.domain.model.AcumuladoMensual;
 import com.projects.kapikua_api.billetera.domain.model.Billetera;
-import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
+import com.projects.kapikua_api.billetera.domain.model.TiposTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Topes;
 import com.projects.kapikua_api.billetera.domain.model.Transaccion;
+import com.projects.kapikua_api.billetera.domain.service.TopesSBS;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -41,7 +43,7 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
 
     @Override
     public Result<Void, ErrorBilletera> verificarIngreso(UsuarioId usuarioId, Dinero monto) {
-        return billeteraYTopes(usuarioId, monto).map(b -> null);
+        return prepararDesembolso(usuarioId, monto).map(ingreso -> null);
     }
 
     @Override
@@ -51,11 +53,13 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         var existente = transacciones.porReferencia(referencia);
         if (existente.isPresent()) return Result.ok(existente.get().id());
 
-        var validacion = billeteraYTopes(usuarioId, monto);
-        if (validacion instanceof Result.Err<Billetera, ErrorBilletera> err) return Result.err(err.error());
-        var billetera = ((Result.Ok<Billetera, ErrorBilletera>) validacion).valor();
+        var validacion = prepararDesembolso(usuarioId, monto);
+        if (validacion instanceof Result.Err<Ingreso, ErrorBilletera> err) return Result.err(err.error());
+        var ingreso = ((Result.Ok<Ingreso, ErrorBilletera>) validacion).valor();
+        var abono = ingreso.billetera().acreditar(monto, ingreso.saldoMaximo(), false);
+        if (abono instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
 
-        var guardada = billeteras.guardar(billetera);
+        var guardada = billeteras.guardar(ingreso.billetera());
         var ahora = OffsetDateTime.now(clock);
         var transaccion = transacciones.registrar(Transaccion.desembolso(guardada, monto, referencia, descripcion, ahora));
         publicador.publicarTodos(transaccion.eventos());
@@ -67,9 +71,10 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
     public Result<Dinero, ErrorBilletera> apartar(UsuarioId usuarioId, Dinero monto) {
         var billetera = billeteras.porUsuario(usuarioId);
         if (billetera.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
-        var apartado = billetera.get().apartar(monto);
-        if (!apartado.esCero()) billeteras.guardar(billetera.get());
-        return Result.ok(apartado);
+        return billetera.get().apartar(monto).map(apartado -> {
+            if (!apartado.esCero()) billeteras.guardar(billetera.get());
+            return apartado;
+        });
     }
 
     @Override
@@ -78,9 +83,10 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         if (monto.esCero()) return Result.ok();
         var billetera = billeteras.porUsuario(usuarioId);
         if (billetera.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
-        billetera.get().liberarApartado(monto);
-        billeteras.guardar(billetera.get());
-        return Result.ok();
+        return billetera.get().liberarApartado(monto).map(liberado -> {
+            if (!liberado.esCero()) billeteras.guardar(billetera.get());
+            return null;
+        });
     }
 
     @Override
@@ -94,6 +100,8 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         var encontrada = billeteras.porUsuario(usuarioId);
         if (encontrada.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
         var b = encontrada.get();
+        var salida = b.validarSalida();
+        if (salida instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
 
         var deApartado = menor(menor(usarApartado, b.getSaldoApartado()), monto);
         var deDisponible = menor(monto.restar(deApartado), b.saldoDisponible());
@@ -101,14 +109,21 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         if (exigirTodo && cobrado.menorQue(monto)) return Result.err(new ErrorBilletera.SaldoInsuficiente());
         if (cobrado.esCero()) return Result.ok(Cargo.NADA);
 
-        b.consumirApartado(deApartado);
+        var tipo = anticipado ? TiposTransaccion.PAGO_ANTICIPADO : TiposTransaccion.PAGO_CUOTA;
+        var topes = parametros.topesVigentes(LocalDate.now(clock));
+        if (topes instanceof Result.Err<Topes, ErrorBilletera> err) return Result.err(err.error());
+        var t = ((Result.Ok<Topes, ErrorBilletera>) topes).valor();
+        var limite = TopesSBS.validar(tipo, b, cobrado, AcumuladoMensual.VACIO, t);
+        if (limite instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
+
+        var consumo = b.consumirApartado(deApartado);
+        if (consumo instanceof Result.Err<Dinero, ErrorBilletera> err) return Result.err(err.error());
         if (!deDisponible.esCero()) {
             var debito = b.debitar(deDisponible);
             if (debito instanceof Result.Err<Void, ErrorBilletera> err) return Result.err(err.error());
         }
         var guardada = billeteras.guardar(b);
         var ahora = OffsetDateTime.now(clock);
-        var tipo = anticipado ? TipoTransaccion.PAGO_ANTICIPADO : TipoTransaccion.PAGO_CUOTA;
         var transaccion = transacciones.registrar(Transaccion.pagoACredito(tipo, guardada, cobrado, referencia,
                 descripcion, ahora));
         publicador.publicarTodos(transaccion.eventos());
@@ -119,13 +134,16 @@ public class OperacionesCreditoService implements OperacionesCreditoUseCase {
         return a.menorQue(b) ? a : b;
     }
 
-    private Result<Billetera, ErrorBilletera> billeteraYTopes(UsuarioId usuarioId, Dinero monto) {
+    private record Ingreso(Billetera billetera, Dinero saldoMaximo) {}
+
+    private Result<Ingreso, ErrorBilletera> prepararDesembolso(UsuarioId usuarioId, Dinero monto) {
         var billetera = billeteras.porUsuario(usuarioId);
         if (billetera.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
         var topes = parametros.topesVigentes(LocalDate.now(clock));
         if (topes instanceof Result.Err<Topes, ErrorBilletera> err) return Result.err(err.error());
         var t = ((Result.Ok<Topes, ErrorBilletera>) topes).valor();
-        if (monto.mayorQue(t.porOperacion())) return Result.err(new ErrorBilletera.TopePorOperacion(t.porOperacion()));
-        return billetera.get().acreditar(monto, t.saldoMaximo(), false).map(ok -> billetera.get());
+        var b = billetera.get();
+        return TopesSBS.validar(TiposTransaccion.DESEMBOLSO, b, monto, AcumuladoMensual.VACIO, t)
+                .map(ok -> new Ingreso(b, t.saldoMaximo()));
     }
 }

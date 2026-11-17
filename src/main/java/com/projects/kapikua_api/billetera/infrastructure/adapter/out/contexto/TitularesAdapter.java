@@ -15,21 +15,11 @@ class TitularesAdapter implements Titulares {
 
     @Override
     public String nombreEnmascarado(UsuarioId usuarioId) {
-        return identidad.porId(usuarioId)
-                .map(d -> primeraPalabra(d.nombres()) + " " + inicial(d.apellidos()))
-                .orElse("Usuario Kapikua");
+        return identidad.nombreEnmascarado(usuarioId);
     }
 
     @Override
     public String correo(UsuarioId usuarioId) {
         return identidad.porId(usuarioId).map(ConsultarIdentidadUseCase.DatosIdentidad::correo).orElseThrow();
-    }
-
-    private static String primeraPalabra(String texto) {
-        return texto.trim().split("\\s+")[0];
-    }
-
-    private static String inicial(String texto) {
-        return texto.isBlank() ? "" : Character.toUpperCase(texto.trim().charAt(0)) + ".";
     }
 }

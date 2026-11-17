@@ -5,6 +5,7 @@ import com.projects.kapikua_api.identidad.application.port.out.CifradorContrasen
 import com.projects.kapikua_api.identidad.application.port.out.EmisorToken;
 import com.projects.kapikua_api.identidad.application.port.out.UsuarioRepositoryPort;
 import com.projects.kapikua_api.identidad.domain.error.AutenticacionError;
+import com.projects.kapikua_api.identidad.domain.model.DatosRegistroUsuario;
 import com.projects.kapikua_api.identidad.domain.model.IdentidadVerificada;
 import com.projects.kapikua_api.identidad.domain.model.Rol;
 import com.projects.kapikua_api.identidad.domain.model.Usuario;
@@ -90,8 +91,8 @@ class AutenticarServiceTest {
     }
 
     private Usuario usuario(Long id, String dni, String correo, String clave, boolean activo) throws Exception {
-        var r = Usuario.registrar(dni, correo, cifrador.cifrar(clave), LocalDate.of(1990, 1, 1),
-                Optional.of(new IdentidadVerificada("Ana", "Quispe")), false, "1.0", "987654321", null,
+        var datos = new DatosRegistroUsuario(dni, correo, LocalDate.of(1990, 1, 1));
+        var r = Usuario.registrar(datos, cifrador.cifrar(clave), Optional.of(new IdentidadVerificada("Ana", "Quispe")), false, "1.0",
                 OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5)));
         var u = ((Result.Ok<Usuario, ?>) r).valor();
         asignar(u, "id", id);

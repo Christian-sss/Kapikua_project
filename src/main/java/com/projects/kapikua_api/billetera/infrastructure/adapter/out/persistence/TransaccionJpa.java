@@ -1,13 +1,11 @@
 package com.projects.kapikua_api.billetera.infrastructure.adapter.out.persistence;
 
-import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
+import com.projects.kapikua_api.billetera.domain.model.TiposTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Transaccion;
 import com.projects.kapikua_api.shared.Dinero;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -30,9 +28,8 @@ class TransaccionJpa {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
-    TipoTransaccion tipo;
+    String tipo;
 
     @Column(nullable = false, precision = 12, scale = 2)
     BigDecimal monto;
@@ -54,7 +51,7 @@ class TransaccionJpa {
 
     static TransaccionJpa desde(Transaccion t) {
         var j = new TransaccionJpa();
-        j.tipo = t.tipo();
+        j.tipo = t.tipo().codigo();
         j.monto = t.monto().valor();
         j.referencia = t.referencia();
         j.descripcion = t.descripcion();
@@ -65,7 +62,7 @@ class TransaccionJpa {
     }
 
     Transaccion aDominio() {
-        return new Transaccion(id, tipo, Dinero.de(monto), referencia, descripcion, fecha,
+        return new Transaccion(id, TiposTransaccion.desdeCodigo(tipo), Dinero.de(monto), referencia, descripcion, fecha,
                 movimientos.stream()
                         .map(m -> new Transaccion.Movimiento(m.billeteraId, m.monto, Dinero.de(m.saldoPosterior)))
                         .toList());

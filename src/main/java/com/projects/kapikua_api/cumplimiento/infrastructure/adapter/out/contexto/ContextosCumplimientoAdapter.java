@@ -1,6 +1,6 @@
 package com.projects.kapikua_api.cumplimiento.infrastructure.adapter.out.contexto;
 
-import com.projects.kapikua_api.billetera.application.port.in.BloquearBilleteraUseCase;
+import com.projects.kapikua_api.billetera.application.port.in.GestionarEstadoBilleteraUseCase;
 import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase;
 import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.cumplimiento.application.port.in.ConsultarParametrosUseCase;
@@ -22,14 +22,14 @@ import java.util.Optional;
 @Component
 class ContextosCumplimientoAdapter implements ContextosCumplimiento {
     private final ConsultarBilleteraUseCase billetera;
-    private final BloquearBilleteraUseCase bloqueo;
+    private final GestionarEstadoBilleteraUseCase estadoBilletera;
     private final ConsultarIdentidadUseCase identidad;
     private final ConsultarParametrosUseCase parametros;
 
-    ContextosCumplimientoAdapter(ConsultarBilleteraUseCase billetera, BloquearBilleteraUseCase bloqueo,
+    ContextosCumplimientoAdapter(ConsultarBilleteraUseCase billetera, GestionarEstadoBilleteraUseCase estadoBilletera,
                                  ConsultarIdentidadUseCase identidad, ConsultarParametrosUseCase parametros) {
         this.billetera = billetera;
-        this.bloqueo = bloqueo;
+        this.estadoBilletera = estadoBilletera;
         this.identidad = identidad;
         this.parametros = parametros;
     }
@@ -53,7 +53,7 @@ class ContextosCumplimientoAdapter implements ContextosCumplimiento {
 
     @Override
     public Optional<String> bloquear(Long billeteraId, String motivo) {
-        return switch (bloqueo.bloquearPorCumplimiento(billeteraId, motivo)) {
+        return switch (estadoBilletera.bloquearPorCumplimiento(billeteraId, motivo)) {
             case Result.Ok<Void, ErrorBilletera> ok -> Optional.empty();
             case Result.Err<Void, ErrorBilletera> err -> Optional.of(err.error().mensaje());
         };

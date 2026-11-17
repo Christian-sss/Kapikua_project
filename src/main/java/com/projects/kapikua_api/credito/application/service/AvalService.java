@@ -122,7 +122,7 @@ public class AvalService implements GestionarAvalUseCase {
             return r;
         });
         if (acepta && respuesta.esOk()) decision.pedirSiEstaLista(ofertaId);
-        return respuesta;
+        return respuesta.map(cambio -> null);
     }
 
     private static String detalle(Long ofertaId) {

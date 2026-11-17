@@ -99,8 +99,12 @@ class OperacionesBilleteraAdapter implements OperacionesBilletera {
     }
 
     @Override
-    public void liberarApartado(UsuarioId usuarioId, Dinero monto) {
-        operaciones.liberarApartado(usuarioId, monto);
+    public Result<Void, ErrorCredito> liberarApartado(UsuarioId usuarioId, Dinero monto) {
+        return switch (operaciones.liberarApartado(usuarioId, monto)) {
+            case Result.Ok<Void, ErrorBilletera> ok -> Result.ok();
+            case Result.Err<Void, ErrorBilletera> err ->
+                    Result.err(new ErrorCredito.OperacionBilleteraNoPermitida(err.error().mensaje()));
+        };
     }
 
     @Override
@@ -109,8 +113,10 @@ class OperacionesBilleteraAdapter implements OperacionesBilletera {
         return switch (operaciones.cobrar(usuarioId, monto, usarApartado, exigirTodo, anticipado, referencia, descripcion)) {
             case Result.Ok<OperacionesCreditoUseCase.Cargo, ErrorBilletera> ok -> Result.ok(new Cargo(
                     ok.valor().transaccionId(), ok.valor().cobrado(), ok.valor().deApartado(), ok.valor().nuevo()));
-            case Result.Err<OperacionesCreditoUseCase.Cargo, ErrorBilletera> err ->
-                    Result.err(new ErrorCredito.DesembolsoNoPermitido(err.error().mensaje()));
+            case Result.Err<OperacionesCreditoUseCase.Cargo, ErrorBilletera> err -> Result.err(
+                    err.error() instanceof ErrorBilletera.SaldoInsuficiente
+                            ? new ErrorCredito.SaldoInsuficienteParaPagar(monto.toString())
+                            : new ErrorCredito.OperacionBilleteraNoPermitida(err.error().mensaje()));
         };
     }
 }
@@ -143,9 +149,6 @@ class ClientesCreditoAdapter implements ClientesCredito {
 
     @Override
     public String nombreEnmascarado(UsuarioId usuarioId) {
-        return identidad.porId(usuarioId)
-                .map(d -> d.nombres().trim().split("\\s+")[0] + " "
-                        + (d.apellidos().isBlank() ? "" : Character.toUpperCase(d.apellidos().trim().charAt(0)) + "."))
-                .orElse("Usuario Kapikua");
+        return identidad.nombreEnmascarado(usuarioId);
     }
 }

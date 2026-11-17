@@ -1,12 +1,11 @@
 package com.projects.kapikua_api.credito.domain.model;
 
-import com.projects.kapikua_api.credito.domain.service.CalculadoraFrancesa;
-
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.credito.domain.event.AtrasoDetectado;
 import com.projects.kapikua_api.credito.domain.event.PagoAplicado;
 import com.projects.kapikua_api.credito.domain.event.PrestamoDesembolsado;
 import com.projects.kapikua_api.credito.domain.event.PrestamoPagado;
+import com.projects.kapikua_api.credito.domain.service.CalculadoraFrancesa;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.MatematicaFinanciera;
 import com.projects.kapikua_api.shared.Result;
@@ -79,7 +78,7 @@ public final class Prestamo extends AgregadoRaiz {
 
     public static Prestamo desembolsar(Oferta oferta, String codigoCreditoEfa, int porcentajeRetencion,
                                        ConstanciaAceptacion constancia, OffsetDateTime ahora, ZoneId zona) {
-        if (oferta.getEstado() != EstadoOferta.ACEPTADA) throw new IllegalStateException("La oferta no está aceptada");
+        if (!oferta.estaAceptada()) throw new IllegalStateException("La oferta no está aceptada");
         var c = oferta.getCondiciones();
         var cronograma = CalculadoraFrancesa.cronograma(c.monto(), c.tea(), c.cuotas(),
                 ahora.atZoneSameInstant(zona).toLocalDate());
@@ -94,16 +93,20 @@ public final class Prestamo extends AgregadoRaiz {
                                         String codigoCreditoEfa, Dinero monto, BigDecimal tea, BigDecimal tcea,
                                         int porcentajeRetencion, ConstanciaAceptacion constancia,
                                         boolean cargoAutorizado, OffsetDateTime fechaAutorizacionCargo,
-                                        OffsetDateTime fechaRevocacionCargo, EstadoPrestamo estado,
+                                        OffsetDateTime fechaRevocacionCargo, String estado,
                                         OffsetDateTime fechaDesembolso, Long version, List<Cuota> cuotas,
                                         boolean conPagosDeAval) {
         return new Prestamo(id, ofertaId, usuarioId, codigoEntidad, codigoCreditoEfa, monto, tea, tcea,
                 porcentajeRetencion, constancia, cargoAutorizado, fechaAutorizacionCargo, fechaRevocacionCargo,
-                estado, fechaDesembolso, version, cuotas, conPagosDeAval);
+                EstadoPrestamo.desdeNombre(estado), fechaDesembolso, version, cuotas, conPagosDeAval);
     }
 
     public boolean estaActivo() {
-        return estado == EstadoPrestamo.VIGENTE || estado == EstadoPrestamo.EN_MORA;
+        return estado.estaActivo();
+    }
+
+    public boolean estaPagado() {
+        return estado.estaPagado();
     }
 
     public Dinero capitalPendiente() {
@@ -115,7 +118,11 @@ public final class Prestamo extends AgregadoRaiz {
     }
 
     public List<Cuota> cuotasVencidas() {
-        return cuotas.stream().filter(c -> c.getEstado() == EstadoCuota.VENCIDA).toList();
+        return cuotas.stream().filter(Cuota::estaVencida).toList();
+    }
+
+    boolean tieneCuotasVencidas() {
+        return cuotas.stream().anyMatch(Cuota::estaVencida);
     }
 
     public List<Cuota> cuotasPorCobrarAl(LocalDate hoy) {
@@ -142,113 +149,118 @@ public final class Prestamo extends AgregadoRaiz {
         return porcentaje.menorQue(falta) ? porcentaje : falta;
     }
 
-    public void registrarRetencion(Long transaccionVentaId, Dinero apartado, OffsetDateTime ahora) {
-        if (apartado.esCero()) return;
-        var cuota = cuotaObjetivo().orElseThrow();
-        cuota.apartar(apartado);
-        retencionesNuevas.add(new Retencion(cuota.getId(), transaccionVentaId, Origen.DEUDOR, apartado, ahora));
+    public Result<Dinero, ErrorCredito> registrarRetencion(Long transaccionVentaId, Dinero apartado, OffsetDateTime ahora) {
+        return estado.verificarCobro().flatMap(ignorado -> {
+            if (apartado.esCero()) return Result.ok(apartado);
+            var cuota = cuotaObjetivo();
+            if (cuota.isEmpty()) return Result.err(new ErrorCredito.NadaQuePagar());
+            cuota.get().apartar(apartado);
+            retencionesNuevas.add(new Retencion(cuota.get().getId(), transaccionVentaId, Origen.DEUDOR, apartado, ahora));
+            return Result.ok(apartado);
+        });
     }
 
-    public void registrarRetencionDeAval(Long cuotaId, Long transaccionVentaId, Dinero monto, OffsetDateTime ahora) {
-        retencionesNuevas.add(new Retencion(cuotaId, transaccionVentaId, Origen.AVAL, monto, ahora));
+    public Result<Dinero, ErrorCredito> registrarRetencionDeAval(Long cuotaId, Long transaccionVentaId, Dinero monto,
+                                                                  OffsetDateTime ahora) {
+        return estado.verificarCobro().map(ignorado -> {
+            retencionesNuevas.add(new Retencion(cuotaId, transaccionVentaId, Origen.AVAL, monto, ahora));
+            return monto;
+        });
     }
 
     public Dinero totalVencido() {
         return cuotasVencidas().stream().map(Cuota::pendiente).reduce(Dinero.CERO, Dinero::sumar);
     }
 
-    public Dinero aplicarPago(List<Cuota> destino, Dinero monto, boolean usaApartado, Long transaccionId, Origen origen,
-                              boolean automatico, LocalDate hoy, OffsetDateTime ahora) {
-        var resto = monto;
-        var sobrante = Dinero.CERO;
-        for (var cuota : destino) {
-            if (resto.esCero()) break;
-            if (!cuota.porCobrar()) continue;
-            var aEsta = resto.menorQue(cuota.pendiente()) ? resto : cuota.pendiente();
-            if (aEsta.esCero()) continue;
-            var deApartado = usaApartado ? (cuota.getMontoApartado().menorQue(aEsta) ? cuota.getMontoApartado() : aEsta)
-                                         : Dinero.CERO;
-            var imputacion = cuota.imputar(aEsta);
-            sobrante = sobrante.sumar(cuota.pagar(aEsta, deApartado, hoy));
-            pagosNuevos.add(new Pago(cuota.getId(), transaccionId, TipoPago.CUOTA, origen, automatico, null, aEsta,
-                    imputacion, ahora));
-            if (origen == Origen.AVAL) conPagosDeAval = true;
-            registrar(new PagoAplicado(usuarioId, id, codigoCreditoEfa, TipoPago.CUOTA, origen, aEsta));
-            resto = resto.restar(aEsta);
-        }
-        if (!resto.esCero()) throw new IllegalArgumentException("El pago supera lo que se debe en esas cuotas");
-        actualizarEstado();
-        return sobrante;
+    public Result<Dinero, ErrorCredito> aplicarPago(List<Cuota> destino, Dinero monto, boolean usaApartado,
+                                                     Long transaccionId, Origen origen, boolean automatico,
+                                                     LocalDate hoy, OffsetDateTime ahora) {
+        return estado.verificarCobro()
+                .flatMap(ignorado -> ModalidadPago.REGULAR.aplicarRegular(this, destino, monto, usaApartado,
+                        transaccionId, origen, automatico, hoy, ahora))
+                .map(sobrante -> {
+                    actualizarEstado(ahora);
+                    return sobrante;
+                });
+    }
+
+    void registrarPagoCuota(Pago pago) {
+        if (pago.origen() == Origen.AVAL) conPagosDeAval = true;
+        registrarPago(pago);
+    }
+
+    private void registrarPago(Pago pago) {
+        pagosNuevos.add(pago);
+        registrar(new PagoAplicado(usuarioId, id, codigoCreditoEfa, pago.tipo(), pago.origen(), pago.monto()));
     }
 
     public void actualizarMora(LocalDate hoy, BigDecimal tasaMoratoriaAnual) {
+        if (!estaActivo()) return;
         var tasaDiaria = MatematicaFinanciera.tasaDiaria(tasaMoratoriaAnual);
         cuotas.forEach(c -> c.actualizarMoratorio(hoy, tasaDiaria));
     }
 
-    public void vencerImpagas(LocalDate hoy) {
-        cuotas.stream().filter(c -> c.porCobrar() && !c.getFechaVencimiento().isAfter(hoy)).forEach(Cuota::vencer);
-        actualizarEstado();
+    public void vencerImpagas(LocalDate hoy, OffsetDateTime ahora) {
+        if (!estaActivo()) return;
+        cuotas.stream().filter(Cuota::esPendiente).filter(c -> !c.getFechaVencimiento().isAfter(hoy))
+                .forEach(c -> c.vencer(hoy, ahora));
+        actualizarEstado(ahora);
     }
 
-    public int revisarAtraso(LocalDate hoy) {
-        vencerImpagas(hoy);
+    public int revisarAtraso(LocalDate hoy, OffsetDateTime ahora) {
+        if (!estaActivo()) return 0;
+        vencerImpagas(hoy, ahora);
         var dias = diasAtraso(hoy);
         if (dias > 0) registrar(new AtrasoDetectado(usuarioId, id, ofertaId, dias));
         return dias;
     }
 
-    private void actualizarEstado() {
-        var antes = estado;
-        if (cuotas.stream().noneMatch(Cuota::porCobrar)) estado = EstadoPrestamo.PAGADO;
-        else if (cuotas.stream().anyMatch(c -> c.getEstado() == EstadoCuota.VENCIDA)) estado = EstadoPrestamo.EN_MORA;
-        else estado = EstadoPrestamo.VIGENTE;
-        if (estado == EstadoPrestamo.PAGADO && antes != EstadoPrestamo.PAGADO) {
-            registrar(new PrestamoPagado(usuarioId, id, ofertaId, conPagosDeAval));
-        }
+    public Result<CambioEstado, ErrorCredito> marcarEnMora(OffsetDateTime ahora) {
+        return estado.marcarEnMora(this, ahora);
+    }
+
+    public Result<CambioEstado, ErrorCredito> cerrar(OffsetDateTime ahora) {
+        return estado.cerrar(this, ahora);
+    }
+
+    CambioEstado cambiarEstado(EstadoPrestamo nuevo, String motivo, OffsetDateTime ahora) {
+        var cambio = new CambioEstado(estado.nombre(), nuevo.nombre(), motivo, ahora);
+        estado = nuevo;
+        return cambio;
+    }
+
+    Result<CambioEstado, ErrorCredito> cerrarSiSaldado(OffsetDateTime ahora) {
+        if (cuotaObjetivo().isPresent()) return Result.err(new ErrorCredito.PrestamoConSaldoPendiente());
+        var cambio = cambiarEstado(EstadoPrestamo.PAGADO, "Se saldó el préstamo", ahora);
+        registrar(new PrestamoPagado(usuarioId, id, ofertaId, conPagosDeAval));
+        return Result.ok(cambio);
+    }
+
+    private void actualizarEstado(OffsetDateTime ahora) {
+        if (cuotaObjetivo().isEmpty()) cerrar(ahora);
+        else if (tieneCuotasVencidas()) marcarEnMora(ahora);
+        else estado.ponerAlDia(this, ahora);
     }
 
     public Result<Void, ErrorCredito> verificarAnticipado(Dinero montoPago, ModalidadPago modalidad) {
-        if (!estaActivo()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
-        if (!cuotasVencidas().isEmpty()) return Result.err(new ErrorCredito.HayCuotasVencidas());
-        var capital = capitalPendiente();
-        if (modalidad == ModalidadPago.TOTAL) return Result.ok();
-        if (montoPago.esCero() || !montoPago.menorQue(capital)) {
-            return Result.err(new ErrorCredito.MontoAnticipadoInvalido(capital.toString()));
-        }
-        return Result.ok();
+        return estado.verificarAnticipado(this)
+                .flatMap(ignorado -> modalidad.verificarAnticipado(this, montoPago));
     }
 
     public Dinero montoAnticipadoTotal() {
         return capitalPendiente();
     }
 
-    public Dinero aplicarAnticipado(Dinero montoPago, ModalidadPago modalidad, Dinero deApartado, Long transaccionId,
-                                    OffsetDateTime ahora) {
-        var pendientes = cuotas.stream().filter(c -> c.getEstado() == EstadoCuota.PENDIENTE).toList();
-        var sobrante = Dinero.CERO;
-        if (modalidad == ModalidadPago.TOTAL) {
-            for (var c : pendientes) sobrante = sobrante.sumar(c.anular());
-            sobrante = sobrante.mayorQue(deApartado) ? sobrante.restar(deApartado) : Dinero.CERO;
-        } else {
-            var i = MatematicaFinanciera.tasaSemanal(tea);
-            var nuevoSaldo = capitalPendiente().restar(montoPago);
-            var cuotaFija = modalidad == ModalidadPago.REDUCIR_CUOTA
-                    ? MatematicaFinanciera.cuota(nuevoSaldo, i, pendientes.size())
-                    : pendientes.getFirst().getCapital().sumar(pendientes.getFirst().getInteres());
-            var n = modalidad == ModalidadPago.REDUCIR_CUOTA ? pendientes.size()
-                    : CalculadoraFrancesa.plazoPara(nuevoSaldo, i, cuotaFija, pendientes.size());
-            var tramos = CalculadoraFrancesa.amortizar(nuevoSaldo, i, cuotaFija, n);
-            for (int k = 0; k < pendientes.size(); k++) {
-                if (k < n) pendientes.get(k).reprogramar(tramos.get(k).capital(), tramos.get(k).interes());
-                else sobrante = sobrante.sumar(pendientes.get(k).anular());
-            }
-        }
-        pagosNuevos.add(new Pago(null, transaccionId, TipoPago.ANTICIPADO, Origen.DEUDOR, false, modalidad, montoPago,
-                Imputacion.soloCapital(montoPago), ahora));
-        registrar(new PagoAplicado(usuarioId, id, codigoCreditoEfa, TipoPago.ANTICIPADO, Origen.DEUDOR, montoPago));
-        actualizarEstado();
-        return sobrante;
+    public Result<Dinero, ErrorCredito> aplicarAnticipado(Dinero montoPago, ModalidadPago modalidad, Dinero deApartado,
+                                                           Long transaccionId, OffsetDateTime ahora) {
+        return estado.verificarAnticipado(this)
+                .flatMap(ignorado -> modalidad.aplicarAnticipado(this, montoPago, deApartado, ahora))
+                .map(sobrante -> {
+                    registrarPago(new Pago(null, transaccionId, TipoPago.ANTICIPADO, Origen.DEUDOR, false, modalidad, montoPago,
+                            Imputacion.soloCapital(montoPago), ahora));
+                    actualizarEstado(ahora);
+                    return sobrante;
+                });
     }
 
     public Result<Dinero, ErrorCredito> revocarCargo(OffsetDateTime ahora) {
@@ -277,7 +289,7 @@ public final class Prestamo extends AgregadoRaiz {
     public boolean isCargoAutorizado() { return cargoAutorizado; }
     public OffsetDateTime getFechaAutorizacionCargo() { return fechaAutorizacionCargo; }
     public OffsetDateTime getFechaRevocacionCargo() { return fechaRevocacionCargo; }
-    public EstadoPrestamo getEstado() { return estado; }
+    public String getEstado() { return estado.nombre(); }
     public OffsetDateTime getFechaDesembolso() { return fechaDesembolso; }
     public Long getVersion() { return version; }
     public boolean isConPagosDeAval() { return conPagosDeAval; }

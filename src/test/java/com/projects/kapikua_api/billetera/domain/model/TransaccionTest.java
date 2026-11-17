@@ -5,7 +5,8 @@ import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
@@ -24,12 +25,35 @@ class TransaccionTest {
 
     static Billetera billetera(long id, String saldo) {
         return Billetera.reconstituir(id, new UsuarioId(id * 10), new Celular("98765432" + id), null, Dinero.de(saldo),
-                Dinero.CERO, EstadoBilletera.ACTIVA, null, AHORA, 0L);
+                Dinero.CERO, "ACTIVA", null, AHORA, 0L);
+    }
+
+    static List<TipoTransaccion> pagosDeCredito() {
+        return List.of(TiposTransaccion.PAGO_CUOTA, TiposTransaccion.PAGO_ANTICIPADO);
+    }
+
+    static List<TipoTransaccion> tiposQueNoSonPagosDeCredito() {
+        return List.of(TiposTransaccion.RECARGA, TiposTransaccion.DESEMBOLSO,
+                TiposTransaccion.TRANSFERENCIA, TiposTransaccion.PAGO_NEGOCIO);
+    }
+
+    static List<TipoTransaccion> tiposQueNoSonEnvios() {
+        return List.of(TiposTransaccion.RECARGA, TiposTransaccion.DESEMBOLSO,
+                TiposTransaccion.PAGO_CUOTA, TiposTransaccion.PAGO_ANTICIPADO);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"RECARGA,false", "TRANSFERENCIA,true", "PAGO_NEGOCIO,false", "DESEMBOLSO,false",
+            "PAGO_CUOTA,false", "PAGO_ANTICIPADO,false"})
+    void losCodigosPersistidosSeleccionanLaEstrategiaConSuReglaDeCodigoDeUnUso(String codigo, boolean requiereCodigo) {
+        var tipo = TiposTransaccion.desdeCodigo(codigo);
+        assertThat(tipo.codigo()).isEqualTo(codigo);
+        assertThat(tipo.requiereCodigoDeUnUso()).isEqualTo(requiereCodigo);
     }
 
     @Test
     void unaTransferenciaDebitaAlOrigenYAcreditaAlDestinoConSusSaldosPosteriores() {
-        var tx = Transaccion.entreBilleteras(TipoTransaccion.TRANSFERENCIA, billetera(1, "50"), billetera(2, "150"),
+        var tx = Transaccion.entreBilleteras(TiposTransaccion.TRANSFERENCIA, billetera(1, "50"), billetera(2, "150"),
                 CINCUENTA, "ref-1", "Almuerzo", AHORA);
         assertThat(tx.movimientos()).containsExactly(
                 new Transaccion.Movimiento(1L, new BigDecimal("-50.00"), Dinero.de("50")),
@@ -42,28 +66,28 @@ class TransaccionTest {
     void recargaYDesembolsoSoloTienenElMovimientoDeEntrada() {
         var recarga = Transaccion.recarga(billetera(2, "50"), CINCUENTA, "ref-r", AHORA);
         var desembolso = Transaccion.desembolso(billetera(2, "50"), CINCUENTA, "ref-d", "Crédito EFA-C-1", AHORA);
-        assertThat(recarga.tipo()).isEqualTo(TipoTransaccion.RECARGA);
-        assertThat(desembolso.tipo()).isEqualTo(TipoTransaccion.DESEMBOLSO);
+        assertThat(recarga.tipo()).isEqualTo(TiposTransaccion.RECARGA);
+        assertThat(desembolso.tipo()).isEqualTo(TiposTransaccion.DESEMBOLSO);
         assertThat(List.of(recarga, desembolso)).allSatisfy(tx -> assertThat(tx.movimientos()).singleElement()
                 .satisfies(m -> assertThat(m.monto()).isPositive()));
     }
 
     @ParameterizedTest
-    @EnumSource(value = TipoTransaccion.class, names = {"PAGO_CUOTA", "PAGO_ANTICIPADO"})
+    @MethodSource("pagosDeCredito")
     void unPagoDeCreditoSoloTieneElMovimientoDeSalida(TipoTransaccion tipo) {
         var tx = Transaccion.pagoACredito(tipo, billetera(1, "20"), CINCUENTA, "ref-p", "Cuota 1", AHORA);
         assertThat(tx.movimientos()).singleElement().satisfies(m -> assertThat(m.monto()).isNegative());
     }
 
     @ParameterizedTest
-    @EnumSource(value = TipoTransaccion.class, names = {"PAGO_CUOTA", "PAGO_ANTICIPADO"}, mode = EnumSource.Mode.EXCLUDE)
+    @MethodSource("tiposQueNoSonPagosDeCredito")
     void unPagoDeCreditoNoAceptaOtrosTipos(TipoTransaccion tipo) {
         assertThatThrownBy(() -> Transaccion.pagoACredito(tipo, billetera(1, "20"), CINCUENTA, "r", null, AHORA))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
-    @EnumSource(value = TipoTransaccion.class, names = {"TRANSFERENCIA", "PAGO_NEGOCIO"}, mode = EnumSource.Mode.EXCLUDE)
+    @MethodSource("tiposQueNoSonEnvios")
     void entreBilleterasSoloHayTransferenciasYPagosANegocio(TipoTransaccion tipo) {
         assertThat(tipo.cuentaComoPagoOTransferencia()).isFalse();
         assertThatThrownBy(() -> Transaccion.entreBilleteras(tipo, billetera(1, "0"), billetera(2, "0"), CINCUENTA, "r", null, AHORA))
@@ -73,7 +97,7 @@ class TransaccionTest {
     @Test
     void losMovimientosNoSePuedenModificarDesdeAfuera() {
         var lista = new ArrayList<>(List.of(new Transaccion.Movimiento(1L, BigDecimal.TEN, Dinero.de("10"))));
-        var tx = new Transaccion(null, TipoTransaccion.RECARGA, Dinero.de("10"), "r", null, AHORA, lista);
+        var tx = new Transaccion(null, TiposTransaccion.RECARGA, Dinero.de("10"), "r", null, AHORA, lista);
         lista.clear();
         assertThat(tx.movimientos()).hasSize(1);
         assertThatThrownBy(() -> tx.movimientos().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -131,7 +155,10 @@ class TransaccionTest {
                 new ErrorBilletera.TopeRecargasMes(Dinero.de("20")), new ErrorBilletera.TopePagosMes(Dinero.de("30")),
                 new ErrorBilletera.PagoRechazado("tarjeta vencida"), new ErrorBilletera.CodigoNoValido("Código vencido"),
                 new ErrorBilletera.ReferenciaInvalida(), new ErrorBilletera.CelularInvalido(),
-                new ErrorBilletera.OperacionConcurrente(), new ErrorBilletera.ParametrosNoDisponibles());
+                new ErrorBilletera.OperacionConcurrente(), new ErrorBilletera.ParametrosNoDisponibles(),
+                new ErrorBilletera.BilleteraRetenida(), new ErrorBilletera.BilleteraYaActiva(),
+                new ErrorBilletera.BilleteraYaRetenida(), new ErrorBilletera.BilleteraYaBloqueada(),
+                new ErrorBilletera.MotivoEstadoInvalido(), new ErrorBilletera.SaldoApartadoInsuficiente());
         assertThat(errores).hasSize(ErrorBilletera.class.getPermittedSubclasses().length);
         assertThat(errores).allSatisfy(e -> {
             assertThat(e.codigo()).matches("BI-\\d{2}");

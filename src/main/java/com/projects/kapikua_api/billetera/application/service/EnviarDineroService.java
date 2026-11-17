@@ -10,6 +10,7 @@ import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
 import com.projects.kapikua_api.billetera.domain.model.Billetera;
 import com.projects.kapikua_api.billetera.domain.model.Celular;
 import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
+import com.projects.kapikua_api.billetera.domain.model.TiposTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Topes;
 import com.projects.kapikua_api.billetera.domain.service.TopesSBS;
 import com.projects.kapikua_api.billetera.domain.model.Transaccion;
@@ -57,44 +58,55 @@ public class EnviarDineroService implements EnviarDineroUseCase {
     @Override
     public Result<VistaPrevia, ErrorBilletera> prepararTransferencia(UsuarioId origen, String celularDestino,
                                                                      Dinero monto, String referencia) {
-        return validar(TipoTransaccion.TRANSFERENCIA, origen, celularDestino, monto).map(partes -> {
-            var codigo = codigos.generar(origen, CodigoUnSoloUso.Proposito.TRANSFERENCIA,
-                    detalle(partes.destino().getCelular(), monto, referencia));
-            return new VistaPrevia(titulares.nombreEnmascarado(partes.destino().getUsuarioId()),
-                    partes.destino().getCelular().enmascarado(), monto, referencia, codigo);
-        });
+        return preparar(TiposTransaccion.TRANSFERENCIA, origen, celularDestino, monto, referencia);
     }
 
     @Override
     public Result<Comprobante, ErrorBilletera> transferir(UsuarioId origen, String celularDestino, Dinero monto,
                                                           String referencia, String codigo) {
-        var repetida = comprobanteSiYaExiste(origen, referencia);
-        if (repetida != null) return repetida;
-
-        var celular = Celular.de(celularDestino);
-        if (celular.isEmpty()) return Result.err(new ErrorBilletera.CelularInvalido());
-        var validacion = codigos.validar(origen, CodigoUnSoloUso.Proposito.TRANSFERENCIA,
-                detalle(celular.get(), monto, referencia), codigo);
-        if (validacion instanceof Result.Err<Void, CodigoUnSoloUso.CodigoError> err) {
-            return Result.err(new ErrorBilletera.CodigoNoValido(err.error().mensaje()));
-        }
-        return enviar(TipoTransaccion.TRANSFERENCIA, origen, celularDestino, monto, referencia);
+        return confirmar(TiposTransaccion.TRANSFERENCIA, origen, celularDestino, monto, referencia, codigo);
     }
 
     @Override
     public Result<VistaPrevia, ErrorBilletera> prepararPagoNegocio(UsuarioId origen, String celularNegocio,
                                                                    Dinero monto, String referencia) {
-        return validar(TipoTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto).map(partes ->
-                new VistaPrevia(partes.destino().getNombreNegocio(), partes.destino().getCelular().enmascarado(),
-                        monto, referencia, null));
+        return preparar(TiposTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto, referencia);
     }
 
     @Override
     public Result<Comprobante, ErrorBilletera> pagarNegocio(UsuarioId origen, String celularNegocio, Dinero monto,
                                                             String referencia) {
+        return confirmar(TiposTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto, referencia, null);
+    }
+
+    private Result<VistaPrevia, ErrorBilletera> preparar(TipoTransaccion tipo, UsuarioId origen, String celularDestino,
+                                                       Dinero monto, String referencia) {
+        return validar(tipo, origen, celularDestino, monto).map(partes -> {
+            var destino = partes.destino();
+            var codigo = tipo.requiereCodigoDeUnUso()
+                    ? codigos.generar(origen, CodigoUnSoloUso.Proposito.TRANSFERENCIA,
+                            detalle(destino.getCelular(), monto, referencia)) : null;
+            var nombre = tipo.descripcion(destino);
+            if (nombre == null) nombre = titulares.nombreEnmascarado(destino.getUsuarioId());
+            return new VistaPrevia(nombre, destino.getCelular().enmascarado(), monto, referencia, codigo);
+        });
+    }
+
+    private Result<Comprobante, ErrorBilletera> confirmar(TipoTransaccion tipo, UsuarioId origen, String celularDestino,
+                                                         Dinero monto, String referencia, String codigo) {
         var repetida = comprobanteSiYaExiste(origen, referencia);
         if (repetida != null) return repetida;
-        return enviar(TipoTransaccion.PAGO_NEGOCIO, origen, celularNegocio, monto, referencia);
+
+        if (tipo.requiereCodigoDeUnUso()) {
+            var celular = Celular.de(celularDestino);
+            if (celular.isEmpty()) return Result.err(new ErrorBilletera.CelularInvalido());
+            var validacion = codigos.validar(origen, CodigoUnSoloUso.Proposito.TRANSFERENCIA,
+                    detalle(celular.get(), monto, referencia), codigo);
+            if (validacion instanceof Result.Err<Void, CodigoUnSoloUso.CodigoError> err) {
+                return Result.err(new ErrorBilletera.CodigoNoValido(err.error().mensaje()));
+            }
+        }
+        return enviar(tipo, origen, celularDestino, monto, referencia);
     }
 
     private record Partes(Billetera origen, Billetera destino, Topes topes) {
@@ -108,14 +120,14 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         if (origen.isEmpty()) return Result.err(new ErrorBilletera.BilleteraNoEncontrada());
         var destino = billeteras.porCelular(celular.get());
         if (destino.isEmpty()) {
-            return Result.err(tipo == TipoTransaccion.PAGO_NEGOCIO ? new ErrorBilletera.NoEsNegocio()
-                    : new ErrorBilletera.DestinatarioNoEncontrado());
+            return Result.err(tipo.destinatarioNoEncontrado());
         }
         if (origen.get().getId().equals(destino.get().getId())) {
             return Result.err(new ErrorBilletera.OperacionConSiMismo());
         }
-        if (tipo == TipoTransaccion.PAGO_NEGOCIO && !destino.get().esNegocio()) {
-            return Result.err(new ErrorBilletera.NoEsNegocio());
+        var destinatario = tipo.validarDestinatario(destino.get());
+        if (destinatario instanceof Result.Err<Void, ErrorBilletera> err) {
+            return Result.err(err.error());
         }
         var topes = parametros.topesVigentes(LocalDate.now(clock));
         if (topes instanceof Result.Err<Topes, ErrorBilletera> err) return Result.err(err.error());
@@ -123,14 +135,14 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         var t = ((Result.Ok<Topes, ErrorBilletera>) topes).valor();
         var mes = PeriodoMensual.actual(clock);
         var acumulado = transacciones.acumulado(origen.get().getId(), mes.desde(), mes.hasta());
-        return TopesSBS.validarEnvio(origen.get(), destino.get(), monto, acumulado, t)
+        return TopesSBS.validarEnvio(tipo, origen.get(), destino.get(), monto, acumulado, t)
                 .map(ok -> new Partes(origen.get(), destino.get(), t));
     }
 
     private Result<Comprobante, ErrorBilletera> enviar(TipoTransaccion tipo, UsuarioId usuarioOrigen,
                                                        String celularDestino, Dinero monto, String referencia) {
         try {
-            return ejecutor.ejecutar(() -> validar(tipo, usuarioOrigen, celularDestino, monto)
+            return ejecutor.ejecutarResultado(() -> validar(tipo, usuarioOrigen, celularDestino, monto)
                     .flatMap(partes -> mover(tipo, partes, monto, referencia)));
         } catch (DataIntegrityViolationException e) {
             var repetida = comprobanteSiYaExiste(usuarioOrigen, referencia);
@@ -161,7 +173,7 @@ public class EnviarDineroService implements EnviarDineroUseCase {
         }
 
         var ahora = OffsetDateTime.now(clock);
-        var descripcion = tipo == TipoTransaccion.PAGO_NEGOCIO ? destino.getNombreNegocio() : null;
+        var descripcion = tipo.descripcion(destino);
         var transaccion = transacciones.registrar(Transaccion.entreBilleteras(
                 tipo, origenGuardado, destinoGuardado, monto, referencia, descripcion, ahora));
 

@@ -4,6 +4,7 @@ import com.projects.kapikua_api.shared.infrastructure.HoraLocal;
 import com.projects.kapikua_api.billetera.application.port.out.TransaccionRepositoryPort;
 import com.projects.kapikua_api.billetera.domain.model.AcumuladoMensual;
 import com.projects.kapikua_api.billetera.domain.model.TipoTransaccion;
+import com.projects.kapikua_api.billetera.domain.model.TiposTransaccion;
 import com.projects.kapikua_api.billetera.domain.model.Transaccion;
 import com.projects.kapikua_api.shared.Dinero;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,8 +17,14 @@ import java.util.Optional;
 
 @Repository
 class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
-    private static final List<String> PAGOS_Y_TRANSFERENCIAS =
-            List.of(TipoTransaccion.TRANSFERENCIA.name(), TipoTransaccion.PAGO_NEGOCIO.name());
+    private static final List<String> PAGOS_Y_TRANSFERENCIAS = TiposTransaccion.todos().stream()
+            .filter(TipoTransaccion::cuentaComoPagoOTransferencia)
+            .map(TipoTransaccion::codigo)
+            .toList();
+    private static final List<String> COBROS_RECIBIDOS = TiposTransaccion.todos().stream()
+            .filter(TipoTransaccion::generaCobroRecibido)
+            .map(TipoTransaccion::codigo)
+            .toList();
 
     private final TransaccionJpaRepository repositorio;
     private final JdbcClient jdbc;
@@ -45,12 +52,13 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
     @Override
     public AcumuladoMensual acumulado(Long billeteraId, OffsetDateTime desde, OffsetDateTime hasta) {
         return jdbc.sql("""
-                        select coalesce(sum(m.monto) filter (where t.tipo = 'RECARGA' and m.monto > 0), 0)     as recargas,
+                        select coalesce(sum(m.monto) filter (where t.tipo = :recarga and m.monto > 0), 0)      as recargas,
                                coalesce(-sum(m.monto) filter (where t.tipo in (:pagos) and m.monto < 0), 0)    as enviados
                         from billetera.movimiento m
                         join billetera.transaccion t on t.id = m.transaccion_id
                         where m.billetera_id = :billetera and m.fecha >= :desde and m.fecha < :hasta
                         """)
+                .param("recarga", TiposTransaccion.RECARGA.codigo())
                 .param("pagos", PAGOS_Y_TRANSFERENCIAS)
                 .param("billetera", billeteraId)
                 .param("desde", desde)
@@ -74,7 +82,7 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
                 .param("desde", desde)
                 .param("hasta", hasta)
                 .param("limite", limite)
-                .query((rs, n) -> new LineaMovimiento(rs.getLong("id"), TipoTransaccion.valueOf(rs.getString("tipo")),
+                .query((rs, n) -> new LineaMovimiento(rs.getLong("id"), TiposTransaccion.desdeCodigo(rs.getString("tipo")),
                         rs.getString("descripcion"), rs.getBigDecimal("monto"), rs.getBigDecimal("saldo_posterior"),
                         HoraLocal.leer(rs, "fecha")))
                 .list();
@@ -91,7 +99,7 @@ class TransaccionPersistenceAdapter implements TransaccionRepositoryPort {
                           and entra.fecha >= :desde and entra.fecha < :hasta
                         """)
                 .param("billetera", billeteraId)
-                .param("tipos", PAGOS_Y_TRANSFERENCIAS)
+                .param("tipos", COBROS_RECIBIDOS)
                 .param("desde", desde)
                 .param("hasta", hasta)
                 .query((rs, n) -> new LineaCobro(HoraLocal.leer(rs, "fecha"), rs.getBigDecimal("monto"),
