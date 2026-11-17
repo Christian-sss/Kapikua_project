@@ -34,7 +34,9 @@
         <span class="campo-error" th:errors="*{fechaNacimiento}"></span>
 
         <label for="correo">Correo</label>
-        <input id="correo" type="email" th:field="*{correo}" autocomplete="email">
+        <input id="correo" type="email" th:field="*{correo}" autocomplete="email" aria-describedby="correo-ayuda">
+        <span id="correo-ayuda" class="nota"
+              th:text="'Usa un correo de ' + ${#strings.listJoin(dominiosCorreo, ', ')} + '.'"></span>
         <span class="campo-error" th:errors="*{correo}"></span>
 
         <label for="celular">Celular</label>

@@ -60,7 +60,7 @@ public class RegistrarUsuarioService implements RegistrarUsuarioUseCase {
         if (politica instanceof Result.Err<Void, RegistroError> err) {
             return Result.err(err.error());
         }
-        var datos = new DatosRegistroUsuario(c.dni(), c.correo(), c.fechaNacimiento());
+        var datos = new DatosRegistroUsuario(c.dni(), c.correo(), c.celular(), c.fechaNacimiento());
         if (datos.dni() != null && usuarios.existeDni(datos.dni())) {
             return Result.err(new RegistroError.DniDuplicado());
         }

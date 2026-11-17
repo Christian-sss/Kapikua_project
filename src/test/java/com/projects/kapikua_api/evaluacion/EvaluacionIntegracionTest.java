@@ -61,7 +61,7 @@ class EvaluacionIntegracionTest {
         var dni = String.valueOf(1_000_000 + r.nextInt(8_999_999)) + digito;
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
         var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
-                "e" + dni + "@prueba.pe", celular, "Negocio " + dni, "Kapikua2026", true));
+                "e" + dni + "@outlook.com", celular, "Negocio " + dni, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         var id = ((Result.Ok<UsuarioId, RegistroError>) resultado).valor();
         if (conConsentimiento) consentimientos.otorgar(id, TipoConsentimiento.EVALUACION_CON_BILLETERA);

@@ -2,6 +2,8 @@ package com.projects.kapikua_api.identidad.domain.error;
 
 import com.projects.kapikua_api.shared.ErrorDominio;
 
+import java.util.List;
+
 public sealed interface RegistroError extends ErrorDominio {
     record DatoInvalido(String campo) implements RegistroError {
         public String codigo()  { return "ID-01"; }
@@ -46,5 +48,10 @@ public sealed interface RegistroError extends ErrorDominio {
     record EnListasRestrictivas() implements RegistroError {
         public String codigo()  { return "ID-09"; }
         public String mensaje() { return "No es posible completar el registro. Comunícate con atención al cliente."; }
+    }
+
+    record DominioCorreoNoPermitido(List<String> permitidos) implements RegistroError {
+        public String codigo()  { return "ID-12"; }
+        public String mensaje() { return "Solo se aceptan correos de " + String.join(", ", permitidos) + "."; }
     }
 }

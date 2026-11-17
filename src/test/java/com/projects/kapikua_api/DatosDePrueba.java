@@ -37,7 +37,7 @@ public final class DatosDePrueba {
         do { dni = String.valueOf(1_000_000 + r.nextInt(8_999_999)) + digito; } while (dni.endsWith("666"));
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
         var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
-                "p" + dni + "@prueba.pe", celular, "Negocio " + dni, "Kapikua2026", true));
+                "p" + dni + "@outlook.com", celular, "Negocio " + dni, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), dni, celular);
     }

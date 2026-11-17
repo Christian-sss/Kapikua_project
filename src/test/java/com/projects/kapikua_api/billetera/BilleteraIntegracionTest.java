@@ -29,6 +29,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -56,7 +58,7 @@ class BilleteraIntegracionTest {
         do { dni = String.valueOf(10_000_000 + r.nextInt(89_999_999)); } while (dni.endsWith("666"));
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
         var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
-                "c" + dni + "@prueba.pe", celular, negocio, "Kapikua2026", true));
+                "c" + dni + "@outlook.com", celular, negocio, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), celular);
     }
@@ -94,22 +96,24 @@ class BilleteraIntegracionTest {
         assertThat(saldo(ana)).isEqualTo(Dinero.CERO);
         assertThat(consultar.celularRegistrado(ana.celular())).isTrue();
 
-        var otra = registrar.registrar(new RegistrarUsuarioCommand("12345678", LocalDate.of(1990, 1, 1),
-                "otra@prueba.pe", ana.celular(), null, "Kapikua2026", true));
+        var otra = registrar.registrar(new RegistrarUsuarioCommand("45612378", LocalDate.of(1990, 1, 1),
+                "otra@outlook.com", ana.celular(), null, "Kapikua2026", true));
         assertThat(((Result.Err<UsuarioId, RegistroError>) otra).error()).isInstanceOf(RegistroError.CelularDuplicado.class);
     }
 
     @Test
     void siFallaLaAperturaDeBilleteraSeRevierteElRegistroYSePuedeReintentar() {
         var dni = "73982461";
-        var correo = "registro.rollback@prueba.pe";
+        var correo = "registro.rollback@outlook.com";
         var nacimiento = LocalDate.of(1990, 1, 1);
         var contrasena = "Kapikua2026";
-        var invalido = new RegistrarUsuarioCommand(dni, nacimiento, correo, "123", "Bodega", contrasena, true);
+        // Identidad acepta los datos, pero billetera no puede guardar un nombre de negocio de más de 100 caracteres.
+        var celularFallido = "9" + (10_000_000 + ThreadLocalRandom.current().nextInt(89_999_999));
+        var invalido = new RegistrarUsuarioCommand(dni, nacimiento, correo, celularFallido, "B".repeat(101),
+                contrasena, true);
 
         assertThatThrownBy(() -> registrar.registrar(invalido))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No se pudo abrir la billetera");
+                .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(jdbc.queryForObject("select count(*) from identidad.usuario where dni = ?", Integer.class, dni))
                 .isZero();
 
@@ -128,7 +132,7 @@ class BilleteraIntegracionTest {
     @Test
     void noSeRegistraUnUsuarioSinCelular() {
         var resultado = registrar.registrar(new RegistrarUsuarioCommand("73982462", LocalDate.of(1990, 1, 1),
-                "registro.sin.celular@prueba.pe", null, null, "Kapikua2026", true));
+                "registro.sin.celular@outlook.com", null, null, "Kapikua2026", true));
         assertThat(resultado).isEqualTo(Result.err(new RegistroError.DatoInvalido("celular")));
     }
 

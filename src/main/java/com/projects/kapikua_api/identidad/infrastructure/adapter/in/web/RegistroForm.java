@@ -1,7 +1,7 @@
 package com.projects.kapikua_api.identidad.infrastructure.adapter.in.web;
 
 import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
-import jakarta.validation.constraints.Email;
+import com.projects.kapikua_api.identidad.domain.model.DatosRegistroUsuario;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -26,7 +26,7 @@ public class RegistroForm {
     private LocalDate fechaNacimiento;
 
     @NotBlank(message = "Ingresa tu correo")
-    @Email(message = "El correo no es válido")
+    @Pattern(regexp = DatosRegistroUsuario.FORMATO_CORREO, message = "El correo no es válido")
     @Size(max = 150)
     private String correo;
 

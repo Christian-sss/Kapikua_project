@@ -22,12 +22,12 @@ class ConsentimientoTest {
     static final Optional<IdentidadVerificada> RENIEC = Optional.of(new IdentidadVerificada("Ana", "Quispe"));
 
     static Result<Usuario, RegistroError> registrar(String passwordHash, String correo, LocalDate nacimiento, OffsetDateTime ahora) {
-        return Usuario.registrar(new DatosRegistroUsuario("45678912", correo, nacimiento), passwordHash, RENIEC, false,
+        return Usuario.registrar(new DatosRegistroUsuario("45678912", correo, "945678912", nacimiento), passwordHash, RENIEC, false,
                 "1.0", ahora);
     }
 
     static Usuario usuario() {
-        return ((Result.Ok<Usuario, RegistroError>) registrar("$2a$10$hash", "ana@correo.pe", LocalDate.of(1990, 5, 20), AHORA)).valor();
+        return ((Result.Ok<Usuario, RegistroError>) registrar("$2a$10$hash", "ana@gmail.com", LocalDate.of(1990, 5, 20), AHORA)).valor();
     }
 
     @Test
@@ -90,9 +90,9 @@ class ConsentimientoTest {
 
     @Test
     void laFechaDeNacimientoNoPuedeFaltarNiSerFuturaYElCorreoEsObligatorio() {
-        assertThat(((Result.Err<Usuario, RegistroError>) registrar("h", "ana@correo.pe", null, AHORA)).error())
+        assertThat(((Result.Err<Usuario, RegistroError>) registrar("h", "ana@gmail.com", null, AHORA)).error())
                 .isEqualTo(new RegistroError.DatoInvalido("fecha de nacimiento"));
-        assertThat(((Result.Err<Usuario, RegistroError>) registrar("h", "ana@correo.pe", AHORA.toLocalDate().plusDays(1), AHORA)).error())
+        assertThat(((Result.Err<Usuario, RegistroError>) registrar("h", "ana@gmail.com", AHORA.toLocalDate().plusDays(1), AHORA)).error())
                 .isEqualTo(new RegistroError.DatoInvalido("fecha de nacimiento"));
         assertThat(((Result.Err<Usuario, RegistroError>) registrar("h", null, LocalDate.of(1990, 1, 1), AHORA)).error())
                 .isEqualTo(new RegistroError.DatoInvalido("correo"));
@@ -100,9 +100,9 @@ class ConsentimientoTest {
 
     @Test
     void sinContrasenaCifradaOSinFechaEsUnErrorDeProgramacion() {
-        assertThatThrownBy(() -> registrar(" ", "ana@correo.pe", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> registrar(null, "ana@correo.pe", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> registrar("h", "ana@correo.pe", LocalDate.of(1990, 1, 1), null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> registrar(" ", "ana@gmail.com", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> registrar(null, "ana@gmail.com", LocalDate.of(1990, 1, 1), AHORA)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> registrar("h", "ana@gmail.com", LocalDate.of(1990, 1, 1), null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -111,6 +111,7 @@ class ConsentimientoTest {
                 new RegistroError.DatoInvalido("DNI"), new RegistroError.ContrasenaDebil(), new RegistroError.TerminosNoAceptados(),
                 new RegistroError.DniDuplicado(), new RegistroError.CorreoDuplicado(), new RegistroError.CelularDuplicado(),
                 new RegistroError.DniNoValidado(), new RegistroError.MenorDeEdad(), new RegistroError.EnListasRestrictivas(),
+                new RegistroError.DominioCorreoNoPermitido(DatosRegistroUsuario.DOMINIOS_CORREO_PERMITIDOS),
                 new AutenticacionError.CredencialesInvalidas(), new AutenticacionError.UsuarioInactivo());
         assertThat(errores).hasSize(RegistroError.class.getPermittedSubclasses().length
                 + AutenticacionError.class.getPermittedSubclasses().length);

@@ -32,15 +32,15 @@ class AutenticarServiceTest {
 
     @BeforeEach
     void preparar() throws Exception {
-        usuarios.agregar(usuario(1L, "45678912", "ana@correo.pe", "Kapikua2026", true));
-        usuarios.agregar(usuario(2L, "11223344", "inactivo@correo.pe", "Kapikua2026", false));
+        usuarios.agregar(usuario(1L, "45678912", "ana@gmail.com", "Kapikua2026", true));
+        usuarios.agregar(usuario(2L, "11223344", "inactivo@gmail.com", "Kapikua2026", false));
         servicio = new AutenticarService(usuarios, cifrador, emisor);
         cifrador.comparaciones = 0;
     }
 
     @Test
     void ingresaConCorreoYRecibeTokenConSuRol() {
-        var sesion = ok(servicio.autenticar("ana@correo.pe", "Kapikua2026"));
+        var sesion = ok(servicio.autenticar("ana@gmail.com", "Kapikua2026"));
 
         assertThat(sesion.usuarioId()).isEqualTo(new UsuarioId(1L));
         assertThat(sesion.rol()).isEqualTo(Rol.CLIENTE);
@@ -54,23 +54,23 @@ class AutenticarServiceTest {
 
     @Test
     void contrasenaIncorrectaYUsuarioInexistenteDanElMismoError() {
-        assertThat(err(servicio.autenticar("ana@correo.pe", "otraClave1")))
+        assertThat(err(servicio.autenticar("ana@gmail.com", "otraClave1")))
                 .isInstanceOf(AutenticacionError.CredencialesInvalidas.class);
-        assertThat(err(servicio.autenticar("nadie@correo.pe", "Kapikua2026")))
+        assertThat(err(servicio.autenticar("nadie@gmail.com", "Kapikua2026")))
                 .isInstanceOf(AutenticacionError.CredencialesInvalidas.class);
     }
 
     @Test
     void conUsuarioInexistenteIgualComparaLaContrasena() {
-        servicio.autenticar("nadie@correo.pe", "Kapikua2026");
+        servicio.autenticar("nadie@gmail.com", "Kapikua2026");
         assertThat(cifrador.comparaciones).isEqualTo(1);
     }
 
     @Test
     void usuarioInactivoSoloSeInformaConLaContrasenaCorrecta() {
-        assertThat(err(servicio.autenticar("inactivo@correo.pe", "Kapikua2026")))
+        assertThat(err(servicio.autenticar("inactivo@gmail.com", "Kapikua2026")))
                 .isInstanceOf(AutenticacionError.UsuarioInactivo.class);
-        assertThat(err(servicio.autenticar("inactivo@correo.pe", "malaClave1")))
+        assertThat(err(servicio.autenticar("inactivo@gmail.com", "malaClave1")))
                 .isInstanceOf(AutenticacionError.CredencialesInvalidas.class);
     }
 
@@ -91,7 +91,7 @@ class AutenticarServiceTest {
     }
 
     private Usuario usuario(Long id, String dni, String correo, String clave, boolean activo) throws Exception {
-        var datos = new DatosRegistroUsuario(dni, correo, LocalDate.of(1990, 1, 1));
+        var datos = new DatosRegistroUsuario(dni, correo, "945678912", LocalDate.of(1990, 1, 1));
         var r = Usuario.registrar(datos, cifrador.cifrar(clave), Optional.of(new IdentidadVerificada("Ana", "Quispe")), false, "1.0",
                 OffsetDateTime.of(2026, 11, 9, 10, 0, 0, 0, ZoneOffset.ofHours(-5)));
         var u = ((Result.Ok<Usuario, ?>) r).valor();
