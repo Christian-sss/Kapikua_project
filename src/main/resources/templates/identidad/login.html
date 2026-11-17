@@ -43,7 +43,7 @@
                 <div class="field">
                     <label for="usuario">Correo o DNI</label>
                     <input class="input" id="usuario" name="usuario" type="text" th:value="${usuario}"
-                           autocomplete="username" inputmode="email" placeholder="tucorreo@ejemplo.com o 12345678" required>
+                           autocomplete="username" inputmode="email" required>
                 </div>
                 <div class="field">
                     <label for="contrasena">Contraseña</label>
@@ -65,7 +65,7 @@
                         <img th:src="'data:image/png;base64,' + ${captcha.imagenBase64()}" width="190" height="64"
                              alt="Número de verificación de cinco dígitos">
                         <input class="input" id="captcha" name="captcha" type="text" inputmode="numeric" pattern="[0-9]{5}"
-                               maxlength="5" autocomplete="off" placeholder="5 dígitos" required>
+                               maxlength="5" autocomplete="off" required>
                     </div>
                     <input type="hidden" name="captchaId" th:value="${captcha.id()}">
                 </div>
