@@ -19,39 +19,25 @@
             <p th:if="${usuario.rol() == 'ADMINISTRADOR'}">Revisa las operaciones inusuales, atiende los reclamos dentro del plazo y consulta los reportes.</p>
         </div>
 
-        <div class="grid grid-3 admin-accesos" th:if="${usuario.rol() == 'ADMINISTRADOR'}">
-            <section class="card admin-acceso" aria-labelledby="t-alertas">
+        <div class="grid grid-3" th:if="${usuario.rol() == 'ADMINISTRADOR'}">
+            <a class="card stack" th:href="@{/admin/alertas}" style="text-decoration:none;color:inherit">
                 <span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-alert')}"></svg></span>
-                <h2 class="card-title" id="t-alertas">Alertas de operaciones inusuales</h2>
+                <h2 class="card-title">Alertas de operaciones inusuales</h2>
                 <p class="muted small">Revisa cada alerta y registra tu decisión.</p>
-                <ul class="admin-acceso-lista">
-                    <li><svg th:replace="~{fragmentos :: icono('i-search')}"></svg>Mira la operación y las 24 horas previas</li>
-                    <li><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg>Escálala o descártala</li>
-                </ul>
-                <a class="btn btn-outline btn-block" th:href="@{/admin/alertas}">Ver alertas</a>
-            </section>
-            <section class="card admin-acceso" aria-labelledby="t-reclamos">
+                <span class="btn btn-outline btn-block">Ver alertas</span>
+            </a>
+            <a class="card stack" th:href="@{/admin/reclamos}" style="text-decoration:none;color:inherit">
                 <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-message')}"></svg></span>
-                <h2 class="card-title" id="t-reclamos">Reclamos</h2>
+                <h2 class="card-title">Reclamos</h2>
                 <p class="muted small">Ordenados por fecha límite de respuesta.</p>
-                <ul class="admin-acceso-lista">
-                    <li><svg th:replace="~{fragmentos :: icono('i-send')}"></svg>Responde al cliente dentro del plazo</li>
-                    <li><svg th:replace="~{fragmentos :: icono('i-calendar')}"></svg>Registra una prórroga si la necesitas</li>
-                </ul>
-                <a class="btn btn-outline btn-block" th:href="@{/admin/reclamos}">Atender reclamos</a>
-            </section>
-            <section class="card admin-acceso" aria-labelledby="t-reportes">
+                <span class="btn btn-outline btn-block">Atender reclamos</span>
+            </a>
+            <a class="card stack" th:href="@{/admin/reportes}" style="text-decoration:none;color:inherit">
                 <span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-chart')}"></svg></span>
-                <h2 class="card-title" id="t-reportes">Reportes</h2>
-                <p class="muted small">Consulta y descarga en Excel o PDF.</p>
-                <ul class="admin-acceso-lista">
-                    <li><a th:href="@{/admin/reportes/clientes}"><svg th:replace="~{fragmentos :: icono('i-users')}"></svg>Clientes</a></li>
-                    <li><a th:href="@{/admin/reportes/transacciones}"><svg th:replace="~{fragmentos :: icono('i-card')}"></svg>Transacciones</a></li>
-                    <li><a th:href="@{/admin/reportes/creditos}"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg>Créditos</a></li>
-                    <li><a th:href="@{/admin/reportes/cobranza}"><svg th:replace="~{fragmentos :: icono('i-calendar')}"></svg>Cobranza</a></li>
-                </ul>
-                <a class="btn btn-outline btn-block" th:href="@{/admin/reportes}">Ver reportes</a>
-            </section>
+                <h2 class="card-title">Reportes</h2>
+                <p class="muted small">Clientes, transacciones, créditos y cobranza.</p>
+                <span class="btn btn-outline btn-block">Ver reportes</span>
+            </a>
         </div>
 
         <p class="notice" style="margin-top: var(--space-6)">

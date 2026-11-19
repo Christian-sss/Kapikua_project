@@ -27,21 +27,10 @@ class AdminAlertasController {
     @GetMapping
     String lista(@RequestParam(required = false) String aviso, Model model) {
         model.addAttribute("pendientes", alertas.pendientes());
-        var revisadas = alertas.revisadas(20);
-        model.addAttribute("revisadas", revisadas);
-        model.addAttribute("recientes", revisadas.subList(0, Math.min(5, revisadas.size())));
+        model.addAttribute("revisadas", alertas.revisadas(20));
         model.addAttribute("aviso", aviso);
         return "cumplimiento/admin-alertas";
     }
-
-    @GetMapping("/historial")
-    String historial(Model model) {
-        model.addAttribute("revisadas", alertas.revisadas(LIMITE_HISTORIAL));
-        model.addAttribute("limite", LIMITE_HISTORIAL);
-        return "cumplimiento/admin-alertas-historial";
-    }
-
-    private static final int LIMITE_HISTORIAL = 200;
 
     @GetMapping("/{id}")
     String detalle(@PathVariable Long id, Model model) {

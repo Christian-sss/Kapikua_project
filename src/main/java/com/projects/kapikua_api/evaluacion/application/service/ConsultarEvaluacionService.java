@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Service
@@ -68,16 +67,9 @@ public class ConsultarEvaluacionService implements ConsultarEvaluacionUseCase {
             siguiente = new Siguiente(s.nivel(), s.porcentajeCapacidad(), s.maxCuotas(),
                     s.tea().min(limites.tasaMaxima()), s.nivel() <= reglasNivel.nivelMaxConAval());
         }
-        var escalones = new ArrayList<Escalon>();
-        for (int k = 1; k <= nivelMaximo; k++) {
-            var cn = reglasNivel.nivel(k);
-            int paraLlegar = k == 1 ? 0 : reglasNivel.nivel(k - 1).creditosParaSubir();
-            escalones.add(new Escalon(k, cn.porcentajeCapacidad(), cn.maxCuotas(), cn.tea().min(limites.tasaMaxima()),
-                    k <= reglasNivel.nivelMaxConAval(), paraLlegar));
-        }
         return Result.ok(new NivelCliente(h.getNivel(), nivelMaximo, actual.porcentajeCapacidad(),
                 limites.cuotasMinimas(), actual.maxCuotas(), actual.tea().min(limites.tasaMaxima()),
                 h.getCreditosPagadosEnNivel(), actual.creditosParaSubir(), h.getNivel() <= reglasNivel.nivelMaxConAval(),
-                h.isBloqueadoInterno(), uso, siguiente, escalones));
+                h.isBloqueadoInterno(), uso, siguiente));
     }
 }

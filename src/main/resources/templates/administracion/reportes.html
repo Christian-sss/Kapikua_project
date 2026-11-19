@@ -9,14 +9,14 @@
         <div class="page-head page-head-row">
             <div class="stack-sm">
                 <p class="eyebrow"><span class="dot"></span> Administración</p>
-                <h1 th:text="${tipo.nombre()}">Reportes</h1>
-                <p>Consultas de solo lectura.</p>
+                <h1 th:text="'Reportes · ' + ${tipo.nombre()}">Reportes</h1>
+                <p th:text="${periodo.etiqueta()} + '. Consultas de solo lectura. El DNI siempre se muestra enmascarado.'"></p>
             </div>
             <div class="btn-row no-print">
                 <a class="btn btn-outline" download
                    th:href="@{/admin/reportes/{r}/excel(r=${tipo.ruta()},mes=${periodo.mes()},dia=${periodo.dia()},estado=${estado})}">
                     <svg th:replace="~{fragmentos :: icono('i-download')}"></svg>Descargar Excel</a>
-                <button class="btn btn-outline" type="button" data-imprimir><svg th:replace="~{fragmentos :: icono('i-file')}"></svg>Imprimir o PDF</button>
+                <button class="btn btn-ghost" type="button" data-imprimir><svg th:replace="~{fragmentos :: icono('i-file')}"></svg>Imprimir o PDF</button>
             </div>
         </div>
 
@@ -27,7 +27,7 @@
             </div>
             <div class="toolbar">
                 <div class="field"><label for="mes">Mes</label><input class="input" type="month" id="mes" name="mes" th:value="${periodo.mes()}"></div>
-                <div class="field"><label for="dia">Día</label><input class="input" type="date" id="dia" name="dia" th:value="${periodo.dia()}"></div>
+                <div class="field"><label for="dia">Día <span class="muted">(opcional)</span></label><input class="input" type="date" id="dia" name="dia" th:value="${periodo.dia()}"></div>
                 <div class="field">
                     <label for="estado" th:text="${tipo.filtro()}">Estado</label>
                     <select class="input" id="estado" name="estado">
@@ -59,17 +59,14 @@
                 <div class="grid grid-2">
                     <section class="card chart" th:each="g : ${r.graficos()}" th:with="diario=${#lists.size(g.barras()) > 12}">
                         <div class="card-head"><div><h2 th:text="${g.titulo()}">Gráfico</h2>
-                            <p class="card-sub" th:if="${diario}">Pasa el cursor por la línea</p></div></div>
+                            <p class="card-sub" th:if="${diario}">Pasa el cursor por una barra</p></div></div>
                         <p class="muted small" th:if="${g.vacio()}">Sin datos.</p>
                         <th:block th:unless="${g.vacio()}">
                             <th:block th:if="${diario}">
-                                <div class="bars linea" role="img" th:attr="aria-label=${g.titulo()}">
-                                    <svg class="linea-trazo" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                                        <polyline th:attr="points=${g.puntos()}"></polyline>
-                                    </svg>
+                                <div class="bars" role="img" th:attr="aria-label=${g.titulo()}">
                                     <div class="bar" tabindex="0" th:each="b : ${g.barras()}" th:classappend="${b.porcentaje() == 0} ? 'is-zero'">
-                                        <i class="punto" th:style="'bottom:' + ${b.porcentaje()} + '%'"></i>
-                                        <div class="tip" th:style="'bottom: calc(' + ${b.porcentaje()} + '% + 14px)'" th:inline="text">Día [[${b.etiqueta()}]]<b th:text="${b.valor()}">0</b></div>
+                                        <span th:style="'height:' + ${b.porcentaje()} + '%'"></span>
+                                        <div class="tip" th:inline="text">Día [[${b.etiqueta()}]]<b th:text="${b.valor()}">0</b></div>
                                     </div>
                                 </div>
                                 <div class="bar-labels"><span th:each="b : ${g.barras()}" th:text="${b.etiqueta()}">1</span></div>
