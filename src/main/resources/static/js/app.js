@@ -30,11 +30,10 @@
      El resaltado sigue al mouse y vuelve a la opción activa. Al elegir una opción que está
      a la derecha, la pantalla actual sale por la izquierda y la nueva entra por la derecha;
      hacia la izquierda, al revés. */
-  $$(".app-nav").forEach(function (nav) {
-    var ul = $("ul", nav);
-    var enlaces = $$("a", nav);
+  function deslizante(nav, ul, marca) {
+    var enlaces = $$("a", ul);
     if (!ul || !enlaces.length) return;
-    var activo = enlaces.filter(function (a) { return a.getAttribute("aria-current") === "page"; })[0] || null;
+    var activo = enlaces.filter(function (a) { return a.getAttribute(marca[0]) === marca[1]; })[0] || null;
     var indicador = document.createElement("span");
     indicador.className = "nav-indicador";
     indicador.setAttribute("aria-hidden", "true");
@@ -49,7 +48,7 @@
       indicador.style.opacity = "1";
       indicador.style.width = r.width + "px";
       indicador.style.height = r.height + "px";
-      indicador.style.transform = "translate(" + (r.left - base.left) + "px," + (r.top - base.top) + "px)";
+      indicador.style.transform = "translate(" + (r.left - base.left - ul.clientLeft) + "px," + (r.top - base.top - ul.clientTop) + "px)";
       if (sinAnimar) { void indicador.offsetWidth; indicador.style.transition = ""; }
     }
 
@@ -77,6 +76,43 @@
         setTimeout(function () { window.location.href = a.href; }, 220);
       });
     });
+  }
+  $$(".app-nav").forEach(function (nav) { deslizante(nav, $("ul", nav), ["aria-current", "page"]); });
+  /* Pestañas con enlaces (p. ej. los reportes de administración): mismo resaltado y transición. */
+  $$(".segmented[role='tablist']").forEach(function (seg) {
+    if ($$("a", seg).length) deslizante(seg, seg, ["aria-selected", "true"]);
+  });
+
+  /* ---------- Enlaces con el mismo cambio de página hacia el costado ----------
+     data-transicion="izquierda": la pantalla sale por la derecha y la nueva entra por la izquierda (volver). */
+  $$("a[data-transicion]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      var dir = a.getAttribute("data-transicion") === "izquierda" ? "izquierda" : "derecha";
+      try { sessionStorage.setItem("kapikua-entrada", dir); } catch (err) {}
+      var main = $(".app-main");
+      if (!main || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      e.preventDefault();
+      main.classList.add(dir === "derecha" ? "sale-izquierda" : "sale-derecha");
+      setTimeout(function () { window.location.href = a.href; }, 220);
+    });
+  });
+
+  /* ---------- Pago anticipado: el monto solo aparece en los pagos parciales ---------- */
+  $$("[data-monto-parcial]").forEach(function (campo) {
+    var form = campo.closest("form");
+    var input = $("input", campo);
+    function actualizar() {
+      var elegido = form && $("input[name='modalidad']:checked", form);
+      var parcial = !!elegido && elegido.value !== "TOTAL";
+      campo.hidden = !parcial;
+      if (input) { input.required = parcial; if (!parcial) input.value = ""; }
+      var etiqueta = $("label", campo);
+      var texto = parcial && etiqueta && etiqueta.getAttribute("data-etiqueta-" + elegido.value.toLowerCase());
+      if (texto) etiqueta.textContent = texto;
+    }
+    if (form) $$("input[name='modalidad']", form).forEach(function (r) { r.addEventListener("change", actualizar); });
+    actualizar();
   });
 
   /* ---------- Avisos en pantalla ---------- */
