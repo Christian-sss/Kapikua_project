@@ -72,6 +72,13 @@
 .app-nav.con-indicador a:hover,
 .app-nav.con-indicador a[aria-current="page"] { background: transparent; box-shadow: none; }
 .app-nav.con-indicador a.is-hover { color: var(--color-text); }
+/* Pestañas de reportes con el mismo resaltado */
+.segmented.con-indicador { position: relative; }
+.segmented.con-indicador a { position: relative; z-index: 1; }
+.segmented.con-indicador a,
+.segmented.con-indicador a:hover,
+.segmented.con-indicador a[aria-selected="true"] { background: transparent; box-shadow: none; }
+.segmented.con-indicador a.is-hover { color: var(--color-text); }
 
 /* ---------- Cambio de página hacia el costado ---------- */
 @keyframes kp-entra-derecha { from { opacity: 0; transform: translateX(56px); } to { opacity: 1; transform: none; } }
