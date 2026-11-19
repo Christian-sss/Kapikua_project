@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${titulo} + ' · KAPIKUA'">KAPIKUA</title>
     <meta name="theme-color" content="#027B71">
-    <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png}">
+    <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png(v=2)}">
     <script>
         (function () { try { var t = localStorage.getItem("kapikua-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
         // Dirección de entrada de la página al venir desde el menú (derecha o izquierda)
@@ -40,7 +40,7 @@
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <div class="container header-inner header-ancho">
         <a class="brand" th:href="@{/billetera}" aria-label="KAPIKUA, ir a mi billetera">
-            <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
+            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
         </a>
         <nav class="app-nav" aria-label="Principal">
@@ -85,7 +85,7 @@
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <div class="container header-inner header-ancho">
         <a class="brand" th:href="@{/admin}" aria-label="KAPIKUA, ir al panel del administrador">
-            <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
+            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
             <span class="brand-tag">Admin</span>
         </a>
@@ -127,7 +127,7 @@
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <div class="container header-inner header-ancho">
         <a class="brand" th:href="@{/}" aria-label="KAPIKUA, ir al inicio">
-            <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
+            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
         </a>
         <div class="header-actions">

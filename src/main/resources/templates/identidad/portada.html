@@ -6,7 +6,7 @@
     <title>KAPIKUA · Billetera digital y microcréditos</title>
     <meta name="description" content="KAPIKUA: billetera digital para cobrar y pagar al instante con tu número de celular, y microcréditos que se pagan solos con tus ventas.">
     <meta name="theme-color" content="#027B71">
-    <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png}">
+    <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png(v=2)}">
     <script>
         (function () { try { var t = localStorage.getItem("kapikua-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
     </script>
@@ -24,7 +24,7 @@
 <header class="site-header" id="top">
     <div class="container header-inner">
         <a class="brand" href="#top" aria-label="KAPIKUA, ir al inicio">
-            <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="44" height="44">
+            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="44" height="44">
             <span>KAPIKUA</span>
         </a>
 
@@ -104,7 +104,7 @@
                                 <span class="app-hello">Hola, Lucía</span>
                                 <span class="app-verified"><svg th:replace="~{fragmentos :: icono('i-shield')}"></svg> DNI validado</span>
                             </div>
-                            <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="28" height="28">
+                            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="28" height="28">
                         </div>
 
                         <div class="balance-card">
@@ -373,7 +373,7 @@
     <div class="container footer-grid">
         <div class="footer-brand">
             <a class="brand" href="#top">
-                <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="40" height="40">
+                <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="40" height="40">
                 <span>KAPIKUA</span>
             </a>
             <p>Billetera digital para cobrar y pagar al instante, con microcréditos que se pagan con tus ventas.</p>
