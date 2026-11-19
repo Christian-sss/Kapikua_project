@@ -38,7 +38,7 @@
      activo: billetera | credito | prestamo | nivel | reclamos -->
 <header th:fragment="barra(activo)" class="app-header">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
-    <div class="container header-inner">
+    <div class="container header-inner header-ancho">
         <a class="brand" th:href="@{/billetera}" aria-label="KAPIKUA, ir a mi billetera">
             <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
@@ -83,7 +83,7 @@
      activo: inicio | alertas | reclamos | reportes -->
 <header th:fragment="barraAdmin(activo)" class="app-header">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
-    <div class="container header-inner">
+    <div class="container header-inner header-ancho">
         <a class="brand" th:href="@{/admin}" aria-label="KAPIKUA, ir al panel del administrador">
             <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
@@ -126,7 +126,7 @@
 <header th:fragment="barraPublica(destino)" class="app-header">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <div class="container header-inner header-ancho">
-        <a class="brand" th:href="@{/login}" aria-label="KAPIKUA, ir a iniciar sesión">
+        <a class="brand" th:href="@{/}" aria-label="KAPIKUA, ir al inicio">
             <img th:src="@{/css/img/logo-kapikua.png}" alt="" width="36" height="36">
             <span>KAPIKUA</span>
         </a>

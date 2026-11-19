@@ -46,7 +46,7 @@
                             <div><dt>Parte de tu capacidad de pago que te confiamos</dt><dd th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
                             <div><dt>Cuotas semanales</dt><dd th:text="'de ' + ${n.cuotasMinimas()} + ' a ' + ${n.maxCuotas()}"></dd></div>
                             <div><dt>Tasa efectiva anual (TEA)</dt><dd th:text="${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
-                            <div><dt>Necesitas un aval</dt><dd><span class="marca" th:classappend="${n.requiereAval()} ? 'si' : 'no'"
+                            <div th:if="${n.requiereAval()}"><dt>Necesitas un aval</dt><dd><span class="marca" th:classappend="${n.requiereAval()} ? 'si' : 'no'"
                                 th:title="${n.requiereAval()} ? 'Sí' : 'No'"><th:block th:if="${n.requiereAval()}"><svg th:replace="~{fragmentos :: icono('i-check')}"></svg></th:block><span class="sr-only" th:text="${n.requiereAval()} ? 'Sí' : 'No'"></span></span></dd></div>
                         </dl>
                     </section>
@@ -63,7 +63,7 @@
                             <div><dt>Te confiaremos</dt><dd th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></dd></div>
                             <div><dt>Hasta</dt><dd th:text="${n.siguiente().maxCuotas()} + ' cuotas'"></dd></div>
                             <div><dt>TEA</dt><dd th:text="${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
-                            <div><dt>Aval</dt><dd><span class="marca" th:classappend="${n.siguiente().requiereAval()} ? 'si' : 'no'"
+                            <div th:if="${n.siguiente().requiereAval()}"><dt>Aval</dt><dd><span class="marca" th:classappend="${n.siguiente().requiereAval()} ? 'si' : 'no'"
                                 th:title="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"><th:block th:if="${n.siguiente().requiereAval()}"><svg th:replace="~{fragmentos :: icono('i-check')}"></svg></th:block><span class="sr-only" th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></span></span></dd></div>
                         </dl>
                     </section>
