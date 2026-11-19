@@ -48,8 +48,8 @@
             <section class="card card-flush" th:unless="${#lists.isEmpty(revisadas)}" aria-labelledby="t-rev">
                 <div class="card-head"><h2 id="t-rev">Revisadas recientemente</h2></div>
                 <ul class="row-list" style="margin-top: var(--space-4)">
-                    <li th:each="a : ${recientes}">
-                        <div class="row-item">
+                    <li th:each="a : ${revisadas}">
+                        <a class="row-item" th:href="@{/admin/alertas/{id}(id=${a.id()})}">
                             <span class="ico-box" th:classappend="${a.estado().name() == 'ESCALADA'} ? 'danger'">
                                 <svg th:replace="~{fragmentos :: icono(${a.estado().name() == 'ESCALADA'} ? 'i-ban' : 'i-check')}"></svg></span>
                             <span class="row-txt">
@@ -58,13 +58,9 @@
                             </span>
                             <span class="row-end"><span class="badge" th:classappend="${a.estado().name() == 'ESCALADA'} ? 'danger' : 'success'"
                                   th:text="${a.estado().name() == 'ESCALADA'} ? 'ESCALADA' : 'DESCARTADA'"></span></span>
-                        </div>
+                        </a>
                     </li>
                 </ul>
-                <div style="padding: var(--space-4)">
-                    <a class="btn btn-outline btn-block" th:href="@{/admin/alertas/historial}">
-                        <svg th:replace="~{fragmentos :: icono('i-history')}"></svg>Historial de revisiones</a>
-                </div>
             </section>
         </div>
     </div>

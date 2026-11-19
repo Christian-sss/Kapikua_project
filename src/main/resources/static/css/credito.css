@@ -3,14 +3,6 @@
    simulador.html, solicitud-credito.html, aval.html, hoja-resumen.html, prestamo.html
    ========================================================================== */
 
-/* --- Pago anticipado: grupos "Pago total" y "Pago parcial" --- */
-.pago-grupo {
-  display: grid; gap: var(--space-3); margin-inline: 0; padding: var(--space-4);
-  border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-2);
-}
-.pago-grupo legend.form-legend { float: left; width: 100%; margin: 0 0 var(--space-1); padding: 0; }
-.pago-grupo legend.form-legend::after { display: none; }
-
 /* --- Escalera de niveles (RN-14) --- */
 .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
 .ladder li {
@@ -22,18 +14,6 @@
 .ladder li.is-current b { color: #20312D; }
 .ladder li.is-done { background: var(--color-accent-verde-bg); border-color: transparent; }
 @media (max-width: 479px) { .ladder li { padding: var(--space-2); } .ladder li span { display: none; } }
-/* Visto (sí) o círculo vacío (no) en lugar de texto */
-.marca { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; }
-.marca.si { background: var(--kp-verde); color: #FFFFFF; }
-.marca.si .icon { width: 14px; height: 14px; stroke-width: 3; }
-.marca.no { border: 2px solid var(--color-border-strong, var(--color-border)); }
-
-/* Condiciones de cada nivel (nivel.html) */
-.ladder > li { align-content: start; gap: var(--space-2); }
-.ladder-cond { display: grid; gap: 2px; padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
-.ladder .ladder-cond li { padding: 0; border: 0; border-radius: 0; background: none; font-size: var(--fs-xs); color: inherit; }
-.ladder li.is-current .ladder-cond { border-top-color: rgba(32, 49, 45, .2); }
-@media (max-width: 719px) { .ladder { grid-template-columns: 1fr 1fr !important; } }
 
 /* --- Resultado del simulador --- */
 .sim-result {

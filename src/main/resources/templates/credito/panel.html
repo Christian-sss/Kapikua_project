@@ -12,6 +12,10 @@
                 <h1>Mi crédito</h1>
                 <p>Tu cuota no supera el 30 % de lo que cobras por semana, y se paga sola con un porcentaje de tus ventas.</p>
             </div>
+            <div class="btn-row" th:unless="${panel.prestamo()}">
+                <a class="btn btn-outline" th:href="@{/credito/simular}"><svg th:replace="~{fragmentos :: icono('i-chart')}"></svg>Simular</a>
+                <a class="btn btn-primary" th:href="@{/credito/solicitar}"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg>Solicitar</a>
+            </div>
         </div>
 
         <div class="stack" style="margin-bottom: var(--space-5)" th:if="${aviso != null}">
@@ -66,7 +70,7 @@
                         <li class="aval-slot" th:each="g : ${panel.garantias()}">
                             <span class="avatar" th:text="${#strings.substring(g.deudor(), 0, 1)}">A</span>
                             <div>
-                                <b><span th:text="${g.deudor()}">Deudor</span>&nbsp;&nbsp;<span th:text="${g.monto()}">S/ 0.00</span></b>
+                                <b th:text="${g.deudor()} + ' · ' + ${g.monto()}">Deudor</b>
                                 <small th:if="${g.cuotasVencidas() == 0}">Al día.</small>
                                 <small class="text-danger" th:if="${g.cuotasVencidas() > 0}"
                                        th:text="${g.cuotasVencidas()} + ' cuota(s) vencida(s) por ' + ${g.vencido()}

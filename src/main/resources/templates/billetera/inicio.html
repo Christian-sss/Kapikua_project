@@ -6,13 +6,14 @@
 
 <main class="app-main" id="contenido-pagina">
     <div class="container">
-        <div class="page-head" th:unless="${comprobante}">
+        <div class="page-head">
             <p class="eyebrow"><span class="dot"></span> Mi billetera</p>
             <h1 th:text="'Hola, ' + ${usuario.nombres()}">Hola</h1>
         </div>
 
-        <!-- Comprobante: se muestra solo, sin el resto de la billetera -->
-        <section class="card receipt op-card" th:if="${comprobante}" aria-labelledby="t-comprobante">
+        <!-- Comprobante de la última operación -->
+        <section class="card receipt op-card" th:if="${comprobante}" style="margin-bottom: var(--space-6)"
+                 aria-labelledby="t-comprobante">
             <div class="receipt-ico"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg></div>
             <h2 id="t-comprobante" th:text="${param.detalle != null} ? 'Detalle del movimiento' : 'Operación realizada'">Operación realizada</h2>
             <div class="receipt-amount" th:text="${comprobante.monto()}">S/ 0.00</div>
@@ -24,11 +25,10 @@
             <p class="small" style="margin-top: var(--space-4)">
                 <a th:href="@{/reclamos/nuevo(operacion=${comprobante.transaccionId()})}">¿Un problema con esta operación? Presenta un reclamo</a>
             </p>
-            <a class="btn btn-primary btn-lg btn-block" th:href="@{/billetera}" data-transicion="izquierda" style="margin-top: var(--space-4)">
-                <svg th:replace="~{fragmentos :: icono('i-wallet')}"></svg>Volver a mi billetera</a>
+            <a class="btn btn-outline btn-block" th:if="${param.detalle != null}" th:href="@{/billetera}" style="margin-top: var(--space-4)">Cerrar detalle</a>
         </section>
 
-        <div id="contenido" th:fragment="contenido" th:unless="${comprobante}"
+        <div id="contenido" th:fragment="contenido"
              th:data-fragmento="@{/billetera/fragmentos/contenido(desde=${filtroDesde},hasta=${filtroHasta})}"
              th:data-eventos="@{/eventos}">
             <div class="grid layout-aside">
@@ -48,8 +48,9 @@
                             </div>
                             <div class="split-bar" aria-hidden="true"><span></span><span></span></div>
                         </div>
-                        <nav class="quick-actions" aria-label="Operaciones" style="grid-template-columns: repeat(3, 1fr);">
+                        <nav class="quick-actions" aria-label="Operaciones">
                             <a class="quick-action" th:href="@{/billetera/transferir}"><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-send')}"></svg></span>Transferir</a>
+                            <a class="quick-action" th:href="@{/billetera/pagar}"><span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-store')}"></svg></span>Pagar</a>
                             <a class="quick-action" th:href="@{/credito}"><span class="ico-box amarillo"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span>Crédito</a>
                             <a class="quick-action" th:href="@{/nivel}"><span class="ico-box"><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg></span>Mi nivel</a>
                         </nav>

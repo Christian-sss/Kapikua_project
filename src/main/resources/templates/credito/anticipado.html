@@ -23,27 +23,21 @@
                     <div class="figure"><small>Cuotas por vencer</small><b th:text="${v.cuotasPendientes()}">0</b></div>
                 </div>
 
-                <fieldset class="pago-grupo">
-                    <legend class="form-legend">Pago total</legend>
+                <div class="choice-grid">
                     <label class="choice"><input type="radio" name="modalidad" value="TOTAL" checked>
-                        <span><b>Pagar todo</b><small th:text="'Cancelas tu préstamo: ' + ${v.capitalPendiente()}"></small></span></label>
-                </fieldset>
+                        <span><b>Total</b><small th:text="'Pagar todo: ' + ${v.capitalPendiente()}"></small></span></label>
+                    <label class="choice"><input type="radio" name="modalidad" value="REDUCIR_CUOTA">
+                        <span><b>Parcial · reducir la cuota</b><small>Mismas semanas, cuotas más bajas</small></span></label>
+                    <label class="choice"><input type="radio" name="modalidad" value="REDUCIR_PLAZO">
+                        <span><b>Parcial · reducir el plazo</b><small>Misma cuota, terminas antes</small></span></label>
+                </div>
 
-                <fieldset class="pago-grupo">
-                    <legend class="form-legend">Pago parcial</legend>
-                    <div class="choice-grid cols-2">
-                        <label class="choice"><input type="radio" name="modalidad" value="REDUCIR_CUOTA">
-                            <span><b>Reducir la Cuota</b><small>Mismas semanas, cuotas más bajas</small></span></label>
-                        <label class="choice"><input type="radio" name="modalidad" value="REDUCIR_PLAZO">
-                            <span><b>Reducir el Plazo</b><small>Misma cuota, terminas antes</small></span></label>
-                    </div>
-                    <div class="field" data-monto-parcial hidden>
-                        <label for="monto" data-etiqueta-REDUCIR_CUOTA="Monto para reducir la Cuota"
-                               data-etiqueta-REDUCIR_PLAZO="Monto para reducir el Plazo">Monto del pago parcial</label>
-                        <div class="input-group"><span class="prefix">S/</span>
-                            <input class="input" id="monto" name="monto" type="number" step="0.01" min="0.01" placeholder="0.00"></div>
-                    </div>
-                </fieldset>
+                <div class="field">
+                    <label for="monto">Monto del pago parcial</label>
+                    <div class="input-group"><span class="prefix">S/</span>
+                        <input class="input" id="monto" name="monto" type="number" step="0.01" min="0.01" placeholder="0.00"></div>
+                    <span class="hint">Solo si eliges un pago parcial.</span>
+                </div>
 
                 <p class="notice info"><svg th:replace="~{fragmentos :: icono('i-check-circle')}"></svg><span class="small">Sin penalidad ni comisiones.</span></p>
 
