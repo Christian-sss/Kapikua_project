@@ -12,6 +12,12 @@
 /* Encabezado de login y registro a todo el ancho: marca en la esquina izquierda,
    botones en la esquina derecha */
 .header-inner.header-ancho { max-width: none; }
+/* Menú centrado respecto a toda la pantalla, no al espacio que dejan la marca y los botones */
+@media (min-width: 1024px) {
+  .app-header .header-inner { position: relative; }
+  .app-header .app-nav { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; }
+  .app-header .header-actions { margin-left: auto; }
+}
 
 /* Franja en el borde de arriba, bajo el encabezado: amarilla sobre el panel de marca
    y verde sobre el lado del formulario */
