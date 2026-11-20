@@ -12,7 +12,6 @@
                 <h1>Simula tu crédito</h1>
                 <p>Calcula tu cuota semanal antes de solicitar. Es un cálculo referencial.</p>
             </div>
-            <a class="btn btn-outline" th:href="@{/credito/solicitar}"><svg th:replace="~{fragmentos :: icono('i-file')}"></svg>Ir a solicitar</a>
         </div>
 
         <div class="notice danger" th:if="${error}" style="margin-bottom: var(--space-5)">

@@ -115,6 +115,17 @@
     actualizar();
   });
 
+  /* ---------- Montos: máximo dos decimales (10.00 o 10.5, nunca 10.000000) ---------- */
+  $$("input[type='number'][step='0.01']").forEach(function (campo) {
+    function recortar() {
+      var v = campo.value;
+      var punto = v.indexOf(".");
+      if (punto !== -1 && v.length - punto - 1 > 2) campo.value = v.slice(0, punto + 3);
+    }
+    campo.addEventListener("input", recortar);
+    recortar();
+  });
+
   /* ---------- Avisos en pantalla ---------- */
   var stack;
   function toast(titulo, texto, opciones) {
