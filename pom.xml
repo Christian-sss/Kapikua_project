@@ -191,6 +191,8 @@
                         <configuration>
                             <includes>
                                 <include>com/projects/kapikua_api/*/domain/**</include>
+                                <include>com/projects/kapikua_api/billetera/model/**</include>
+                                <include>com/projects/kapikua_api/credito/model/**</include>
                                 <include>com/projects/kapikua_api/shared/domain/**</include>
                                 <include>com/projects/kapikua_api/shared/Dinero*</include>
                                 <include>com/projects/kapikua_api/shared/MatematicaFinanciera*</include>

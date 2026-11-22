@@ -1,16 +1,15 @@
 package com.projects.kapikua_api.credito;
 
 import com.projects.kapikua_api.DatosDePrueba;
-import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
-import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase.HojaResumen;
-import com.projects.kapikua_api.credito.application.port.in.ConsultarCreditoUseCase;
-import com.projects.kapikua_api.credito.application.port.in.ConsultarCreditoUseCase.DetalleOferta;
-import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase;
-import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase.InvitacionAval;
-import com.projects.kapikua_api.credito.application.port.in.SimularCreditoUseCase;
-import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
-import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase.ResultadoSolicitud;
-import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
+import com.projects.kapikua_api.credito.service.AceptacionService;
+import com.projects.kapikua_api.credito.dto.HojaResumen;
+import com.projects.kapikua_api.credito.service.ConsultaCreditoService;
+import com.projects.kapikua_api.credito.dto.DetalleOferta;
+import com.projects.kapikua_api.credito.service.AvalService;
+import com.projects.kapikua_api.credito.dto.InvitacionAval;
+import com.projects.kapikua_api.credito.service.OriginacionService;
+import com.projects.kapikua_api.credito.dto.ResultadoSolicitud;
+import com.projects.kapikua_api.credito.error.ErrorCredito;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
@@ -40,11 +39,10 @@ class CreditoIntegracionTest {
     }
 
     @Autowired RegistroService registrar;
-    @Autowired SimularCreditoUseCase simular;
-    @Autowired SolicitarCreditoUseCase solicitar;
-    @Autowired GestionarAvalUseCase avales;
-    @Autowired AceptarOfertaUseCase aceptar;
-    @Autowired ConsultarCreditoUseCase consultar;
+    @Autowired OriginacionService originacion;
+    @Autowired AvalService avales;
+    @Autowired AceptacionService aceptar;
+    @Autowired ConsultaCreditoService consultar;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
     @Autowired EjecutorTransaccional ejecutor;
@@ -72,7 +70,7 @@ class CreditoIntegracionTest {
     }
 
     private ResultadoSolicitud solicitar(UsuarioId u, String monto, int cuotas) {
-        return ok(solicitar.solicitar(u, Dinero.de(monto), cuotas, Destino.CAPITAL_TRABAJO, true));
+        return ok(originacion.solicitar(u, Dinero.de(monto), cuotas, Destino.CAPITAL_TRABAJO, true));
     }
 
     private DetalleOferta oferta(UsuarioId u, Long id) {
@@ -88,17 +86,17 @@ class CreditoIntegracionTest {
     @Test
     void simuladorSegunElNivel() {
         var ana = clienteElegible('0');
-        var op = ok(simular.opciones(ana.id()));
+        var op = ok(originacion.opciones(ana.id()));
         assertThat(op.nivel()).isEqualTo(1);
         assertThat(op.cuotasMinimas()).isEqualTo(4);
         assertThat(op.cuotasMaximas()).isEqualTo(8);
         assertThat(op.tea()).isEqualByComparingTo("95");
 
-        var s = ok(simular.simular(ana.id(), Dinero.de("1000"), 8));
+        var s = ok(originacion.simular(ana.id(), Dinero.de("1000"), 8));
         assertThat(s.cronograma()).hasSize(8);
         assertThat(s.tcea()).isEqualByComparingTo(s.tea());
-        assertThat(err(simular.simular(ana.id(), Dinero.de("1000"), 9))).isEqualTo(new ErrorCredito.CuotasFueraDeRango(4, 8));
-        assertThat(err(simular.simular(ana.id(), Dinero.de("3300.01"), 8))).isInstanceOf(ErrorCredito.MontoInvalido.class);
+        assertThat(err(originacion.simular(ana.id(), Dinero.de("1000"), 9))).isEqualTo(new ErrorCredito.CuotasFueraDeRango(4, 8));
+        assertThat(err(originacion.simular(ana.id(), Dinero.de("3300.01"), 8))).isInstanceOf(ErrorCredito.MontoInvalido.class);
     }
 
     @Test
@@ -140,7 +138,7 @@ class CreditoIntegracionTest {
         assertThat(jdbc.queryForObject("select count(*) from evaluacion.historial_crediticio where usuario_id = ?",
                 Integer.class, ana.id().valor())).isEqualTo(1);
 
-        assertThat(err(solicitar.solicitar(ana.id(), Dinero.de("500"), 8, Destino.OTRO, true)))
+        assertThat(err(originacion.solicitar(ana.id(), Dinero.de("500"), 8, Destino.OTRO, true)))
                 .isInstanceOf(ErrorCredito.PrestamoActivoExistente.class);
         var pepe = clienteElegible('1');
         var r2 = solicitar(pepe.id(), "1000", 8);
@@ -150,14 +148,14 @@ class CreditoIntegracionTest {
     @Test
     void sinAutorizarLosDatosNoSeEvalua() {
         var ana = clienteElegible('0');
-        assertThat(err(solicitar.solicitar(ana.id(), Dinero.de("1000"), 8, Destino.OTRO, false)))
+        assertThat(err(originacion.solicitar(ana.id(), Dinero.de("1000"), 8, Destino.OTRO, false)))
                 .isInstanceOf(ErrorCredito.ConsentimientoRequerido.class);
     }
 
     @Test
     void sinUsoMinimoSeExplicaQueFalta() {
         var nueva = datos.cliente('0');
-        assertThat(err(solicitar.solicitar(nueva.id(), Dinero.de("1000"), 8, Destino.OTRO, true)).mensaje())
+        assertThat(err(originacion.solicitar(nueva.id(), Dinero.de("1000"), 8, Destino.OTRO, true)).mensaje())
                 .contains("30 días");
     }
 

@@ -1,0 +1,66 @@
+package com.projects.kapikua_api.credito.service;
+
+import com.projects.kapikua_api.credito.client.ClientesCredito;
+import com.projects.kapikua_api.credito.client.EntidadFinanciera;
+import com.projects.kapikua_api.credito.client.EntidadFinanciera.RespuestaEfa;
+import com.projects.kapikua_api.credito.client.EntidadFinanciera.SolicitudEfa;
+import com.projects.kapikua_api.credito.repository.OfertaRepository;
+import com.projects.kapikua_api.credito.error.ErrorCredito;
+import com.projects.kapikua_api.credito.model.Oferta;
+import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluacion;
+import com.projects.kapikua_api.shared.Result;
+import com.projects.kapikua_api.shared.puerto.EjecutorTransaccional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+@Component
+class DecisionEntidad {
+    private static final Logger log = LoggerFactory.getLogger(DecisionEntidad.class);
+
+    private final SoporteOfertas soporte;
+    private final OfertaRepository ofertas;
+    private final EntidadFinanciera entidad;
+    private final ClientesCredito clientes;
+    private final EjecutorTransaccional ejecutor;
+
+    DecisionEntidad(SoporteOfertas soporte, OfertaRepository ofertas, EntidadFinanciera entidad,
+                    ClientesCredito clientes, EjecutorTransaccional ejecutor) {
+        this.soporte = soporte;
+        this.ofertas = ofertas;
+        this.entidad = entidad;
+        this.clientes = clientes;
+        this.ejecutor = ejecutor;
+    }
+
+    Result<Void, ErrorCredito> pedirSiEstaLista(Long ofertaId) {
+        var cargada = soporte.actualizada(ofertaId, null);
+        if (cargada instanceof Result.Err<Oferta, ErrorCredito> err) return Result.err(err.error());
+        var oferta = ((Result.Ok<Oferta, ErrorCredito>) cargada).valor();
+        var ev = soporte.evaluacionDe(oferta);
+        if (ev instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err) return Result.err(err.error());
+        var evaluacion = ((Result.Ok<ResultadoEvaluacion, ErrorCredito>) ev).valor();
+        if (!oferta.listaParaEfa(evaluacion.requiereAval())) return Result.ok();
+
+        var c = evaluacion.condiciones();
+        var solicitud = new SolicitudEfa(clientes.dni(oferta.getUsuarioId()).orElseThrow(), c.monto(), c.cuotas(),
+                c.tea(), c.cuota(), evaluacion.score(), evaluacion.recomendacion(),
+                oferta.avalAceptado().flatMap(a -> clientes.dni(a.getUsuarioAvalId())).orElse(null));
+        var respuesta = entidad.solicitarDecision(solicitud);
+        if (respuesta instanceof Result.Err<RespuestaEfa, ErrorCredito> err) {
+            log.warn("La entidad aliada no respondió para la oferta {}: queda PENDIENTE_EFA", ofertaId);
+            return Result.err(err.error());
+        }
+        var decision = ((Result.Ok<RespuestaEfa, ErrorCredito>) respuesta).valor();
+        return ejecutor.ejecutarResultado(() -> {
+            var o = ofertas.porId(ofertaId).orElseThrow();
+            var ahora = soporte.ahora();
+            var aplicada = switch (decision) {
+                case RespuestaEfa.Confirmada conf -> o.confirmar(conf.codigoSolicitud(), conf.condiciones(), ahora);
+                case RespuestaEfa.Denegada den -> o.denegar(den.codigoSolicitud(), den.motivo(), ahora);
+            };
+            if (aplicada.esOk()) ofertas.guardar(o);
+            return aplicada.map(cambio -> null);
+        });
+    }
+}

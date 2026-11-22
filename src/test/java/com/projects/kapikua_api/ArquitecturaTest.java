@@ -31,13 +31,14 @@ class ArquitecturaTest {
     private static final Set<String> CONTEXTOS = Set.of("identidad", "billetera", "evaluacion", "credito", "cumplimiento", "administracion");
 
     /**
-     * Identidad, Cumplimiento y Billetera siguen una arquitectura por capas (controller, service, repository,
+     * Identidad, Cumplimiento, Billetera y Créditos siguen una arquitectura por capas (controller, service, repository,
      * entity/model, client, dto, error...) en lugar de la hexagonal: las reglas sobre domain/application/infrastructure
-     * no les aplican.
+     * no les aplican. Evaluación, el subdominio núcleo, sigue en hexagonal.
      */
     private static final String IDENTIDAD = "..kapikua_api.identidad.";
     private static final String CUMPLIMIENTO = "..kapikua_api.cumplimiento.";
     private static final String BILLETERA = "..kapikua_api.billetera.";
+    private static final String CREDITO = "..kapikua_api.credito.";
 
     private static final Set<String> LENGUAJE_PUBLICADO = Set.of(
             RAIZ + "evaluacion.domain.model.Destino",
@@ -157,20 +158,20 @@ class ArquitecturaTest {
     static final ArchRule entidadesJpaEnPersistencia = classes()
             .that().areAnnotatedWith(Entity.class)
             .should().resideInAnyPackage("..infrastructure.adapter.out.persistence..", IDENTIDAD + "entity..",
-                    CUMPLIMIENTO + "model..", BILLETERA + "entity..");
+                    CUMPLIMIENTO + "model..", BILLETERA + "entity..", CREDITO + "entity..");
 
     @ArchTest
     static final ArchRule repositoriosEnPersistencia = classes()
             .that().areAnnotatedWith(Repository.class)
             .should().resideInAnyPackage("..infrastructure.adapter.out.persistence..", "..kapikua_api.administracion..",
-                    CUMPLIMIENTO + "repository..", BILLETERA + "repository..");
+                    CUMPLIMIENTO + "repository..", BILLETERA + "repository..", CREDITO + "repository..");
 
     @ArchTest
     static final ArchRule controladoresEnWeb = classes()
             .that().areMetaAnnotatedWith(Controller.class)
             .should().resideInAnyPackage("..infrastructure.adapter.in.web..", "..shared.infrastructure..",
                     "..kapikua_api.administracion..", IDENTIDAD + "controller..", CUMPLIMIENTO + "controller..",
-                    BILLETERA + "controller..");
+                    BILLETERA + "controller..", CREDITO + "controller..");
 
     private static Optional<String> contexto(JavaClass clase) {
         var nombre = clase.getName();

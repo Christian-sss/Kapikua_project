@@ -2,14 +2,15 @@ package com.projects.kapikua_api.credito;
 
 import com.projects.kapikua_api.DatosDePrueba;
 import com.projects.kapikua_api.billetera.service.EnvioService;
-import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
-import com.projects.kapikua_api.credito.application.port.in.CobranzaUseCase;
-import com.projects.kapikua_api.credito.application.port.in.ConsultarCreditoUseCase;
-import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase;
-import com.projects.kapikua_api.credito.application.port.in.PagarPrestamoUseCase;
-import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
-import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
+import com.projects.kapikua_api.credito.service.AceptacionService;
+import com.projects.kapikua_api.credito.service.CobranzaService;
+import com.projects.kapikua_api.credito.service.ConsultaCreditoService;
+import com.projects.kapikua_api.credito.service.AvalService;
+import com.projects.kapikua_api.credito.service.PagosService;
+import com.projects.kapikua_api.credito.service.OriginacionService;
+import com.projects.kapikua_api.credito.dto.DetallePrestamo;
+import com.projects.kapikua_api.credito.error.ErrorCredito;
+import com.projects.kapikua_api.credito.model.ModalidadPago;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
@@ -40,12 +41,12 @@ class CobranzaIntegracionTest {
     }
 
     @Autowired RegistroService registrar;
-    @Autowired SolicitarCreditoUseCase solicitar;
-    @Autowired GestionarAvalUseCase avales;
-    @Autowired AceptarOfertaUseCase aceptar;
-    @Autowired ConsultarCreditoUseCase consultar;
-    @Autowired CobranzaUseCase cobranza;
-    @Autowired PagarPrestamoUseCase pagos;
+    @Autowired OriginacionService originacion;
+    @Autowired AvalService avales;
+    @Autowired AceptacionService aceptar;
+    @Autowired ConsultaCreditoService consultar;
+    @Autowired CobranzaService cobranza;
+    @Autowired PagosService pagos;
     @Autowired EnvioService enviar;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
@@ -67,7 +68,7 @@ class CobranzaIntegracionTest {
         var ana = datos.cliente('0');
         datos.conHistoriaDeCobros(ana.id());
         var luis = datos.cliente('5');
-        var r = ok(solicitar.solicitar(ana.id(), Dinero.de("3000"), 8, Destino.CAPITAL_TRABAJO, true));
+        var r = ok(originacion.solicitar(ana.id(), Dinero.de("3000"), 8, Destino.CAPITAL_TRABAJO, true));
         ok(avales.designar(ana.id(), r.ofertaId(), luis.celular()));
         var inv = ok(avales.invitacion(luis.id(), r.ofertaId()));
         ok(avales.responder(luis.id(), r.ofertaId(), true, inv.codigoMostrado(), "x"));
@@ -81,7 +82,7 @@ class CobranzaIntegracionTest {
         assertThat(enviar.pagarNegocio(comprador.id(), destino.celular(), Dinero.de(monto), UUID.randomUUID().toString()).esOk()).isTrue();
     }
 
-    private ConsultarCreditoUseCase.DetallePrestamo prestamo(UsuarioId u) {
+    private DetallePrestamo prestamo(UsuarioId u) {
         return consultar.panel(u).prestamo();
     }
 
@@ -240,7 +241,7 @@ class CobranzaIntegracionTest {
     void laTareaDiariaVenceInvitacionesYOfertas() {
         var ana = datos.cliente('0');
         datos.conHistoriaDeCobros(ana.id());
-        var r = ok(solicitar.solicitar(ana.id(), Dinero.de("1000"), 8, Destino.OTRO, true));
+        var r = ok(originacion.solicitar(ana.id(), Dinero.de("1000"), 8, Destino.OTRO, true));
         ok(avales.designar(ana.id(), r.ofertaId(), datos.cliente('5').celular()));
         jdbc.update("update credito.aval set fecha_invitacion = now() - interval '49 hours' where oferta_id = ?", r.ofertaId());
         jdbc.update("update credito.oferta set fecha = now() - interval '9 days', vigente_hasta = current_date - 2 where id = ?",

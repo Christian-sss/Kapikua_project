@@ -2,10 +2,10 @@ package com.projects.kapikua_api.administracion;
 
 import com.projects.kapikua_api.DatosDePrueba;
 import com.projects.kapikua_api.billetera.service.EnvioService;
-import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
-import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase;
-import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
-import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
+import com.projects.kapikua_api.credito.service.AceptacionService;
+import com.projects.kapikua_api.credito.service.AvalService;
+import com.projects.kapikua_api.credito.service.OriginacionService;
+import com.projects.kapikua_api.credito.error.ErrorCredito;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
@@ -35,9 +35,9 @@ class ReportesIntegracionTest {
 
     @Autowired RegistroService registrar;
     @Autowired EnvioService enviar;
-    @Autowired SolicitarCreditoUseCase solicitar;
-    @Autowired GestionarAvalUseCase avales;
-    @Autowired AceptarOfertaUseCase aceptar;
+    @Autowired OriginacionService originacion;
+    @Autowired AvalService avales;
+    @Autowired AceptacionService aceptar;
     @Autowired ReportesConsulta reportes;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
@@ -62,7 +62,7 @@ class ReportesIntegracionTest {
     private Long prestamo(DatosDePrueba.Cliente ana) {
         datos.conHistoriaDeCobros(ana.id());
         var luis = datos.cliente('5');
-        var r = ok(solicitar.solicitar(ana.id(), Dinero.de("3000"), 8, Destino.CAPITAL_TRABAJO, true));
+        var r = ok(originacion.solicitar(ana.id(), Dinero.de("3000"), 8, Destino.CAPITAL_TRABAJO, true));
         ok(avales.designar(ana.id(), r.ofertaId(), luis.celular()));
         var inv = ok(avales.invitacion(luis.id(), r.ofertaId()));
         ok(avales.responder(luis.id(), r.ofertaId(), true, inv.codigoMostrado(), "x"));
