@@ -21,15 +21,15 @@
                         <p class="card-sub">La cuota de tu crédito no supera el 30 % de lo que cobras por semana con Kapikua.</p></div>
                 </div>
                 <ol class="ladder" th:style="'grid-template-columns: repeat(' + ${n.nivelMaximo()} + ', 1fr)'">
-                    <li th:each="k : ${#numbers.sequence(1, n.nivelMaximo())}"
-                        th:classappend="${k == n.nivel()} ? 'is-current' : (${k < n.nivel()} ? 'is-done' : '')">
-                        <b th:text="'Nivel ' + ${k}">Nivel</b>
-                        <th:block th:if="${k == n.nivel()}"
-                                  th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % · ' + ${n.cuotasMinimas()} + '–' + ${n.maxCuotas()} + ' cuotas'"></th:block>
-                        <span th:if="${k == n.nivel()}" th:text="' · TEA ' + ${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></span>
-                        <th:block th:if="${n.siguiente() != null and k == n.siguiente().nivel()}"
-                                  th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % · hasta ' + ${n.siguiente().maxCuotas()}"></th:block>
-                        <span th:if="${n.siguiente() != null and k == n.siguiente().nivel()}" th:text="' · TEA ' + ${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></span>
+                    <li th:each="e : ${n.escalones()}"
+                        th:classappend="${e.nivel() == n.nivel()} ? 'is-current' : (${e.nivel() < n.nivel()} ? 'is-done' : '')">
+                        <b th:text="'Nivel ' + ${e.nivel()}">Nivel</b>
+                        <ul class="ladder-cond">
+                            <li th:text="${e.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></li>
+                            <li th:text="${n.cuotasMinimas()} + '–' + ${e.maxCuotas()} + ' cuotas'"></li>
+                            <li th:text="'TEA ' + ${e.tea().stripTrailingZeros().toPlainString()} + ' %'"></li>
+                            <li th:text="${e.requiereAval()} ? 'Con aval' : 'Sin aval'"></li>
+                        </ul>
                     </li>
                 </ol>
                 <div class="notice danger" th:if="${n.bloqueado()}" style="margin-top: var(--space-4)">
@@ -38,20 +38,22 @@
                 </div>
             </section>
 
-            <div class="grid grid-2" style="align-items:start">
-                <div class="stack-lg">
+            <div class="grid grid-2" style="align-items:stretch; margin-bottom: var(--space-5)">
                     <section class="card" aria-labelledby="t-cond">
-                        <div class="card-head"><h2 id="t-cond">Condiciones de tu nivel</h2></div>
+                        <div class="card-head"><h2 id="t-cond">Nivel de cuenta</h2>
+                            <span class="badge level" th:text="'Nivel ' + ${n.nivel()}">Nivel 1</span></div>
                         <dl class="kv">
                             <div><dt>Parte de tu capacidad de pago que te confiamos</dt><dd th:text="${n.porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
                             <div><dt>Cuotas semanales</dt><dd th:text="'de ' + ${n.cuotasMinimas()} + ' a ' + ${n.maxCuotas()}"></dd></div>
                             <div><dt>Tasa efectiva anual (TEA)</dt><dd th:text="${n.tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
-                            <div><dt>Necesitas un aval</dt><dd th:text="${n.requiereAval()} ? 'Sí' : 'No'"></dd></div>
+                            <div th:if="${n.requiereAval()}"><dt>Necesitas un aval</dt><dd><span class="marca" th:classappend="${n.requiereAval()} ? 'si' : 'no'"
+                                th:title="${n.requiereAval()} ? 'Sí' : 'No'"><th:block th:if="${n.requiereAval()}"><svg th:replace="~{fragmentos :: icono('i-check')}"></svg></th:block><span class="sr-only" th:text="${n.requiereAval()} ? 'Sí' : 'No'"></span></span></dd></div>
                         </dl>
                     </section>
 
                     <section class="card" th:if="${n.siguiente()}" aria-labelledby="t-subir">
-                        <div class="card-head"><h2 id="t-subir" th:text="'Para subir al nivel ' + ${n.siguiente().nivel()}">Para subir</h2></div>
+                        <div class="card-head"><h2 id="t-subir">Siguiente nivel</h2>
+                            <span class="badge" th:text="'Nivel ' + ${n.siguiente().nivel()}">Nivel 2</span></div>
                         <div class="loan-progress">
                             <div class="meter"><span th:style="'width:' + ${n.creditosParaSubir() > 0 ? n.creditosPagadosEnNivel() * 100.0 / n.creditosParaSubir() : 0} + '%'"></span></div>
                             <small class="muted" th:text="'Paga a tiempo ' + ${n.creditosParaSubir()} + (${n.creditosParaSubir() == 1} ? ' crédito' : ' créditos')
@@ -61,11 +63,13 @@
                             <div><dt>Te confiaremos</dt><dd th:text="${n.siguiente().porcentajeCapacidad().stripTrailingZeros().toPlainString()} + ' % de tu capacidad'"></dd></div>
                             <div><dt>Hasta</dt><dd th:text="${n.siguiente().maxCuotas()} + ' cuotas'"></dd></div>
                             <div><dt>TEA</dt><dd th:text="${n.siguiente().tea().stripTrailingZeros().toPlainString()} + ' %'"></dd></div>
-                            <div><dt>Aval</dt><dd th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></dd></div>
+                            <div th:if="${n.siguiente().requiereAval()}"><dt>Aval</dt><dd><span class="marca" th:classappend="${n.siguiente().requiereAval()} ? 'si' : 'no'"
+                                th:title="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"><th:block th:if="${n.siguiente().requiereAval()}"><svg th:replace="~{fragmentos :: icono('i-check')}"></svg></th:block><span class="sr-only" th:text="${n.siguiente().requiereAval()} ? 'Sí' : 'Ya no lo necesitas'"></span></span></dd></div>
                         </dl>
                     </section>
-                </div>
+            </div>
 
+            <div>
                 <section class="card" th:with="u=${n.usoMinimo()}" aria-labelledby="t-uso">
                     <div class="card-head"><h2 id="t-uso">Uso de tu billetera</h2>
                         <span class="badge" th:classappend="${u.cumple()} ? 'success' : 'warning'" th:text="${u.cumple()} ? 'Cumples' : 'Aún no'"></span></div>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KAPIKUA · Billetera digital y microcréditos</title>
+    <meta name="description" content="KAPIKUA: billetera digital para cobrar y pagar al instante con tu número de celular, y microcréditos que se pagan solos con tus ventas.">
+    <meta name="theme-color" content="#027B71">
+    <link rel="icon" type="image/png" th:href="@{/css/img/logo-kapikua.png(v=2)}">
+    <script>
+        (function () { try { var t = localStorage.getItem("kapikua-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/landing.css}">
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+<!-- ============================ Encabezado ============================ -->
+<header class="site-header" id="top">
+    <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="KAPIKUA, ir al inicio">
+            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="44" height="44">
+            <span>KAPIKUA</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Principal" data-pill-nav>
+            <span class="nav-pill nav-pill-hover" aria-hidden="true"></span>
+            <span class="nav-pill nav-pill-active" aria-hidden="true"></span>
+            <ul>
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#funciones">Funciones</a></li>
+                <li><a href="#como-funciona">Cómo funciona</a></li>
+                <li><a href="#microcreditos">Microcréditos</a></li>
+                <li><a href="#seguridad">Seguridad</a></li>
+                <li><a href="#preguntas">Preguntas</a></li>
+            </ul>
+        </nav>
+
+        <div class="header-actions">
+            <button th:replace="~{fragmentos :: botonTema}"></button>
+            <a class="btn btn-ghost hide-mobile" th:href="@{/login}">Iniciar sesión</a>
+            <a class="btn btn-primary hide-mobile" th:href="@{/registro}">Crear cuenta</a>
+            <button class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-movil" data-menu-toggle>
+                <svg class="icon icon-open" aria-hidden="true"><use th:attr="href=@{/css/img/iconos.svg} + '#i-menu'"/></svg>
+                <svg class="icon icon-close" aria-hidden="true"><use th:attr="href=@{/css/img/iconos.svg} + '#i-close'"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="mobile-menu" id="menu-movil" hidden>
+        <nav class="container" aria-label="Menú móvil">
+            <ul>
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#funciones">Funciones</a></li>
+                <li><a href="#como-funciona">Cómo funciona</a></li>
+                <li><a href="#microcreditos">Microcréditos</a></li>
+                <li><a href="#seguridad">Seguridad</a></li>
+                <li><a href="#preguntas">Preguntas</a></li>
+            </ul>
+            <div class="mobile-menu-actions">
+                <a class="btn btn-ghost btn-block" th:href="@{/login}">Iniciar sesión</a>
+                <a class="btn btn-primary btn-block" th:href="@{/registro}">Crear cuenta</a>
+            </div>
+        </nav>
+    </div>
+</header>
+
+<main id="contenido">
+
+    <!-- ============================ Inicio ============================ -->
+    <section class="hero" id="inicio">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="dot"></span> Billetera digital · Microcréditos</p>
+                <h1>Cobra y paga al instante.<br><span class="hl linea-capibara">Tu crédito se paga con tus ventas.<img class="capibara" th:src="@{/css/img/capibara-dorado.png}" alt="" width="96" height="96"></span></h1>
+                <p class="lead">Recibe y envía dinero con un número de celular, y accede a microcréditos semanales que se pagan solos con un porcentaje de lo que vendes.</p>
+                <div class="hero-ctas">
+                    <a class="btn btn-primary btn-lg" th:href="@{/registro}">
+                        Crear mi cuenta
+                        <svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg>
+                    </a>
+                    <a class="btn btn-outline btn-lg" href="#como-funciona">Ver cómo funciona</a>
+                </div>
+                <ul class="hero-points">
+                    <li><svg th:replace="~{fragmentos :: icono('i-check')}"></svg> DNI validado</li>
+                    <li><svg th:replace="~{fragmentos :: icono('i-check')}"></svg> Dinero al instante</li>
+                    <li><svg th:replace="~{fragmentos :: icono('i-check')}"></svg> Sin penalidad por adelantar</li>
+                </ul>
+            </div>
+
+            <!-- Maqueta del teléfono (ilustrativa) -->
+            <div class="hero-visual" aria-hidden="true">
+                <div class="phone">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <div class="app-top">
+                            <div>
+                                <span class="app-hello">Hola, Lucía</span>
+                                <span class="app-verified"><svg th:replace="~{fragmentos :: icono('i-shield')}"></svg> DNI validado</span>
+                            </div>
+                            <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="28" height="28">
+                        </div>
+
+                        <div class="balance-card">
+                            <span class="balance-label">Saldo disponible</span>
+                            <span class="balance-amount" data-balance>S/ 1,250.00</span>
+                            <div class="balance-split"><span></span><span></span></div>
+                        </div>
+
+                        <div class="app-actions" style="grid-template-columns: repeat(3, 1fr)">
+                            <div class="app-action"><span><svg th:replace="~{fragmentos :: icono('i-send')}"></svg></span>Transferir</div>
+                            <div class="app-action"><span><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span>Crédito</div>
+                            <div class="app-action"><span><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg></span>Mi nivel</div>
+                        </div>
+
+                        <div class="app-list">
+                            <span class="app-list-title">Movimientos</span>
+                            <div class="mov" data-mov-new hidden>
+                                <span class="mov-ico in"><svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></span>
+                                <span class="mov-txt"><b data-mov-name>Carlos M***</b><small>Ahora</small></span>
+                                <span class="mov-amt in" data-mov-amt>+ S/ 50.00</span>
+                            </div>
+                            <div class="mov">
+                                <span class="mov-ico out"><svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></span>
+                                <span class="mov-txt"><b>Ana R***</b><small>Hoy, 09:14</small></span>
+                                <span class="mov-amt out">− S/ 35.00</span>
+                            </div>
+                            <div class="mov">
+                                <span class="mov-ico in"><svg th:replace="~{fragmentos :: icono('i-arrow')}"></svg></span>
+                                <span class="mov-txt"><b>Desembolso de crédito</b><small>Ayer</small></span>
+                                <span class="mov-amt in">+ S/ 600.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="float-card float-notif" data-notif>
+                    <span class="notif-ico"><svg th:replace="~{fragmentos :: icono('i-bolt')}"></svg></span>
+                    <span class="notif-txt"><b>Recibiste <span data-notif-amt>S/ 50.00</span></b><small>de <span data-notif-name>Carlos M***</span> · ahora</small></span>
+                </div>
+
+                <div class="float-card float-qr float-cuota">
+                    <small>Apartado para tu cuota</small>
+                    <b>S/ 38.50</b>
+                    <span class="barra"><span></span></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ Funciones ============================ -->
+    <section class="section" id="funciones" aria-labelledby="funciones-titulo">
+        <div class="container">
+            <header class="section-head">
+                <p class="eyebrow">Funciones</p>
+                <h2 id="funciones-titulo">Todo lo que necesitas para mover tu dinero</h2>
+                <p class="section-sub">Una billetera pensada para cobrar y pagar en tu negocio, y para empezar tu historial de crédito.</p>
+            </header>
+
+            <div class="features">
+                <article class="feature">
+                    <span class="feature-ico amarillo"><svg th:replace="~{fragmentos :: icono('i-phone')}"></svg></span>
+                    <h3>Envía con un número de celular</h3>
+                    <p>Transfiere o paga a un negocio solo con su celular. Confirmas cada operación con un código de un solo uso.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature-ico verde"><svg th:replace="~{fragmentos :: icono('i-bolt')}"></svg></span>
+                    <h3>Dinero al instante</h3>
+                    <p>El dinero llega en segundos y tu saldo y movimientos se actualizan solos, sin recargar la página.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature-ico dorado"><svg th:replace="~{fragmentos :: icono('i-coins')}"></svg></span>
+                    <h3>Microcréditos que se pagan solos</h3>
+                    <p>Tu cuota semanal se aparta de a pocos con un porcentaje de tus ventas, y se paga sola cuando vence.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature-ico profundo"><svg th:replace="~{fragmentos :: icono('i-user-check')}"></svg></span>
+                    <h3>Personas reales</h3>
+                    <p>Validamos el DNI de cada cuenta al registrarse, así sabes que le envías dinero a una persona real.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ Cómo funciona ============================ -->
+    <section class="section section-alt" id="como-funciona" aria-labelledby="pasos-titulo">
+        <div class="container">
+            <header class="section-head">
+                <p class="eyebrow">Cómo funciona</p>
+                <h2 id="pasos-titulo">Empieza en cuatro pasos</h2>
+            </header>
+
+            <ol class="steps">
+                <li class="step">
+                    <span class="step-num">1</span>
+                    <h3>Crea tu cuenta</h3>
+                    <p>Regístrate con tu DNI y tu número de celular. Tu billetera se abre al momento.</p>
+                </li>
+                <li class="step">
+                    <span class="step-num">2</span>
+                    <h3>Cobra y paga</h3>
+                    <p>Recibe los pagos de tus clientes y envía dinero con un número de celular.</p>
+                </li>
+                <li class="step">
+                    <span class="step-num">3</span>
+                    <h3>Simula tu crédito</h3>
+                    <p>Cuando cumples el uso mínimo de tu billetera, conoce tu cuota semanal antes de pedirlo.</p>
+                </li>
+                <li class="step">
+                    <span class="step-num">4</span>
+                    <h3>Recíbelo en tu billetera</h3>
+                    <p>Revisa tu hoja resumen, acepta la oferta y el desembolso llega a tu saldo.</p>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- ============================ Microcréditos ============================ -->
+    <section class="section" id="microcreditos" aria-labelledby="credito-titulo">
+        <div class="container split">
+            <div class="split-copy">
+                <p class="eyebrow">Microcréditos</p>
+                <h2 id="credito-titulo">Una cuota que puedes pagar, no un límite genérico</h2>
+                <p class="section-sub">Evaluamos cómo usas tu billetera. Tu cuota semanal nunca supera el 30 % de lo que cobras por semana, y mientras mejor pagas, más subes de nivel.</p>
+
+                <ul class="factor-list">
+                    <li>
+                        <span class="factor-badge amarillo">30%</span>
+                        <div>
+                            <h3>Tope de tu cuota</h3>
+                            <p>Calculado con tus cobros de las últimas semanas en KAPIKUA.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="factor-badge verde">4</span>
+                        <div>
+                            <h3>Niveles de crédito</h3>
+                            <p>Paga a tiempo y sube de nivel: más monto, más cuotas y una TEA menor.</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <ul class="mini-points">
+                    <li><svg th:replace="~{fragmentos :: icono('i-calendar')}"></svg> Cuotas semanales y hoja resumen antes de aceptar</li>
+                    <li><svg th:replace="~{fragmentos :: icono('i-layers')}"></svg> Se pagan solas con un porcentaje de tus ventas</li>
+                    <li><svg th:replace="~{fragmentos :: icono('i-trend')}"></svg> Adelanta pagos cuando quieras, sin penalidad</li>
+                </ul>
+            </div>
+
+            <div class="eval-card" role="img" aria-label="Ejemplo ilustrativo: cobras 600 soles por semana y tu cuota puede llegar hasta 180 soles">
+                <div class="eval-head">
+                    <span>Tu cuota máxima</span>
+                    <span class="tag">Ejemplo ilustrativo</span>
+                </div>
+
+                <div class="eval-row">
+                    <div class="eval-label"><span>Cobras por semana</span><b>S/ 600.00</b></div>
+                    <div class="meter"><span class="meter-fill verde" style="--v: 100%"></span></div>
+                </div>
+                <div class="eval-row">
+                    <div class="eval-label"><span>Hasta el 30 % para tu cuota</span><b>S/ 180.00</b></div>
+                    <div class="meter"><span class="meter-fill amarillo" style="--v: 30%"></span></div>
+                </div>
+
+                <div class="eval-result">
+                    <span>Cuota semanal máxima</span>
+                    <b>S/ 180.00</b>
+                </div>
+                <a class="btn btn-primary btn-block" th:href="@{/registro}">Conocer mi crédito</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ Seguridad ============================ -->
+    <section class="section section-alt" id="seguridad" aria-labelledby="seguridad-titulo">
+        <div class="container">
+            <header class="section-head">
+                <p class="eyebrow">Seguridad y transparencia</p>
+                <h2 id="seguridad-titulo">Tu dinero, protegido en cada operación</h2>
+            </header>
+
+            <div class="trust-grid">
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-user-check')}"></svg>
+                    <h3>DNI validado</h3>
+                    <p>Cada cuenta pertenece a una persona real, validada con su DNI al registrarse.</p>
+                </article>
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-lock')}"></svg>
+                    <h3>Código de un solo uso</h3>
+                    <p>Cada transferencia y pago se confirma con un código que vence en 5 minutos.</p>
+                </article>
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-layers')}"></svg>
+                    <h3>Operaciones completas</h3>
+                    <p>Cada operación se aplica entera o no se aplica. Tu saldo nunca queda a medias.</p>
+                </article>
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-eye')}"></svg>
+                    <h3>Alertas de operaciones inusuales</h3>
+                    <p>Revisamos los movimientos fuera de lo normal para proteger tu cuenta.</p>
+                </article>
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-shield')}"></svg>
+                    <h3>Límites de dinero electrónico</h3>
+                    <p>Respetamos los topes por operación, de saldo y mensuales de la normativa.</p>
+                </article>
+                <article class="trust">
+                    <svg th:replace="~{fragmentos :: icono('i-message')}"></svg>
+                    <h3>Reclamos con plazo</h3>
+                    <p>Si algo sale mal, presenta un reclamo y te respondemos en un máximo de 15 días hábiles.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ Preguntas ============================ -->
+    <section class="section" id="preguntas" aria-labelledby="faq-titulo">
+        <div class="container faq-wrap">
+            <header class="section-head">
+                <p class="eyebrow">Preguntas frecuentes</p>
+                <h2 id="faq-titulo">Resolvemos tus dudas</h2>
+            </header>
+
+            <div class="faq">
+                <details>
+                    <summary>¿Cómo envío dinero?<svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg></summary>
+                    <p>En tu billetera elige <b>Transferir</b>, escribe el número de celular de la otra persona y el monto, y confirma con tu código de un solo uso. El dinero le llega al instante.</p>
+                </details>
+                <details>
+                    <summary>¿Quién me presta el dinero?<svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg></summary>
+                    <p>KAPIKUA no presta. Los créditos los otorga una entidad financiera aliada; KAPIKUA evalúa tu uso de la billetera y te muestra la oferta.</p>
+                </details>
+                <details>
+                    <summary>¿Qué necesito para pedir un crédito?<svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg></summary>
+                    <p>Que tu billetera tenga al menos 30 días, cobros en al menos 3 semanas distintas y 20 cobros recibidos. En los primeros niveles también se pide un aval.</p>
+                </details>
+                <details>
+                    <summary>¿Cómo pago mis cuotas?<svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg></summary>
+                    <p>Se pagan solas: de cada venta que recibes se aparta un porcentaje para tu próxima cuota. También puedes pagar una cuota o adelantar pagos desde <b>Mi préstamo</b>, sin penalidad.</p>
+                </details>
+                <details>
+                    <summary>¿Mi saldo genera intereses?<svg th:replace="~{fragmentos :: icono('i-chevron')}"></svg></summary>
+                    <p>No. KAPIKUA es una billetera de dinero electrónico para cobrar y pagar, no una cuenta de ahorro.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ Llamado final ============================ -->
+    <section class="cta-band">
+        <div class="container cta-inner">
+            <div>
+                <h2>Abre tu billetera KAPIKUA hoy</h2>
+                <p>Crea tu cuenta con tu DNI y empieza a cobrar y pagar al instante.</p>
+            </div>
+            <div class="cta-actions">
+                <a class="btn btn-dark btn-lg" th:href="@{/registro}">Crear mi cuenta</a>
+                <a class="btn btn-light btn-lg" th:href="@{/login}">Ya tengo cuenta</a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ============================ Pie ============================ -->
+<footer class="site-footer">
+    <div class="container footer-grid">
+        <div class="footer-brand">
+            <a class="brand" href="#top">
+                <img th:src="@{/css/img/logo-kapikua.png(v=2)}" alt="" width="40" height="40">
+                <span>KAPIKUA</span>
+            </a>
+            <p>Billetera digital para cobrar y pagar al instante, con microcréditos que se pagan con tus ventas.</p>
+        </div>
+        <nav class="footer-col" aria-label="Producto">
+            <h3>Producto</h3>
+            <ul>
+                <li><a href="#funciones">Funciones</a></li>
+                <li><a href="#microcreditos">Microcréditos</a></li>
+                <li><a href="#seguridad">Seguridad</a></li>
+            </ul>
+        </nav>
+        <nav class="footer-col" aria-label="Cuenta">
+            <h3>Cuenta</h3>
+            <ul>
+                <li><a th:href="@{/login}">Iniciar sesión</a></li>
+                <li><a th:href="@{/registro}">Crear cuenta</a></li>
+                <li><a href="#preguntas">Preguntas frecuentes</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="container footer-bottom">
+        <span>© <span data-year>2026</span> KAPIKUA</span>
+        <span class="footer-split" aria-hidden="true"><span></span><span></span></span>
+    </div>
+</footer>
+
+<script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/landing.js}"></script>
+</body>
+</html>

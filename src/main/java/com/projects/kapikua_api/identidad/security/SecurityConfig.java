@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .requestCache(RequestCacheConfigurer::disable)
                 .csrf(c -> c.csrfTokenRepository(new CookieCsrfTokenRepository()))
                 .authorizeHttpRequests(c -> c
-                        .requestMatchers("/registro", "/login", "/css/**", "/js/**", "/error").permitAll()
+                        .requestMatchers("/", "/registro", "/login", "/css/**", "/js/**", "/error").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtCookieFilter(jwt, cookie, usuarios, repositorioContexto),

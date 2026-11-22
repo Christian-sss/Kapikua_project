@@ -19,6 +19,7 @@ import java.util.function.Function;
 public class ReportesConsulta {
     public static final int MAX_FILAS = 300;
     public static final int MAX_FILAS_DESCARGA = 10_000;
+    private static final int NIVELES = 4;
 
     private static final String DNI = "'****' || right(u.dni, 4)";
     private static final String DIA_LIMA = "(%s at time zone 'America/Lima')::date";
@@ -80,12 +81,16 @@ public class ReportesConsulta {
                 new Indicador("Billeteras bloqueadas", totales.get("bloqueadas").toString()),
                 new Indicador("Saldo en sus billeteras", dinero((BigDecimal) totales.get("saldo")).toString()));
 
-        var porNivel = mapa(parametros(jdbc.sql("""
-                select coalesce('Nivel ' || h.nivel, 'Sin evaluar') as etiqueta, count(*) as valor %s
+        // Sin historial todavía = nivel 1 (es el nivel con el que se abre toda cuenta).
+        var contados = mapa(parametros(jdbc.sql("""
+                select 'Nivel ' || coalesce(h.nivel, 1) as etiqueta, count(*) as valor %s
                 group by 1 order by 1""".formatted(filtro)), p, estado));
+        var porNivel = new LinkedHashMap<String, BigDecimal>();
+        for (int n = 1; n <= NIVELES; n++) porNivel.put("Nivel " + n, BigDecimal.ZERO);
+        porNivel.putAll(contados);
         var graficos = List.of(
                 Grafico.de(p.porDia() ? "Registros del día" : "Registros por día", porDia(p, "u.fecha_creacion", "count(*)", filtro, estado), cantidad()),
-                Grafico.de("Clientes por nivel crediticio", porNivel, cantidad()));
+                Grafico.porcentajes("Clientes por nivel crediticio", porNivel));
         return reporte(filas, limite, indicadores, graficos);
     }
 
