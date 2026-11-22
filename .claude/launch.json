@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kapikua-revision",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "PORT=8091 KAPIKUA_DB_URL=jdbc:postgresql://127.0.0.1:5432/kapikua_revision_claude KAPIKUA_DB_USUARIO=$(whoami) ./mvnw -o -q spring-boot:run"
+      ],
+      "port": 8091
+    }
+  ]
+}
