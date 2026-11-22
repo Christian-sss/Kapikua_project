@@ -42,6 +42,7 @@ abstract sealed class EstadoOferta permits OfertaPendienteEfa, OfertaConfirmada,
     boolean estaAceptada() { return false; }
 
     void validarReconstitucion(Oferta oferta) {
+
     }
 
     Result<Void, ErrorCredito> verificarGestionAval() {

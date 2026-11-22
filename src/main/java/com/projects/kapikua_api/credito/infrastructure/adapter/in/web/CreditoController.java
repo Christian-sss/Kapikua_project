@@ -6,20 +6,19 @@ import com.projects.kapikua_api.credito.application.port.in.GestionarAvalUseCase
 import com.projects.kapikua_api.credito.application.port.in.SimularCreditoUseCase;
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
+import com.projects.kapikua_api.credito.infrastructure.adapter.in.web.dto.SolicitudCreditoForm;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioAutenticado;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
@@ -91,28 +90,36 @@ class CreditoController {
     }
 
     @PostMapping("/solicitar")
-    String solicitar(@AuthenticationPrincipal UsuarioAutenticado u, @RequestParam BigDecimal monto,
-                     @RequestParam int cuotas, @RequestParam Destino destino,
-                     @RequestParam(defaultValue = "false") boolean autorizaEvaluacion,
-                     @RequestParam(defaultValue = "false") boolean autorizaEnvio, Model model) {
-        // RN-07: dos consentimientos separados; sin ambos no se evalúa (CU-08, flujo 2a)
-        var autorizaDatos = autorizaEvaluacion && autorizaEnvio;
-        if (monto.signum() <= 0 || monto.scale() > 2) {
-            return conError(solicitarForm(u, monto, cuotas, model), new ErrorCredito.MontoInvalido(), model);
-        }
-        return switch (solicitar.solicitar(u.usuarioId(), Dinero.de(monto), cuotas, destino, autorizaDatos)) {
-            case Result.Ok<SolicitarCreditoUseCase.ResultadoSolicitud, ErrorCredito> ok -> {
-                if (!ok.valor().tieneOferta()) {
-                    model.addAttribute("r", ok.valor());
-                    yield "credito/no-apto";
-                }
-                yield "redirect:/credito/ofertas/" + ok.valor().ofertaId();
-            }
-            case Result.Err<SolicitarCreditoUseCase.ResultadoSolicitud, ErrorCredito> err -> {
-                solicitarForm(u, monto, cuotas, model);
-                yield conError("credito/solicitar", err.error(), model);
-            }
+    String solicitar(
+            @AuthenticationPrincipal UsuarioAutenticado u,
+            @Valid @ModelAttribute("form") SolicitudCreditoForm form,
+            BindingResult errores,
+            Model model
+    ) {
+
+            if(errores.hasErrors())
+                return solicitarForm(u,form.monto(),form.cuotas(),model);
+
+
+        return switch (solicitar.solicitar(
+                u.usuarioId(),
+                form.dinero(),
+                form.cuotas(),
+                form.destino(),
+                form.autorizaDatos()
+        )) {
+            case Result.Ok<SolicitarCreditoUseCase.ResultadoSolicitud, ErrorCredito> ok ->
+                vistaDe(ok.valor(),model);
+            case Result.Err<SolicitarCreditoUseCase.ResultadoSolicitud, ErrorCredito> err ->
+                conError(solicitarForm(u,form.monto(), form.cuotas(),model),err.error(),model);
+
         };
+    }
+
+    private static String vistaDe(SolicitarCreditoUseCase.ResultadoSolicitud r, Model model) {
+        if (r.tieneOferta()) return "redirect:/credito/ofertas/" + r.ofertaId();
+        model.addAttribute("r", r);
+        return "credito/no-apto";
     }
 
     @GetMapping("/ofertas/{id}")

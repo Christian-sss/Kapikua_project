@@ -10,49 +10,36 @@ import java.util.Objects;
 
 public final class Aval {
     private final Long id;
-    private final UsuarioId usuarioDeudorId;
-    private final UsuarioId usuarioAvalId;
     private EstadoAval estado;
-    private Integer porcentajeRetencionAutorizado;
-    private final OffsetDateTime fechaInvitacion;
-    private OffsetDateTime fechaRespuesta;
-    private String dispositivoAceptacion;
-    private OffsetDateTime fechaAviso;
-    private OffsetDateTime fechaActivacion;
-    private OffsetDateTime fechaLiberacion;
+    private Invitacion invitacion;
+    private Respuesta respuesta;
+    private CicloGarantia cicloGarantia;
 
-    private Aval(Long id, UsuarioId usuarioDeudorId, UsuarioId usuarioAvalId, EstadoAval estado,
-                 Integer porcentajeRetencionAutorizado, OffsetDateTime fechaInvitacion, OffsetDateTime fechaRespuesta,
-                 String dispositivoAceptacion, OffsetDateTime fechaAviso, OffsetDateTime fechaActivacion,
-                 OffsetDateTime fechaLiberacion) {
+    private Aval(Long id, EstadoAval estado, Invitacion invitacion, Respuesta respuesta, CicloGarantia cicloGarantia) {
         this.id = id;
-        this.usuarioDeudorId = Objects.requireNonNull(usuarioDeudorId);
-        this.usuarioAvalId = Objects.requireNonNull(usuarioAvalId);
-        if (usuarioDeudorId.equals(usuarioAvalId)) throw new IllegalArgumentException("El aval no puede ser el deudor");
         this.estado = Objects.requireNonNull(estado);
-        this.porcentajeRetencionAutorizado = porcentajeRetencionAutorizado;
-        this.fechaInvitacion = Objects.requireNonNull(fechaInvitacion);
-        this.fechaRespuesta = fechaRespuesta;
-        this.dispositivoAceptacion = dispositivoAceptacion;
-        this.fechaAviso = fechaAviso;
-        this.fechaActivacion = fechaActivacion;
-        this.fechaLiberacion = fechaLiberacion;
+        this.invitacion = Objects.requireNonNull(invitacion);
+        this.respuesta = Objects.requireNonNull(respuesta);
+        this.cicloGarantia = Objects.requireNonNull(cicloGarantia);
     }
 
-    static Aval invitar(UsuarioId deudor, UsuarioId aval, OffsetDateTime ahora) {
-        return new Aval(null, deudor, aval, EstadoAval.PENDIENTE, null, ahora, null, null, null, null, null);
+    public static Aval invitar(UsuarioId deudor, UsuarioId aval, OffsetDateTime ahora) {
+        return new Aval(
+                null,
+                EstadoAval.PENDIENTE,
+                new Invitacion(deudor, aval, ahora),
+                Respuesta.NINGUNA,
+                CicloGarantia.NINGUNO
+        );
     }
 
-    public static Aval reconstituir(Long id, UsuarioId deudor, UsuarioId aval, String estado, Integer porcentaje,
-                                    OffsetDateTime fechaInvitacion, OffsetDateTime fechaRespuesta, String dispositivo,
-                                    OffsetDateTime fechaAviso, OffsetDateTime fechaActivacion,
-                                    OffsetDateTime fechaLiberacion) {
-        return new Aval(id, deudor, aval, EstadoAval.desdeNombre(estado), porcentaje, fechaInvitacion, fechaRespuesta,
-                dispositivo, fechaAviso, fechaActivacion, fechaLiberacion);
+    public static Aval reconstituir(Long id, String estado, Invitacion invitacion, Respuesta respuesta, CicloGarantia cicloGarantia) {
+        return new Aval(id, EstadoAval.desdeNombre(estado), invitacion, respuesta, cicloGarantia);
     }
+
 
     public OffsetDateTime venceEn(Duration plazo, OffsetDateTime finVigenciaOferta) {
-        var limite = fechaInvitacion.plus(plazo);
+        var limite = invitacion.fechaInvitacion().plus(plazo);
         return limite.isBefore(finVigenciaOferta) ? limite : finVigenciaOferta;
     }
 
@@ -80,35 +67,36 @@ public final class Aval {
         var dispositivoNormalizado = dispositivo == null || dispositivo.isBlank() ? "desconocido"
                 : dispositivo.substring(0, Math.min(150, dispositivo.length()));
         var cambio = cambiarEstado(EstadoAval.ACEPTADO, "Invitación aceptada", ahora);
-        porcentajeRetencionAutorizado = porcentajeRetencion;
-        dispositivoAceptacion = dispositivoNormalizado;
-        fechaRespuesta = ahora;
+
+        respuesta = new Respuesta(ahora, dispositivoNormalizado, porcentajeRetencion);
+
         return cambio;
     }
 
     CambioEstado aplicarRechazo(OffsetDateTime cuando) {
-        var fecha = cuando.isBefore(fechaInvitacion) ? fechaInvitacion : cuando;
+        var fecha = cuando.isBefore(invitacion.fechaInvitacion()) ? invitacion.fechaInvitacion() : cuando;
         var cambio = cambiarEstado(EstadoAval.RECHAZADO, "Invitación rechazada", fecha);
-        fechaRespuesta = fecha;
+        respuesta = new Respuesta(fecha, null, null);
+
         return cambio;
     }
 
     boolean registrarAviso(OffsetDateTime ahora) {
-        if (fechaAviso != null) return false;
-        fechaAviso = Objects.requireNonNull(ahora);
+        if (cicloGarantia.fechaAviso() != null) return false;
+        cicloGarantia = cicloGarantia.conAviso(Objects.requireNonNull(ahora));
         return true;
     }
 
     CambioEstado aplicarActivacion(OffsetDateTime ahora) {
         var cambio = cambiarEstado(EstadoAval.ACTIVADO, "Garantía activada", ahora);
         registrarAviso(ahora);
-        fechaActivacion = ahora;
+        cicloGarantia = cicloGarantia.conActivacion(ahora);
         return cambio;
     }
 
     CambioEstado aplicarLiberacion(OffsetDateTime ahora) {
         var cambio = cambiarEstado(EstadoAval.LIBERADO, "Garantía liberada", ahora);
-        fechaLiberacion = ahora;
+        cicloGarantia = cicloGarantia.conLiberacion(ahora);
         return cambio;
     }
 
@@ -118,25 +106,67 @@ public final class Aval {
         return cambio;
     }
 
-    public boolean esPendiente() { return estado.esPendiente(); }
+    public boolean esPendiente() {
+        return estado.esPendiente();
+    }
 
-    public boolean estaAceptado() { return estado.estaAceptado(); }
+    public boolean estaAceptado() {
+        return estado.estaAceptado();
+    }
 
-    public boolean estaActivado() { return estado.estaActivado(); }
+    public boolean estaActivado() {
+        return estado.estaActivado();
+    }
 
-    public boolean tieneGarantia() { return estado.tieneGarantia(); }
+    public boolean tieneGarantia() {
+        return estado.tieneGarantia();
+    }
 
-    public boolean enCurso() { return estado.enCurso(); }
+    public boolean enCurso() {
+        return estado.enCurso();
+    }
 
-    public Long getId() { return id; }
-    public UsuarioId getUsuarioDeudorId() { return usuarioDeudorId; }
-    public UsuarioId getUsuarioAvalId() { return usuarioAvalId; }
-    public String getEstado() { return estado.nombre(); }
-    public Integer getPorcentajeRetencionAutorizado() { return porcentajeRetencionAutorizado; }
-    public OffsetDateTime getFechaInvitacion() { return fechaInvitacion; }
-    public OffsetDateTime getFechaRespuesta() { return fechaRespuesta; }
-    public String getDispositivoAceptacion() { return dispositivoAceptacion; }
-    public OffsetDateTime getFechaAviso() { return fechaAviso; }
-    public OffsetDateTime getFechaActivacion() { return fechaActivacion; }
-    public OffsetDateTime getFechaLiberacion() { return fechaLiberacion; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getEstado() {
+        return estado.nombre();
+    }
+
+    public UsuarioId getUsuarioDeudorId() {
+        return invitacion.usuarioDeudorId();
+    }
+
+    public UsuarioId getUsuarioAvalId() {
+        return invitacion.usuarioAvalId();
+    }
+
+    public Integer getPorcentajeRetencionAutorizado() {
+        return respuesta.porcentajeRetencionAutorizado();
+    }
+
+    public OffsetDateTime getFechaInvitacion() {
+        return invitacion.fechaInvitacion();
+    }
+
+    public OffsetDateTime getFechaRespuesta() {
+        return respuesta.fechaRespuesta();
+    }
+
+    public String getDispositivoAceptacion() {
+        return respuesta.dispositivoAceptacion();
+    }
+
+    public OffsetDateTime getFechaAviso() {
+        return cicloGarantia.fechaAviso();
+    }
+
+    public OffsetDateTime getFechaActivacion() {
+        return cicloGarantia.fechaActivacion();
+    }
+
+    public OffsetDateTime getFechaLiberacion() {
+        return cicloGarantia.fechaLiberacion();
+    }
 }

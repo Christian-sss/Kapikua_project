@@ -21,5 +21,6 @@ public interface AceptarOfertaUseCase {
 
     record HojaResumen(Long ofertaId, String version, CondicionesCredito condiciones, Dinero interesTotal,
                        Dinero totalAPagar, BigDecimal tasaMoratoriaMaxima, int porcentajeRetencion, String aval,
-                       LocalDate vigenteHasta, List<CuotaProgramada> cronograma, String codigoMostrado) {}
+                       LocalDate vigenteHasta, List<CuotaProgramada> cronograma, String codigoMostrado) {
+    }
 }

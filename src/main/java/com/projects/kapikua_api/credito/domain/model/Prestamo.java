@@ -161,7 +161,7 @@ public final class Prestamo extends AgregadoRaiz {
     }
 
     public Result<Dinero, ErrorCredito> registrarRetencionDeAval(Long cuotaId, Long transaccionVentaId, Dinero monto,
-                                                                  OffsetDateTime ahora) {
+                                                                 OffsetDateTime ahora) {
         return estado.verificarCobro().map(ignorado -> {
             retencionesNuevas.add(new Retencion(cuotaId, transaccionVentaId, Origen.AVAL, monto, ahora));
             return monto;
@@ -172,9 +172,16 @@ public final class Prestamo extends AgregadoRaiz {
         return cuotasVencidas().stream().map(Cuota::pendiente).reduce(Dinero.CERO, Dinero::sumar);
     }
 
-    public Result<Dinero, ErrorCredito> aplicarPago(List<Cuota> destino, Dinero monto, boolean usaApartado,
-                                                     Long transaccionId, Origen origen, boolean automatico,
-                                                     LocalDate hoy, OffsetDateTime ahora) {
+    public Result<Dinero, ErrorCredito> aplicarPago(
+            List<Cuota> destino,
+            Dinero monto,
+            boolean usaApartado,                    
+            Long transaccionId,
+            Origen origen,
+            boolean automatico,
+            LocalDate hoy, 
+            OffsetDateTime ahora) {
+        
         return estado.verificarCobro()
                 .flatMap(ignorado -> ModalidadPago.REGULAR.aplicarRegular(this, destino, monto, usaApartado,
                         transaccionId, origen, automatico, hoy, ahora))
@@ -251,8 +258,13 @@ public final class Prestamo extends AgregadoRaiz {
         return capitalPendiente();
     }
 
-    public Result<Dinero, ErrorCredito> aplicarAnticipado(Dinero montoPago, ModalidadPago modalidad, Dinero deApartado,
-                                                           Long transaccionId, OffsetDateTime ahora) {
+    public Result<Dinero, ErrorCredito> aplicarAnticipado(
+            Dinero montoPago,
+            ModalidadPago modalidad,
+            Dinero deApartado,
+            Long transaccionId,
+            OffsetDateTime ahora
+    ) {
         return estado.verificarAnticipado(this)
                 .flatMap(ignorado -> modalidad.aplicarAnticipado(this, montoPago, deApartado, ahora))
                 .map(sobrante -> {
@@ -264,34 +276,109 @@ public final class Prestamo extends AgregadoRaiz {
     }
 
     public Result<Dinero, ErrorCredito> revocarCargo(OffsetDateTime ahora) {
-        if (!estaActivo()) return Result.err(new ErrorCredito.PrestamoNoEncontrado());
-        if (!cargoAutorizado) return Result.err(new ErrorCredito.CargoNoAutorizado());
+
+        if (!estaActivo())
+            return Result.err(new ErrorCredito.PrestamoNoEncontrado());
+
+        if (!cargoAutorizado)
+            return Result.err(new ErrorCredito.CargoNoAutorizado());
+
         cargoAutorizado = false;
         fechaRevocacionCargo = ahora;
+
         var liberado = Dinero.CERO;
-        for (var c : cuotas) liberado = liberado.sumar(c.liberarApartado());
+
+        for (var c : cuotas)
+            liberado = liberado.sumar(c.liberarApartado());
+
         return Result.ok(liberado);
     }
 
-    public List<Retencion> retencionesNuevas() { return Collections.unmodifiableList(retencionesNuevas); }
-    public List<Pago> pagosNuevos() { return Collections.unmodifiableList(pagosNuevos); }
 
-    public Long getId() { return id; }
-    public Long getOfertaId() { return ofertaId; }
-    public UsuarioId getUsuarioId() { return usuarioId; }
-    public String getCodigoEntidad() { return codigoEntidad; }
-    public String getCodigoCreditoEfa() { return codigoCreditoEfa; }
-    public Dinero getMonto() { return monto; }
-    public BigDecimal getTea() { return tea; }
-    public BigDecimal getTcea() { return tcea; }
-    public int getPorcentajeRetencion() { return porcentajeRetencion; }
-    public ConstanciaAceptacion getConstancia() { return constancia; }
-    public boolean isCargoAutorizado() { return cargoAutorizado; }
-    public OffsetDateTime getFechaAutorizacionCargo() { return fechaAutorizacionCargo; }
-    public OffsetDateTime getFechaRevocacionCargo() { return fechaRevocacionCargo; }
-    public String getEstado() { return estado.nombre(); }
-    public OffsetDateTime getFechaDesembolso() { return fechaDesembolso; }
-    public Long getVersion() { return version; }
-    public boolean isConPagosDeAval() { return conPagosDeAval; }
-    public List<Cuota> getCuotas() { return Collections.unmodifiableList(cuotas); }
+
+
+
+
+
+
+
+    public List<Retencion> retencionesNuevas() {
+        return Collections.unmodifiableList(retencionesNuevas);
+    }
+
+    public List<Pago> pagosNuevos() {
+        return Collections.unmodifiableList(pagosNuevos);
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getOfertaId() {
+        return ofertaId;
+    }
+
+    public UsuarioId getUsuarioId() {
+        return usuarioId;
+    }
+
+    public String getCodigoEntidad() {
+        return codigoEntidad;
+    }
+
+    public String getCodigoCreditoEfa() {
+        return codigoCreditoEfa;
+    }
+
+    public Dinero getMonto() {
+        return monto;
+    }
+
+    public BigDecimal getTea() {
+        return tea;
+    }
+
+    public BigDecimal getTcea() {
+        return tcea;
+    }
+
+    public int getPorcentajeRetencion() {
+        return porcentajeRetencion;
+    }
+
+    public ConstanciaAceptacion getConstancia() {
+        return constancia;
+    }
+
+    public boolean isCargoAutorizado() {
+        return cargoAutorizado;
+    }
+
+    public OffsetDateTime getFechaAutorizacionCargo() {
+        return fechaAutorizacionCargo;
+    }
+
+    public OffsetDateTime getFechaRevocacionCargo() {
+        return fechaRevocacionCargo;
+    }
+
+    public String getEstado() {
+        return estado.nombre();
+    }
+
+    public OffsetDateTime getFechaDesembolso() {
+        return fechaDesembolso;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public boolean isConPagosDeAval() {
+        return conPagosDeAval;
+    }
+
+    public List<Cuota> getCuotas() {
+        return Collections.unmodifiableList(cuotas);
+    }
 }

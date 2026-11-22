@@ -1,15 +1,15 @@
 package com.projects.kapikua_api.billetera;
 
-import com.projects.kapikua_api.billetera.application.port.in.Comprobante;
-import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase.VistaPrevia;
-import com.projects.kapikua_api.billetera.application.port.in.GestionarEstadoBilleteraUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.OperacionesCreditoUseCase;
-import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
-import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
-import com.projects.kapikua_api.identidad.domain.error.RegistroError;
+import com.projects.kapikua_api.billetera.dto.Comprobante;
+import com.projects.kapikua_api.billetera.service.ConsultaBilleteraService;
+import com.projects.kapikua_api.billetera.service.EnvioService;
+import com.projects.kapikua_api.billetera.dto.VistaPrevia;
+import com.projects.kapikua_api.billetera.service.BilleteraService;
+import com.projects.kapikua_api.billetera.service.OperacionesCreditoService;
+import com.projects.kapikua_api.billetera.error.ErrorBilletera;
+import com.projects.kapikua_api.identidad.dto.RegistroForm;
+import com.projects.kapikua_api.identidad.service.RegistroService;
+import com.projects.kapikua_api.identidad.error.RegistroError;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -42,11 +42,11 @@ class BilleteraIntegracionTest {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
     }
 
-    @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired EnviarDineroUseCase enviar;
-    @Autowired ConsultarBilleteraUseCase consultar;
-    @Autowired GestionarEstadoBilleteraUseCase gestionarEstado;
-    @Autowired OperacionesCreditoUseCase credito;
+    @Autowired RegistroService registrar;
+    @Autowired EnvioService enviar;
+    @Autowired ConsultaBilleteraService consultar;
+    @Autowired BilleteraService gestionarEstado;
+    @Autowired OperacionesCreditoService credito;
     @Autowired EjecutorTransaccional ejecutor;
     @Autowired JdbcTemplate jdbc;
 
@@ -57,7 +57,7 @@ class BilleteraIntegracionTest {
         String dni;
         do { dni = String.valueOf(10_000_000 + r.nextInt(89_999_999)); } while (dni.endsWith("666"));
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
-        var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
+        var resultado = registrar.registrar(new RegistroForm(dni, LocalDate.of(1990, 1, 1),
                 "c" + dni + "@outlook.com", celular, negocio, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), celular);
@@ -96,7 +96,7 @@ class BilleteraIntegracionTest {
         assertThat(saldo(ana)).isEqualTo(Dinero.CERO);
         assertThat(consultar.celularRegistrado(ana.celular())).isTrue();
 
-        var otra = registrar.registrar(new RegistrarUsuarioCommand("45612378", LocalDate.of(1990, 1, 1),
+        var otra = registrar.registrar(new RegistroForm("45612378", LocalDate.of(1990, 1, 1),
                 "otra@outlook.com", ana.celular(), null, "Kapikua2026", true));
         assertThat(((Result.Err<UsuarioId, RegistroError>) otra).error()).isInstanceOf(RegistroError.CelularDuplicado.class);
     }
@@ -109,7 +109,7 @@ class BilleteraIntegracionTest {
         var contrasena = "Kapikua2026";
         // Identidad acepta los datos, pero billetera no puede guardar un nombre de negocio de más de 100 caracteres.
         var celularFallido = "9" + (10_000_000 + ThreadLocalRandom.current().nextInt(89_999_999));
-        var invalido = new RegistrarUsuarioCommand(dni, nacimiento, correo, celularFallido, "B".repeat(101),
+        var invalido = new RegistroForm(dni, nacimiento, correo, celularFallido, "B".repeat(101),
                 contrasena, true);
 
         assertThatThrownBy(() -> registrar.registrar(invalido))
@@ -118,7 +118,7 @@ class BilleteraIntegracionTest {
                 .isZero();
 
         var celular = "9" + (10_000_000 + ThreadLocalRandom.current().nextInt(89_999_999));
-        var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, nacimiento, correo, celular, "Bodega",
+        var resultado = registrar.registrar(new RegistroForm(dni, nacimiento, correo, celular, "Bodega",
                 contrasena, true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         var id = ((Result.Ok<UsuarioId, RegistroError>) resultado).valor();
@@ -131,7 +131,7 @@ class BilleteraIntegracionTest {
 
     @Test
     void noSeRegistraUnUsuarioSinCelular() {
-        var resultado = registrar.registrar(new RegistrarUsuarioCommand("73982462", LocalDate.of(1990, 1, 1),
+        var resultado = registrar.registrar(new RegistroForm("73982462", LocalDate.of(1990, 1, 1),
                 "registro.sin.celular@outlook.com", null, null, "Kapikua2026", true));
         assertThat(resultado).isEqualTo(Result.err(new RegistroError.DatoInvalido("celular")));
     }

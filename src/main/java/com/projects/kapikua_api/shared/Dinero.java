@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 public record Dinero(BigDecimal valor) implements Comparable<Dinero> {
+
     public static final Dinero CERO = new Dinero(BigDecimal.ZERO);
 
     public Dinero {

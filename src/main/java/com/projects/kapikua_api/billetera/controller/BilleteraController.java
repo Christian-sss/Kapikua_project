@@ -1,0 +1,91 @@
+package com.projects.kapikua_api.billetera.controller;
+
+import com.projects.kapikua_api.billetera.service.ConsultaBilleteraService;
+import com.projects.kapikua_api.billetera.dto.ResumenBilletera;
+import com.projects.kapikua_api.billetera.dto.LineaMovimiento;
+import com.projects.kapikua_api.billetera.error.ErrorBilletera;
+import com.projects.kapikua_api.shared.UsuarioAutenticado;
+import com.projects.kapikua_api.shared.Result;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Controller
+class BilleteraController {
+    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    private final ConsultaBilleteraService consultar;
+    private final Clock clock;
+
+    BilleteraController(ConsultaBilleteraService consultar, Clock clock) {
+        this.consultar = consultar;
+        this.clock = clock;
+    }
+
+    @GetMapping("/billetera")
+    String inicio(@AuthenticationPrincipal UsuarioAutenticado usuario,
+                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                  @RequestParam(required = false) Long operacion,
+                  Model model) {
+        model.addAttribute("usuario", usuario);
+        if (operacion != null) {
+            consultar.comprobante(usuario.usuarioId(), operacion).ifPresent(c -> model.addAttribute("comprobante", c));
+        }
+        return poblar(usuario, desde, hasta, model) ? "billetera/inicio" : "billetera/error";
+    }
+
+    @GetMapping("/billetera/fragmentos/contenido")
+    String fragmento(@AuthenticationPrincipal UsuarioAutenticado usuario,
+                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                     Model model) {
+        return poblar(usuario, desde, hasta, model) ? "billetera/inicio :: contenido" : "redirect:/billetera";
+    }
+
+    private boolean poblar(UsuarioAutenticado usuario, LocalDate desde, LocalDate hasta, Model model) {
+        model.addAttribute("filtroDesde", desde);
+        model.addAttribute("filtroHasta", hasta);
+        return switch (consultar.resumen(usuario.usuarioId(), desde, hasta)) {
+            case Result.Ok<ResumenBilletera, ErrorBilletera> ok -> {
+                model.addAttribute("b", ok.valor());
+                model.addAttribute("movimientos", ok.valor().movimientos().stream().map(this::vista).toList());
+                yield true;
+            }
+            case Result.Err<ResumenBilletera, ErrorBilletera> err -> {
+                model.addAttribute("error", err.error().mensaje());
+                yield false;
+            }
+        };
+    }
+
+    /** transaccionId permite abrir el detalle del movimiento (CU-03, paso 5) con /billetera?operacion=. */
+    record MovimientoVista(Long transaccionId, String fecha, String etiqueta, String detalle, String monto,
+                           boolean entrada, String saldo) {}
+
+    private MovimientoVista vista(LineaMovimiento m) {
+        var fecha = m.fecha().atZoneSameInstant(clock.getZone()).format(FECHA);
+        return new MovimientoVista(m.transaccionId(), fecha, etiqueta(m.tipo().codigo(), m.esEntrada()), m.descripcion(),
+                (m.esEntrada() ? "+ " : "− ") + m.montoAbsoluto(), m.esEntrada(),
+                "S/ " + m.saldoPosterior().toPlainString());
+    }
+
+    static String etiqueta(String tipo, boolean entrada) {
+        return switch (tipo) {
+            case "RECARGA" -> "Carga inicial de saldo";
+            case "TRANSFERENCIA" -> entrada ? "Transferencia recibida" : "Transferencia enviada";
+            case "PAGO_NEGOCIO" -> entrada ? "Cobro de un cliente" : "Pago a negocio";
+            case "DESEMBOLSO" -> "Desembolso de crédito";
+            case "PAGO_CUOTA" -> "Pago de cuota";
+            case "PAGO_ANTICIPADO" -> "Pago anticipado";
+            default -> tipo;
+        };
+    }
+}

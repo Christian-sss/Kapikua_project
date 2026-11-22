@@ -1,6 +1,6 @@
 package com.projects.kapikua_api.evaluacion.infrastructure.adapter.out.contexto;
 
-import com.projects.kapikua_api.cumplimiento.application.port.in.ConsultarParametrosUseCase;
+import com.projects.kapikua_api.cumplimiento.service.ParametroService;
 import com.projects.kapikua_api.evaluacion.application.port.out.ParametrosPolitica;
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.CondicionesNivel;
@@ -30,9 +30,9 @@ import java.util.Map;
 class ParametrosPoliticaAdapter implements ParametrosPolitica {
     private static final Logger log = LoggerFactory.getLogger(ParametrosPoliticaAdapter.class);
 
-    private final ConsultarParametrosUseCase parametros;
+    private final ParametroService parametros;
 
-    ParametrosPoliticaAdapter(ConsultarParametrosUseCase parametros) {
+    ParametrosPoliticaAdapter(ParametroService parametros) {
         this.parametros = parametros;
     }
 

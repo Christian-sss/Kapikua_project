@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 
 sealed abstract class EstadoAval permits AvalPendiente, AvalAceptado, AvalRechazado, AvalActivado, AvalLiberado {
+
     static final EstadoAval PENDIENTE = new AvalPendiente();
     static final EstadoAval ACEPTADO = new AvalAceptado();
     static final EstadoAval RECHAZADO = new AvalRechazado();

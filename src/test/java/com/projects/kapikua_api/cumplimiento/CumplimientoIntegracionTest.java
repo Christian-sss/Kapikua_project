@@ -1,16 +1,18 @@
 package com.projects.kapikua_api.cumplimiento;
 
 import com.projects.kapikua_api.DatosDePrueba;
-import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
-import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
-import com.projects.kapikua_api.cumplimiento.application.port.in.ReclamosUseCase;
-import com.projects.kapikua_api.cumplimiento.application.port.in.RevisarAlertasUseCase;
-import com.projects.kapikua_api.cumplimiento.domain.error.ErrorCumplimiento;
-import com.projects.kapikua_api.cumplimiento.domain.model.EstadoAlerta;
-import com.projects.kapikua_api.cumplimiento.domain.model.EstadoReclamo;
-import com.projects.kapikua_api.cumplimiento.domain.model.MotivoReclamo;
-import com.projects.kapikua_api.cumplimiento.domain.model.ReglaAlerta;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
+import com.projects.kapikua_api.billetera.service.EnvioService;
+import com.projects.kapikua_api.billetera.error.ErrorBilletera;
+import com.projects.kapikua_api.cumplimiento.dto.ResumenAlerta;
+import com.projects.kapikua_api.cumplimiento.dto.VistaReclamo;
+import com.projects.kapikua_api.cumplimiento.service.ReclamoService;
+import com.projects.kapikua_api.cumplimiento.service.AlertaService;
+import com.projects.kapikua_api.cumplimiento.error.ErrorCumplimiento;
+import com.projects.kapikua_api.cumplimiento.model.EstadoAlerta;
+import com.projects.kapikua_api.cumplimiento.model.EstadoReclamo;
+import com.projects.kapikua_api.cumplimiento.model.MotivoReclamo;
+import com.projects.kapikua_api.cumplimiento.model.ReglaAlerta;
+import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -38,10 +40,10 @@ class CumplimientoIntegracionTest {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
     }
 
-    @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired EnviarDineroUseCase enviar;
-    @Autowired RevisarAlertasUseCase alertas;
-    @Autowired ReclamosUseCase reclamos;
+    @Autowired RegistroService registrar;
+    @Autowired EnvioService enviar;
+    @Autowired AlertaService alertas;
+    @Autowired ReclamoService reclamos;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
     DatosDePrueba datos;
@@ -151,7 +153,7 @@ class CumplimientoIntegracionTest {
         assertThat(error(alertas.revisar(alerta, admin.id(), EstadoAlerta.DESCARTADA, "Cambio de opinión", false, "")))
                 .isInstanceOf(ErrorCumplimiento.AlertaYaRevisada.class);
         assertThat(ok(alertas.detalle(alerta)).billeteraBloqueada()).isTrue();
-        assertThat(alertas.revisadas(50)).extracting(RevisarAlertasUseCase.ResumenAlerta::id).contains(alerta);
+        assertThat(alertas.revisadas(50)).extracting(ResumenAlerta::id).contains(alerta);
     }
 
     @Test
@@ -180,9 +182,9 @@ class CumplimientoIntegracionTest {
         assertThat(r.fechaLimite()).isAfter(hoy.plusDays(14));
         assertThat(r.diasHabilesRestantes()).isEqualTo(15);
 
-        assertThat(reclamos.deUsuario(ana.id())).extracting(ReclamosUseCase.VistaReclamo::codigo).containsExactly(r.codigo());
+        assertThat(reclamos.deUsuario(ana.id())).extracting(VistaReclamo::codigo).containsExactly(r.codigo());
         assertThat(error(reclamos.delUsuario(luis.id(), r.id()))).isInstanceOf(ErrorCumplimiento.ReclamoNoEncontrado.class);
-        assertThat(reclamos.pendientes()).extracting(ReclamosUseCase.VistaReclamo::id).contains(r.id());
+        assertThat(reclamos.pendientes()).extracting(VistaReclamo::id).contains(r.id());
         assertThat(ok(reclamos.detalle(r.id())).cliente().dniEnmascarado()).contains("*");
 
         var limiteAntes = r.fechaLimite();
@@ -196,8 +198,8 @@ class CumplimientoIntegracionTest {
         var atendido = ok(reclamos.delUsuario(ana.id(), r.id()));
         assertThat(atendido.estado()).isEqualTo(EstadoReclamo.ATENDIDO);
         assertThat(atendido.respuesta()).startsWith("El pago se acreditó");
-        assertThat(reclamos.pendientes()).extracting(ReclamosUseCase.VistaReclamo::id).doesNotContain(r.id());
-        assertThat(reclamos.atendidos(50)).extracting(ReclamosUseCase.VistaReclamo::id).contains(r.id());
+        assertThat(reclamos.pendientes()).extracting(VistaReclamo::id).doesNotContain(r.id());
+        assertThat(reclamos.atendidos(50)).extracting(VistaReclamo::id).contains(r.id());
     }
 
     @Test
@@ -206,7 +208,7 @@ class CumplimientoIntegracionTest {
         var primero = ok(reclamos.registrar(ana.id(), MotivoReclamo.OTRO, "Primer reclamo de prueba", null));
         var segundo = ok(reclamos.registrar(ana.id(), MotivoReclamo.CREDITO, "Segundo reclamo de prueba", null));
         jdbc.update("update cumplimiento.reclamo set fecha_limite = current_date + 1 where id = ?", segundo.id());
-        var ids = reclamos.pendientes().stream().map(ReclamosUseCase.VistaReclamo::id).toList();
+        var ids = reclamos.pendientes().stream().map(VistaReclamo::id).toList();
         assertThat(ids.indexOf(segundo.id())).isLessThan(ids.indexOf(primero.id()));
         assertThat(ok(reclamos.detalle(segundo.id())).cercaDelLimite()).isTrue();
     }

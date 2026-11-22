@@ -1,7 +1,7 @@
 package com.projects.kapikua_api.credito;
 
 import com.projects.kapikua_api.DatosDePrueba;
-import com.projects.kapikua_api.billetera.application.port.in.EnviarDineroUseCase;
+import com.projects.kapikua_api.billetera.service.EnvioService;
 import com.projects.kapikua_api.credito.application.port.in.AceptarOfertaUseCase;
 import com.projects.kapikua_api.credito.application.port.in.CobranzaUseCase;
 import com.projects.kapikua_api.credito.application.port.in.ConsultarCreditoUseCase;
@@ -11,7 +11,7 @@ import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseC
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.credito.domain.model.ModalidadPago;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
+import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -39,14 +39,14 @@ class CobranzaIntegracionTest {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
     }
 
-    @Autowired RegistrarUsuarioUseCase registrar;
+    @Autowired RegistroService registrar;
     @Autowired SolicitarCreditoUseCase solicitar;
     @Autowired GestionarAvalUseCase avales;
     @Autowired AceptarOfertaUseCase aceptar;
     @Autowired ConsultarCreditoUseCase consultar;
     @Autowired CobranzaUseCase cobranza;
     @Autowired PagarPrestamoUseCase pagos;
-    @Autowired EnviarDineroUseCase enviar;
+    @Autowired EnvioService enviar;
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
     DatosDePrueba datos;

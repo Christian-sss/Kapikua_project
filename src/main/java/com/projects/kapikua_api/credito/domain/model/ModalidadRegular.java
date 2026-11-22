@@ -19,9 +19,17 @@ final class ModalidadRegular extends ModalidadPago {
         return false;
     }
 
-    Result<Dinero, ErrorCredito> aplicarRegular(Prestamo prestamo, List<Cuota> destino, Dinero monto,
-                                                boolean usaApartado, Long transaccionId, Origen origen,
-                                                boolean automatico, LocalDate hoy, OffsetDateTime ahora) {
+    Result<Dinero, ErrorCredito> aplicarRegular(
+            Prestamo prestamo,
+            List<Cuota> destino,
+            Dinero monto,
+            boolean usaApartado,
+            Long transaccionId, 
+            Origen origen,
+            boolean automatico, 
+            LocalDate hoy, 
+            OffsetDateTime ahora
+    ) {
         if (monto.esCero()) return Result.err(new ErrorCredito.NadaQuePagar());
         var hayDuplicadas = new HashSet<>(destino).size() != destino.size();
         var cuotas = prestamo.getCuotas();

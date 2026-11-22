@@ -12,7 +12,7 @@ import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseC
 import com.projects.kapikua_api.credito.application.port.in.SolicitarCreditoUseCase.ResultadoSolicitud;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
+import com.projects.kapikua_api.identidad.service.RegistroService;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -39,7 +39,7 @@ class CreditoIntegracionTest {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
     }
 
-    @Autowired RegistrarUsuarioUseCase registrar;
+    @Autowired RegistroService registrar;
     @Autowired SimularCreditoUseCase simular;
     @Autowired SolicitarCreditoUseCase solicitar;
     @Autowired GestionarAvalUseCase avales;

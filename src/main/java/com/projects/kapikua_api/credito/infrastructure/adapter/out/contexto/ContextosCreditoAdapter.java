@@ -1,8 +1,8 @@
 package com.projects.kapikua_api.credito.infrastructure.adapter.out.contexto;
 
-import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase;
-import com.projects.kapikua_api.billetera.application.port.in.OperacionesCreditoUseCase;
-import com.projects.kapikua_api.billetera.domain.error.ErrorBilletera;
+import com.projects.kapikua_api.billetera.service.ConsultaBilleteraService;
+import com.projects.kapikua_api.billetera.service.OperacionesCreditoService;
+import com.projects.kapikua_api.billetera.error.ErrorBilletera;
 import com.projects.kapikua_api.credito.application.port.out.ClientesCredito;
 import com.projects.kapikua_api.credito.application.port.out.EvaluacionCrediticia;
 import com.projects.kapikua_api.credito.application.port.out.OperacionesBilletera;
@@ -14,9 +14,10 @@ import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluaci
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.evaluacion.domain.model.SolicitudCredito;
-import com.projects.kapikua_api.identidad.application.port.in.ConsultarIdentidadUseCase;
-import com.projects.kapikua_api.identidad.application.port.in.GestionarConsentimientosUseCase;
-import com.projects.kapikua_api.identidad.domain.model.TipoConsentimiento;
+import com.projects.kapikua_api.identidad.dto.DatosIdentidad;
+import com.projects.kapikua_api.identidad.service.IdentidadService;
+import com.projects.kapikua_api.identidad.service.ConsentimientoService;
+import com.projects.kapikua_api.identidad.entity.TipoConsentimiento;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -63,10 +64,10 @@ class EvaluacionCrediticiaAdapter implements EvaluacionCrediticia {
 
 @Component
 class OperacionesBilleteraAdapter implements OperacionesBilletera {
-    private final OperacionesCreditoUseCase operaciones;
-    private final ConsultarBilleteraUseCase consultar;
+    private final OperacionesCreditoService operaciones;
+    private final ConsultaBilleteraService consultar;
 
-    OperacionesBilleteraAdapter(OperacionesCreditoUseCase operaciones, ConsultarBilleteraUseCase consultar) {
+    OperacionesBilleteraAdapter(OperacionesCreditoService operaciones, ConsultaBilleteraService consultar) {
         this.operaciones = operaciones;
         this.consultar = consultar;
     }
@@ -111,9 +112,9 @@ class OperacionesBilleteraAdapter implements OperacionesBilletera {
     public Result<Cargo, ErrorCredito> cobrar(UsuarioId usuarioId, Dinero monto, Dinero usarApartado, boolean exigirTodo,
                                               boolean anticipado, String referencia, String descripcion) {
         return switch (operaciones.cobrar(usuarioId, monto, usarApartado, exigirTodo, anticipado, referencia, descripcion)) {
-            case Result.Ok<OperacionesCreditoUseCase.Cargo, ErrorBilletera> ok -> Result.ok(new Cargo(
+            case Result.Ok<com.projects.kapikua_api.billetera.dto.Cargo, ErrorBilletera> ok -> Result.ok(new Cargo(
                     ok.valor().transaccionId(), ok.valor().cobrado(), ok.valor().deApartado(), ok.valor().nuevo()));
-            case Result.Err<OperacionesCreditoUseCase.Cargo, ErrorBilletera> err -> Result.err(
+            case Result.Err<com.projects.kapikua_api.billetera.dto.Cargo, ErrorBilletera> err -> Result.err(
                     err.error() instanceof ErrorBilletera.SaldoInsuficiente
                             ? new ErrorCredito.SaldoInsuficienteParaPagar(monto.toString())
                             : new ErrorCredito.OperacionBilleteraNoPermitida(err.error().mensaje()));
@@ -123,10 +124,10 @@ class OperacionesBilleteraAdapter implements OperacionesBilletera {
 
 @Component
 class ClientesCreditoAdapter implements ClientesCredito {
-    private final GestionarConsentimientosUseCase consentimientos;
-    private final ConsultarIdentidadUseCase identidad;
+    private final ConsentimientoService consentimientos;
+    private final IdentidadService identidad;
 
-    ClientesCreditoAdapter(GestionarConsentimientosUseCase consentimientos, ConsultarIdentidadUseCase identidad) {
+    ClientesCreditoAdapter(ConsentimientoService consentimientos, IdentidadService identidad) {
         this.consentimientos = consentimientos;
         this.identidad = identidad;
     }
@@ -144,7 +145,7 @@ class ClientesCreditoAdapter implements ClientesCredito {
 
     @Override
     public Optional<String> dni(UsuarioId usuarioId) {
-        return identidad.porId(usuarioId).map(ConsultarIdentidadUseCase.DatosIdentidad::dni);
+        return identidad.porId(usuarioId).map(DatosIdentidad::dni);
     }
 
     @Override

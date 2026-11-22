@@ -64,12 +64,19 @@ public class AceptacionService implements AceptarOfertaUseCase {
     }
 
     @Override
-    public Result<Void, ErrorCredito> enviarAEntidad(UsuarioId usuarioId, Long ofertaId) {
+    public Result<Void, ErrorCredito> enviarAEntidad(
+            UsuarioId usuarioId,
+            Long ofertaId
+    ) {
         var cargada = soporte.actualizada(ofertaId, usuarioId);
-        if (cargada instanceof Result.Err<Oferta, ErrorCredito> err) return Result.err(err.error());
+
+        if (cargada instanceof Result.Err<Oferta, ErrorCredito> err)
+            return Result.err(err.error());
+
         if (!((Result.Ok<Oferta, ErrorCredito>) cargada).valor().getUsuarioId().equals(usuarioId)) {
             return Result.err(new ErrorCredito.OfertaNoEncontrada());
         }
+
         return decision.pedirSiEstaLista(ofertaId);
     }
 
@@ -133,20 +140,42 @@ public class AceptacionService implements AceptarOfertaUseCase {
         return resultado;
     }
 
-    private record Preparada(Oferta oferta, ResultadoEvaluacion evaluacion, ReglasCredito.Reglas reglas) {}
+    private record Preparada(
+            Oferta oferta,
+            ResultadoEvaluacion evaluacion,
+            ReglasCredito.Reglas reglas
+    ) {
+    }
 
     private Result<Preparada, ErrorCredito> aceptable(UsuarioId usuarioId, Long ofertaId) {
+
         var cargada = soporte.actualizada(ofertaId, usuarioId);
-        if (cargada instanceof Result.Err<Oferta, ErrorCredito> err) return Result.err(err.error());
+
+        if (cargada instanceof Result.Err<Oferta, ErrorCredito> err)
+            return Result.err(err.error());
+
         var oferta = ((Result.Ok<Oferta, ErrorCredito>) cargada).valor();
-        if (!oferta.getUsuarioId().equals(usuarioId)) return Result.err(new ErrorCredito.OfertaNoEncontrada());
+
+        if (!oferta.getUsuarioId().equals(usuarioId))
+            return Result.err(new ErrorCredito.OfertaNoEncontrada());
+
         var ev = soporte.evaluacionDe(oferta);
-        if (ev instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err) return Result.err(err.error());
+
+        if (ev instanceof Result.Err<ResultadoEvaluacion, ErrorCredito> err)
+            return Result.err(err.error());
+
         var evaluacion = ((Result.Ok<ResultadoEvaluacion, ErrorCredito>) ev).valor();
+
         var reglas = soporte.reglas();
-        if (reglas instanceof Result.Err<ReglasCredito.Reglas, ErrorCredito> err) return Result.err(err.error());
+
+        if (reglas instanceof Result.Err<ReglasCredito.Reglas, ErrorCredito> err)
+            return Result.err(err.error());
+
         var verificacion = oferta.verificarAceptable(evaluacion.requiereAval(), soporte.ahora(), clock.getZone());
-        if (verificacion instanceof Result.Err<Void, ErrorCredito> err) return Result.err(err.error());
+
+        if (verificacion instanceof Result.Err<Void, ErrorCredito> err)
+            return Result.err(err.error());
+
         return Result.ok(new Preparada(oferta, evaluacion, ((Result.Ok<ReglasCredito.Reglas, ErrorCredito>) reglas).valor()));
     }
 

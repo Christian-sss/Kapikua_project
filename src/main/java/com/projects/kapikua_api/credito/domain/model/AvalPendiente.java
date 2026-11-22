@@ -11,11 +11,17 @@ final class AvalPendiente extends EstadoAval {
     }
 
     @Override
-    boolean esPendiente() { return true; }
+    boolean esPendiente() {
+        return true;
+    }
 
     @Override
-    Result<CambioEstado, ErrorCredito> aceptar(Aval aval, int porcentajeRetencion, String dispositivo,
-                                               OffsetDateTime ahora) {
+    Result<CambioEstado, ErrorCredito> aceptar(
+            Aval aval,
+            int porcentajeRetencion,
+            String dispositivo,
+            OffsetDateTime ahora
+    ) {
         return Result.ok(aval.aplicarAceptacion(porcentajeRetencion, dispositivo, ahora));
     }
 

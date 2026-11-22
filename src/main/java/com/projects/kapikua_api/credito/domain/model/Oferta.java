@@ -43,19 +43,38 @@ public final class Oferta {
         this.avales = new ArrayList<>(avales);
     }
 
-    public static Oferta crear(Long evaluacionId, UsuarioId usuarioId, OffsetDateTime ahora, ZoneId zona, int vigenciaDias) {
+    public static Oferta crear(
+            Long evaluacionId,
+            UsuarioId usuarioId,
+            OffsetDateTime ahora,
+            ZoneId zona,
+            int vigenciaDias
+    ) {
         var hoy = ahora.atZoneSameInstant(zona).toLocalDate();
         return new Oferta(null, evaluacionId, usuarioId, null, EstadoOferta.PENDIENTE_EFA, null, null, ahora,
                 hoy.plusDays(vigenciaDias), null, List.of());
     }
 
-    public static Oferta reconstituir(Long id, Long evaluacionId, UsuarioId usuarioId, String codigoSolicitudEfa,
-                                      String estado, CondicionesCredito condiciones, String motivoDenegacion,
-                                      OffsetDateTime fecha, LocalDate vigenteHasta, Long version, List<Aval> avales) {
+    public static Oferta reconstituir(
+            Long id,
+            Long evaluacionId,
+            UsuarioId usuarioId,
+            String codigoSolicitudEfa,
+            String estado,
+            CondicionesCredito condiciones,
+            String motivoDenegacion,
+            OffsetDateTime fecha,
+            LocalDate vigenteHasta,
+            Long version,
+            List<Aval> avales
+    ) {
         var estadoReconstituido = EstadoOferta.desdeNombre(estado);
+
         var oferta = new Oferta(id, evaluacionId, usuarioId, codigoSolicitudEfa, estadoReconstituido, condiciones, motivoDenegacion,
                 fecha, vigenteHasta, version, avales);
+
         estadoReconstituido.validarReconstitucion(oferta);
+
         return oferta;
     }
 
@@ -79,13 +98,24 @@ public final class Oferta {
         return estado.verificarGestionAval().flatMap(ignorado -> invitarAval(avalId, requiereAval, maxAvales, ahora));
     }
 
-    private Result<Aval, ErrorCredito> invitarAval(UsuarioId avalId, boolean requiereAval, int maxAvales,
-                                                   OffsetDateTime ahora) {
+    private Result<Aval, ErrorCredito> invitarAval(
+            UsuarioId avalId,
+            boolean requiereAval,
+            int maxAvales,
+            OffsetDateTime ahora
+    ) {
         if (!requiereAval) return Result.err(new ErrorCredito.AvalNoRequerido());
         if (avalId.equals(usuarioId)) return Result.err(new ErrorCredito.AvalMismoDeudor());
-        if (avales.stream().anyMatch(a -> a.getUsuarioAvalId().equals(avalId))) {
+        if (avales
+                .stream()
+                .anyMatch(a -> a
+                        .getUsuarioAvalId()
+                        .equals(avalId)
+                )) {
+
             return Result.err(new ErrorCredito.AvalYaInvitado());
         }
+
         if (avales.stream().anyMatch(Aval::enCurso)) return Result.err(new ErrorCredito.AvalEnCurso());
         if (avales.size() >= maxAvales) return Result.err(new ErrorCredito.AvalesAgotados(maxAvales));
         var aval = Aval.invitar(usuarioId, avalId, ahora);

@@ -1,8 +1,8 @@
 package com.projects.kapikua_api;
 
-import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
-import com.projects.kapikua_api.identidad.domain.error.RegistroError;
+import com.projects.kapikua_api.identidad.dto.RegistroForm;
+import com.projects.kapikua_api.identidad.service.RegistroService;
+import com.projects.kapikua_api.identidad.error.RegistroError;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,11 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public final class DatosDePrueba {
     public record Cliente(UsuarioId id, String dni, String celular) {}
 
-    private final RegistrarUsuarioUseCase registrar;
+    private final RegistroService registrar;
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
-    public DatosDePrueba(RegistrarUsuarioUseCase registrar, JdbcTemplate jdbc, Clock clock) {
+    public DatosDePrueba(RegistroService registrar, JdbcTemplate jdbc, Clock clock) {
         this.registrar = registrar;
         this.jdbc = jdbc;
         this.clock = clock;
@@ -36,7 +36,7 @@ public final class DatosDePrueba {
         String dni;
         do { dni = String.valueOf(1_000_000 + r.nextInt(8_999_999)) + digito; } while (dni.endsWith("666"));
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
-        var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
+        var resultado = registrar.registrar(new RegistroForm(dni, LocalDate.of(1990, 1, 1),
                 "p" + dni + "@outlook.com", celular, "Negocio " + dni, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         return new Cliente(((Result.Ok<UsuarioId, RegistroError>) resultado).valor(), dni, celular);

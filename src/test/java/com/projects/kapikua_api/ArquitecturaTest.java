@@ -30,10 +30,14 @@ class ArquitecturaTest {
     private static final String RAIZ = "com.projects.kapikua_api.";
     private static final Set<String> CONTEXTOS = Set.of("identidad", "billetera", "evaluacion", "credito", "cumplimiento", "administracion");
 
-    private static final Set<String> DOMINIO_CON_JPA = Set.of(
-            RAIZ + "identidad.domain.model.Usuario",
-            RAIZ + "identidad.domain.model.Consentimiento",
-            RAIZ + "cumplimiento.domain.model.Parametro");
+    /**
+     * Identidad, Cumplimiento y Billetera siguen una arquitectura por capas (controller, service, repository,
+     * entity/model, client, dto, error...) en lugar de la hexagonal: las reglas sobre domain/application/infrastructure
+     * no les aplican.
+     */
+    private static final String IDENTIDAD = "..kapikua_api.identidad.";
+    private static final String CUMPLIMIENTO = "..kapikua_api.cumplimiento.";
+    private static final String BILLETERA = "..kapikua_api.billetera.";
 
     private static final Set<String> LENGUAJE_PUBLICADO = Set.of(
             RAIZ + "evaluacion.domain.model.Destino",
@@ -59,11 +63,8 @@ class ArquitecturaTest {
     @ArchTest
     static final ArchRule dominioSinPersistencia = noClasses()
             .that().resideInAPackage("..domain..")
-            .and().doNotHaveFullyQualifiedName(RAIZ + "identidad.domain.model.Usuario")
-            .and().doNotHaveFullyQualifiedName(RAIZ + "identidad.domain.model.Consentimiento")
-            .and().doNotHaveFullyQualifiedName(RAIZ + "cumplimiento.domain.model.Parametro")
             .should().dependOnClassesThat().resideInAnyPackage("jakarta.persistence..", "org.hibernate..", "java.sql..")
-            .because("la persistencia vive en los adaptadores de salida (excepciones en DOMINIO_CON_JPA)");
+            .because("la persistencia vive en los adaptadores de salida");
 
     @ArchTest
     static final ArchRule aplicacionSinDetallesTecnicos = noClasses()
@@ -155,21 +156,21 @@ class ArquitecturaTest {
     @ArchTest
     static final ArchRule entidadesJpaEnPersistencia = classes()
             .that().areAnnotatedWith(Entity.class)
-            .and().doNotHaveFullyQualifiedName(RAIZ + "identidad.domain.model.Usuario")
-            .and().doNotHaveFullyQualifiedName(RAIZ + "identidad.domain.model.Consentimiento")
-            .and().doNotHaveFullyQualifiedName(RAIZ + "cumplimiento.domain.model.Parametro")
-            .should().resideInAPackage("..infrastructure.adapter.out.persistence..");
+            .should().resideInAnyPackage("..infrastructure.adapter.out.persistence..", IDENTIDAD + "entity..",
+                    CUMPLIMIENTO + "model..", BILLETERA + "entity..");
 
     @ArchTest
     static final ArchRule repositoriosEnPersistencia = classes()
             .that().areAnnotatedWith(Repository.class)
-            .should().resideInAnyPackage("..infrastructure.adapter.out.persistence..", "..kapikua_api.administracion..");
+            .should().resideInAnyPackage("..infrastructure.adapter.out.persistence..", "..kapikua_api.administracion..",
+                    CUMPLIMIENTO + "repository..", BILLETERA + "repository..");
 
     @ArchTest
     static final ArchRule controladoresEnWeb = classes()
             .that().areMetaAnnotatedWith(Controller.class)
             .should().resideInAnyPackage("..infrastructure.adapter.in.web..", "..shared.infrastructure..",
-                    "..kapikua_api.administracion..");
+                    "..kapikua_api.administracion..", IDENTIDAD + "controller..", CUMPLIMIENTO + "controller..",
+                    BILLETERA + "controller..");
 
     private static Optional<String> contexto(JavaClass clase) {
         var nombre = clase.getName();

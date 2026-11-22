@@ -5,7 +5,11 @@ import com.projects.kapikua_api.shared.Dinero;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public record ReglasRetencion(int retencionMin, int retencionMax, int retencionDefecto) {
+public record ReglasRetencion(
+        int retencionMin,
+        int retencionMax,
+        int retencionDefecto
+) {
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
 
     public ReglasRetencion {
@@ -19,7 +23,8 @@ public record ReglasRetencion(int retencionMin, int retencionMax, int retencionD
             return retencionDefecto;
         }
 
-        return cuota.valor().multiply(CIEN)
+        return cuota.valor()
+                .multiply(CIEN)
                 .divide(promedioSemanal, 0, RoundingMode.CEILING)
                 .max(BigDecimal.valueOf(retencionMin))
                 .min(BigDecimal.valueOf(retencionMax))

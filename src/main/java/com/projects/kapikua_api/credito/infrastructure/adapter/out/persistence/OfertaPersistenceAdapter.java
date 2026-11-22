@@ -1,9 +1,7 @@
 package com.projects.kapikua_api.credito.infrastructure.adapter.out.persistence;
 
 import com.projects.kapikua_api.credito.application.port.out.OfertaRepositoryPort;
-import com.projects.kapikua_api.credito.domain.model.Aval;
-import com.projects.kapikua_api.credito.domain.model.CondicionesCredito;
-import com.projects.kapikua_api.credito.domain.model.Oferta;
+import com.projects.kapikua_api.credito.domain.model.*;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.UsuarioId;
 import jakarta.persistence.CascadeType;
@@ -277,8 +275,17 @@ class AvalJpa {
     Long version;
 
     Aval aDominio() {
-        return Aval.reconstituir(id, new UsuarioId(usuarioDeudorId), new UsuarioId(usuarioAvalId), estado,
-                porcentajeRetencionAutorizado == null ? null : porcentajeRetencionAutorizado.intValue(),
-                fechaInvitacion, fechaRespuesta, dispositivoAceptacion, fechaAviso, fechaActivacion, fechaLiberacion);
+        return Aval.reconstituir(
+                id,
+                estado,
+                new Invitacion(
+                        new UsuarioId(usuarioDeudorId),
+                        new UsuarioId(usuarioAvalId),
+                        fechaInvitacion
+                ),
+                new Respuesta(fechaRespuesta, dispositivoAceptacion, porcentajeRetencionAutorizado == null ? null : porcentajeRetencionAutorizado.intValue()),
+                new CicloGarantia(fechaAviso,fechaActivacion,fechaLiberacion)
+
+                );
     }
 }

@@ -7,11 +7,11 @@ import com.projects.kapikua_api.evaluacion.application.port.in.ResultadoEvaluaci
 import com.projects.kapikua_api.evaluacion.domain.error.ErrorEvaluacion;
 import com.projects.kapikua_api.evaluacion.domain.model.Destino;
 import com.projects.kapikua_api.evaluacion.domain.model.SolicitudCredito;
-import com.projects.kapikua_api.identidad.application.command.RegistrarUsuarioCommand;
-import com.projects.kapikua_api.identidad.application.port.in.GestionarConsentimientosUseCase;
-import com.projects.kapikua_api.identidad.application.port.in.RegistrarUsuarioUseCase;
-import com.projects.kapikua_api.identidad.domain.error.RegistroError;
-import com.projects.kapikua_api.identidad.domain.model.TipoConsentimiento;
+import com.projects.kapikua_api.identidad.dto.RegistroForm;
+import com.projects.kapikua_api.identidad.service.ConsentimientoService;
+import com.projects.kapikua_api.identidad.service.RegistroService;
+import com.projects.kapikua_api.identidad.error.RegistroError;
+import com.projects.kapikua_api.identidad.entity.TipoConsentimiento;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import com.projects.kapikua_api.shared.UsuarioId;
@@ -47,8 +47,8 @@ class EvaluacionIntegracionTest {
         registro.add("spring.datasource.url", () -> System.getenv("KAPIKUA_DB_PRUEBAS"));
     }
 
-    @Autowired RegistrarUsuarioUseCase registrar;
-    @Autowired GestionarConsentimientosUseCase consentimientos;
+    @Autowired RegistroService registrar;
+    @Autowired ConsentimientoService consentimientos;
     @Autowired EvaluarSolicitudUseCase evaluar;
     @Autowired ConsultarEvaluacionUseCase consultar;
     @Autowired ApplicationEventPublisher eventos;
@@ -60,7 +60,7 @@ class EvaluacionIntegracionTest {
         var r = ThreadLocalRandom.current();
         var dni = String.valueOf(1_000_000 + r.nextInt(8_999_999)) + digito;
         var celular = "9" + (10_000_000 + r.nextInt(89_999_999));
-        var resultado = registrar.registrar(new RegistrarUsuarioCommand(dni, LocalDate.of(1990, 1, 1),
+        var resultado = registrar.registrar(new RegistroForm(dni, LocalDate.of(1990, 1, 1),
                 "e" + dni + "@outlook.com", celular, "Negocio " + dni, "Kapikua2026", true));
         assertThat(resultado).isInstanceOf(Result.Ok.class);
         var id = ((Result.Ok<UsuarioId, RegistroError>) resultado).valor();

@@ -28,7 +28,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public final class PoliticaCredito {
+
     private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+
     private static final List<EstrategiaRecomendacion> ESTRATEGIAS = List.of(
             new RecomendacionNoApto(),
             new RecomendacionApto(),
@@ -64,10 +66,14 @@ public final class PoliticaCredito {
             OffsetDateTime ahora
     ) {
         var elegibilidad = verificarElegibilidad(solicitud, cobros, historial, p);
-        if (elegibilidad instanceof Result.Err<Void, ErrorEvaluacion> err) return Result.err(err.error());
+
+        if (elegibilidad instanceof Result.Err<Void, ErrorEvaluacion> err)
+            return Result.err(err.error());
 
         var limites = p.limitesCredito();
+
         var reglasScore = p.score();
+
         var eliminatoria = reglaEliminatoria(solicitud, central, historial, limites.deudaMaxima());
         if (eliminatoria.isPresent()) {
             var contexto = new ContextoEvaluacion(usuarioId, solicitud, central, new Evaluacion.DetalleScore(null, List.of()),
@@ -76,9 +82,13 @@ public final class PoliticaCredito {
         }
 
         var nivel = p.reglasNivel().nivel(historial.getNivel());
+
         var tea = nivel.tea().min(limites.tasaMaxima());
+
         var i = MatematicaFinanciera.tasaSemanal(tea);
+
         var promedio = cobros.promedioSemanal();
+
         var cuotaMaxima = promedio.multiply(limites.porcentajeCapacidadPago())
                 .divide(CIEN, 10, RoundingMode.HALF_EVEN);
         var capacidadNivel = MatematicaFinanciera.valorPresente(cuotaMaxima, i, nivel.maxCuotas())
@@ -143,7 +153,7 @@ public final class PoliticaCredito {
     }
 
     private static Optional<String> reglaEliminatoria(SolicitudCredito s, InformeCentral central, HistorialCrediticio h,
-                                                       Dinero deudaMaxima) {
+                                                      Dinero deudaMaxima) {
         if (h.isBloqueadoInterno()) return Optional.of("Tienes un bloqueo interno por atrasos en créditos anteriores.");
         if (central.clasificacion() != null && central.clasificacion().esEliminatoria()) {
             return Optional.of("Tu clasificación en el sistema financiero es " + central.clasificacion() + ".");
@@ -154,9 +164,14 @@ public final class PoliticaCredito {
         return Optional.empty();
     }
 
-    private static List<FactorEvaluado> factores(CobrosDelPeriodo c, InformeCentral central, HistorialCrediticio h,
-                                                 Dinero cuotaPedida, BigDecimal cuotaMaxima,
-                                                 ConfiguracionFactoresScore configuracion) {
+    private static List<FactorEvaluado> factores(
+            CobrosDelPeriodo c,
+            InformeCentral central,
+            HistorialCrediticio h,
+            Dinero cuotaPedida,
+            BigDecimal cuotaMaxima,
+            ConfiguracionFactoresScore configuracion
+    ) {
         var ponderaciones = configuracion.ponderaciones();
         var referencias = configuracion.referencias();
         var puntajesSbs = configuracion.puntajesSbs();
@@ -166,7 +181,7 @@ public final class PoliticaCredito {
                 : acotar(CIEN.subtract(porcentaje(cuotaPedida.valor(), cuotaMaxima)));
         var historial = h.esNuevo() ? referencias.historialNuevo()
                 : acotar(CIEN.subtract(referencias.historialMenosPorDia()
-                        .multiply(BigDecimal.valueOf(h.getMaxDiasAtraso()))));
+                .multiply(BigDecimal.valueOf(h.getMaxDiasAtraso()))));
         var pagadores = acotar(porcentaje(BigDecimal.valueOf(c.pagadoresDistintos()),
                 BigDecimal.valueOf(referencias.refPagadores())));
         var antiguedad = acotar(porcentaje(BigDecimal.valueOf(c.diasAntiguedad()),

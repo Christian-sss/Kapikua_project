@@ -1,11 +1,11 @@
 package com.projects.kapikua_api.evaluacion.infrastructure.adapter.out.contexto;
 
-import com.projects.kapikua_api.billetera.application.port.in.ConsultarBilleteraUseCase;
+import com.projects.kapikua_api.billetera.service.ConsultaBilleteraService;
 import com.projects.kapikua_api.evaluacion.application.port.out.CobrosCliente;
 import com.projects.kapikua_api.evaluacion.application.port.out.IdentidadCliente;
 import com.projects.kapikua_api.evaluacion.domain.model.CobrosDelPeriodo;
-import com.projects.kapikua_api.identidad.application.port.in.ConsultarIdentidadUseCase;
-import com.projects.kapikua_api.identidad.domain.model.TipoConsentimiento;
+import com.projects.kapikua_api.identidad.service.IdentidadService;
+import com.projects.kapikua_api.identidad.entity.TipoConsentimiento;
 import com.projects.kapikua_api.shared.UsuarioId;
 import org.springframework.stereotype.Component;
 
@@ -14,9 +14,9 @@ import java.util.Optional;
 
 @Component
 class CobrosClienteAdapter implements CobrosCliente {
-    private final ConsultarBilleteraUseCase billetera;
+    private final ConsultaBilleteraService billetera;
 
-    CobrosClienteAdapter(ConsultarBilleteraUseCase billetera) {
+    CobrosClienteAdapter(ConsultaBilleteraService billetera) {
         this.billetera = billetera;
     }
 
@@ -29,9 +29,9 @@ class CobrosClienteAdapter implements CobrosCliente {
 
 @Component
 class IdentidadClienteAdapter implements IdentidadCliente {
-    private final ConsultarIdentidadUseCase identidad;
+    private final IdentidadService identidad;
 
-    IdentidadClienteAdapter(ConsultarIdentidadUseCase identidad) {
+    IdentidadClienteAdapter(IdentidadService identidad) {
         this.identidad = identidad;
     }
 

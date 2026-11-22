@@ -2,7 +2,7 @@ package com.projects.kapikua_api.credito.infrastructure.adapter.out.contexto;
 
 import com.projects.kapikua_api.credito.application.port.out.ReglasCredito;
 import com.projects.kapikua_api.credito.domain.error.ErrorCredito;
-import com.projects.kapikua_api.cumplimiento.application.port.in.ConsultarParametrosUseCase;
+import com.projects.kapikua_api.cumplimiento.service.ParametroService;
 import com.projects.kapikua_api.shared.Dinero;
 import com.projects.kapikua_api.shared.Result;
 import org.slf4j.Logger;
@@ -21,9 +21,9 @@ class ReglasCreditoAdapter implements ReglasCredito {
             "MAX_AVALES_SOLICITUD", "CUOTA_MINIMA", "UIT", "TOPE_OPERACION_UIT", "TASA_MORATORIA_MAX",
             "DIAS_AVISO_AVAL", "DIAS_ACTIVACION_AVAL");
 
-    private final ConsultarParametrosUseCase parametros;
+    private final ParametroService parametros;
 
-    ReglasCreditoAdapter(ConsultarParametrosUseCase parametros) {
+    ReglasCreditoAdapter(ParametroService parametros) {
         this.parametros = parametros;
     }
 
