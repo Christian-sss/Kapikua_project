@@ -1,0 +1,260 @@
+@startuml evaluacion-domain-clases
+title Bounded context Evaluacion — modelo de dominio (1/2: núcleo)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 11
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 25
+skinparam ranksep 40
+hide empty members
+
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #EAF2FB
+  BackgroundColor<<aggregate root>> #FFE8A3
+  BackgroundColor<<parámetro>> #E3F4E1
+  BackgroundColor<<servicio>> #ECE3F7
+  BackgroundColor<<estrategia>> #ECE3F7
+  BackgroundColor<<error>> #FBE1E1
+  BackgroundColor<<evento>> #FDE7D2
+  BackgroundColor<<shared>> #EEEEEE
+}
+
+' ================= SERVICIOS =================
+package "Servicios de dominio (service)" {
+  class PoliticaCredito <<servicio>> {
+    - {static} ESTRATEGIAS : List<EstrategiaRecomendacion>
+    + {static} verificarElegibilidad(solicitud, cobros, historial, p)
+    + {static} evaluar(usuarioId, solicitud, cobros, central, historial, p, ahora)
+    + {static} evaluarAval(identidadValidada, central, historial)
+    - {static} recomendar(contexto) : Evaluacion
+    - {static} reglaEliminatoria(...) : Optional<String>
+    - {static} factores(...) : List<FactorEvaluado>
+  }
+  note right of PoliticaCredito
+    Todos los métodos públicos devuelven
+    Result<_, ErrorEvaluacion> (kernel shared).
+    Usa MatematicaFinanciera para la cuota
+    y el valor presente.
+  end note
+
+  interface EstrategiaRecomendacion <<estrategia>> {
+    + aplica(contexto : ContextoEvaluacion) : boolean
+    + evaluar(contexto : ContextoEvaluacion) : Evaluacion
+  }
+  class RecomendacionNoApto <<estrategia>>
+  class RecomendacionApto <<estrategia>>
+  class RecomendacionAptoConAjuste <<estrategia>>
+
+  note right of EstrategiaRecomendacion
+    Patrón Strategy. Se prueban en orden
+    y gana la primera que aplica:
+    1. NoApto — motivo eliminatorio,
+       score bajo o cuota insuficiente
+    2. Apto — sin ajuste por riesgo
+       y monto completo
+    3. AptoConAjuste — por defecto
+  end note
+}
+
+' ================= ENTRADAS =================
+package "Entradas de la evaluación (model)" {
+  class ContextoEvaluacion <<record>> {
+    + usuarioId : UsuarioId
+    + solicitud : SolicitudCredito
+    + central : InformeCentral
+    + detalleScore : DetalleScore
+    + reglas : ReglasRecomendacion
+    + fecha : OffsetDateTime
+    + ofertaViable : Optional<OfertaViable>
+    + motivoEliminatorio : Optional<String>
+    --
+    + oferta() : OfertaViable
+    + requiereAval() : boolean
+    + requiereAjustePorRiesgo() : boolean
+  }
+  class "ContextoEvaluacion.OfertaViable" as OfertaViable <<record>> {
+    + condiciones : CondicionesSugeridas
+    + cuotaMinima : Dinero
+    + requiereAval : boolean
+    --
+    + cuotaInsuficiente() : boolean
+  }
+  class InformeCentral <<record>> {
+    + clasificacion : ClasificacionSbs
+    + deudaTotal : Dinero
+  }
+  class CobrosDelPeriodo <<record>> {
+    + semanas : int
+    + totalCobrado : Dinero
+    + semanasConCobros : int
+    + cantidadCobros : int
+    + pagadoresDistintos : int
+    + diasAntiguedad : long
+    --
+    + promedioSemanal() : BigDecimal
+  }
+  class ParametrosCredito <<parámetro>> <<record>>
+  note bottom of ParametrosCredito
+    Detalle en el diagrama 2/2
+  end note
+}
+
+' ================= AGREGADOS =================
+package "Agregados (model)" {
+  class Evaluacion <<aggregate root>> <<record>> {
+    + id : Long
+    + usuarioId : UsuarioId
+    + solicitud : SolicitudCredito
+    + clasificacionSbs : ClasificacionSbs
+    + deudaTotalSistema : Dinero
+    + detalleScore : DetalleScore
+    + decision : DecisionRecomendacion
+    + fecha : OffsetDateTime
+    --
+    + {static} apto(contexto, condiciones) : Evaluacion
+    + {static} aptoConAjuste(contexto, condiciones, motivo) : Evaluacion
+    + {static} noApto(contexto, motivo) : Evaluacion
+    + conId(id : Long) : Evaluacion
+    + esApta() : boolean
+    + eventos() : List<EventoDominio>
+  }
+
+  class HistorialCrediticio <<aggregate root>> {
+    - usuarioId : UsuarioId
+    - nivel : int
+    - creditosPagadosEnNivel : int
+    - maxDiasAtraso : int
+    - bloqueadoInterno : boolean
+    - version : Long
+    --
+    + {static} nuevo(usuarioId) : HistorialCrediticio
+    + {static} reconstituir(...) : HistorialCrediticio
+    + esNuevo() : boolean
+    + registrarDesembolso()
+    + registrarAtraso(dias, reglas : ReglasNivel)
+    + registrarCreditoPagado(pagadoPorAval, reglas : ReglasNivel)
+  }
+}
+
+' ================= VALUE OBJECTS =================
+package "Value objects (model)" {
+  class "Evaluacion.DetalleScore" as DetalleScore <<record>> {
+    + puntaje : Integer
+    + factores : List<FactorEvaluado>
+  }
+  class FactorEvaluado <<record>> {
+    + nombre : String
+    + valor : String
+    + puntaje : BigDecimal
+    + peso : BigDecimal
+    --
+    + aporte() : BigDecimal
+  }
+  class DecisionRecomendacion <<record>> {
+    + recomendacion : String
+    + condiciones : CondicionesSugeridas
+    + requiereAval : boolean
+    + motivo : String
+  }
+  class CondicionesSugeridas <<record>> {
+    + monto : Dinero
+    + cuotas : int
+    + tea : BigDecimal
+    + cuota : Dinero
+    + porcentajeRetencion : int
+    --
+    + {static} ninguna() : CondicionesSugeridas
+    + hayOferta() : boolean
+  }
+  class SolicitudCredito <<record>> {
+    + monto : Dinero
+    + cuotas : int
+    + destino : Destino
+  }
+  enum Destino {
+    CAPITAL_TRABAJO
+    SALUD
+    EDUCACION
+    PAGO_DEUDA
+    OTRO
+  }
+  enum ClasificacionSbs {
+    NORMAL
+    CPP
+    DEFICIENTE
+    DUDOSO
+    PERDIDA
+    --
+    + esEliminatoria() : boolean
+  }
+}
+
+' ================= EVENTOS / ERRORES / SHARED =================
+package "Eventos y errores (event, error)" {
+  class EvaluacionEmitida <<evento>> <<record>> {
+    + evaluacionId : Long
+    + usuarioId : UsuarioId
+    + recomendacion : String
+    + requiereAval : boolean
+  }
+  interface ErrorEvaluacion <<error>> <<sealed>> {
+    + codigo() : String
+    + mensaje() : String
+  }
+  note right of ErrorEvaluacion
+    Records que la implementan:
+    EV-01 ConsentimientoFaltante
+    EV-02 BilleteraSinUsoMinimo(falta)
+    EV-03 CuotasFueraDeRango(min, max)
+    EV-04 MontoInvalido
+    EV-05 CentralNoDisponible
+    EV-06 UsuarioNoEncontrado
+    EV-07 ParametrosNoDisponibles,
+          ParametrosInvalidos
+    EV-08 AvalIdentidadNoValidada
+    EV-09 AvalClasificacionNoNormal
+    EV-10 AvalBloqueado
+  end note
+  interface EventoDominio <<shared>>
+  interface ErrorDominio <<shared>>
+}
+
+' ================= RELACIONES =================
+PoliticaCredito o-- "3" EstrategiaRecomendacion : prueba en orden
+EstrategiaRecomendacion <|.. RecomendacionNoApto
+EstrategiaRecomendacion <|.. RecomendacionApto
+EstrategiaRecomendacion <|.. RecomendacionAptoConAjuste
+
+RecomendacionNoApto ..> ContextoEvaluacion : decide con
+RecomendacionApto ..> ContextoEvaluacion
+RecomendacionAptoConAjuste ..> ContextoEvaluacion
+PoliticaCredito ..> CobrosDelPeriodo : lee
+PoliticaCredito ..> ParametrosCredito : aplica
+
+ContextoEvaluacion *-- "0..1" OfertaViable
+ContextoEvaluacion --> "1" InformeCentral
+ContextoEvaluacion ..> Evaluacion : origen de apto() / noApto()
+
+PoliticaCredito ..> HistorialCrediticio : nivel y bloqueo
+
+Evaluacion *-- "1" DetalleScore
+Evaluacion *-- "1" DecisionRecomendacion
+Evaluacion *-- "1" SolicitudCredito
+Evaluacion --> "0..1" ClasificacionSbs
+DetalleScore *-- "6" FactorEvaluado : factores del score
+DecisionRecomendacion *-- "1" CondicionesSugeridas
+OfertaViable *-- "1" CondicionesSugeridas
+SolicitudCredito --> "1" Destino
+InformeCentral --> "0..1" ClasificacionSbs
+
+Evaluacion ..> EvaluacionEmitida : eventos() emite
+EventoDominio <|.. EvaluacionEmitida
+ErrorDominio <|-- ErrorEvaluacion
+
+@enduml

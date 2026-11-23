@@ -1,0 +1,136 @@
+@startuml evaluacion-domain-parametros
+title Bounded context Evaluacion — modelo de dominio (2/2: parámetros de crédito)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 11
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 25
+skinparam ranksep 40
+hide empty members
+
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #E3F4E1
+  BackgroundColor<<aggregate root>> #FFE8A3
+  BackgroundColor<<servicio>> #ECE3F7
+  BackgroundColor<<externo>> #FFFFFF
+}
+
+class PoliticaCredito <<servicio>>
+class HistorialCrediticio <<aggregate root>>
+class ContextoEvaluacion <<externo>>
+
+package "Parámetros de crédito (model)" {
+  class ParametrosCredito <<record>> {
+    + usoMinimo : UsoMinimo
+    + limitesCredito : LimitesCredito
+    + score : ReglasScore
+    + retencion : ReglasRetencion
+    + reglasNivel : ReglasNivel
+  }
+  class UsoMinimo <<record>> {
+    + usoMinDias : int
+    + usoMinSemanasConCobro : int
+    + usoMinCobros : int
+    + periodoCobrosSemanas : int
+  }
+  class LimitesCredito <<record>> {
+    + porcentajeCapacidadPago : BigDecimal
+    + deudaMaxima : Dinero
+    + topePorOperacion : Dinero
+    + tasaMaxima : BigDecimal
+    + cuotaMinima : Dinero
+    + cuotasMinimas : int
+  }
+  class ReglasRetencion <<record>> {
+    + retencionMin : int
+    + retencionMax : int
+    + retencionDefecto : int
+    --
+    + porcentaje(cuota, promedioSemanal) : int
+  }
+  class ReglasNivel <<record>> {
+    + niveles : Map<Integer, CondicionesNivel>
+    + nivelMaxConAval : int
+    + diasAtrasoMaxParaSubir : int
+    + diasAtrasoBajaNivel : int
+    + diasAtrasoBloqueo : int
+    --
+    + nivel(n : int) : CondicionesNivel
+    + nivelMaximo() : int
+  }
+  class CondicionesNivel <<record>> {
+    + nivel : int
+    + porcentajeCapacidad : BigDecimal
+    + maxCuotas : int
+    + tea : BigDecimal
+    + creditosParaSubir : int
+  }
+  class ReglasScore <<record>> {
+    + recomendacion : ReglasRecomendacion
+    + factores : ConfiguracionFactoresScore
+  }
+  class "ReglasScore.ReglasRecomendacion" as ReglasRecomendacion <<record>> {
+    + scoreApto : int
+    + scoreAjuste : int
+    + porcentajeAjuste : BigDecimal
+  }
+  class ConfiguracionFactoresScore <<record>> {
+    + ponderaciones : PonderacionesScore
+    + referencias : ReferenciasScore
+    + puntajesSbs : PuntajesClasificacionSbs
+  }
+  class "PonderacionesScore" as PonderacionesScore <<record>> {
+    + regularidad : BigDecimal
+    + holgura : BigDecimal
+    + historial : BigDecimal
+    + pagadores : BigDecimal
+    + antiguedad : BigDecimal
+    + clasificacion : BigDecimal
+  }
+  class "ReferenciasScore" as ReferenciasScore <<record>> {
+    + refPagadores : int
+    + refAntiguedadDias : int
+    + historialNuevo : BigDecimal
+    + historialMenosPorDia : BigDecimal
+  }
+  class "PuntajesClasificacionSbs" as PuntajesClasificacionSbs <<record>> {
+    + normal : BigDecimal
+    + sinHistorial : BigDecimal
+    + cpp : BigDecimal
+  }
+}
+
+note right of ReglasNivel
+  Valida que haya niveles 1..n
+  consecutivos y coherentes.
+end note
+note right of ReglasRecomendacion
+  Invariante: 0 ≤ scoreAjuste ≤ scoreApto
+end note
+
+PoliticaCredito ..> ParametrosCredito : evalúa con
+
+ParametrosCredito *-- UsoMinimo : elegibilidad
+ParametrosCredito *-- LimitesCredito : topes y tasa
+ParametrosCredito *-- ReglasRetencion : % de retención
+ParametrosCredito *-- ReglasNivel : niveles
+ParametrosCredito *-- ReglasScore : score
+
+ReglasNivel *-- "1..*" CondicionesNivel : por nivel
+HistorialCrediticio ..> ReglasNivel : sube / baja / bloquea
+
+ReglasScore *-- ReglasRecomendacion : umbrales
+ReglasScore *-- ConfiguracionFactoresScore : pesos de factores
+ContextoEvaluacion --> ReglasRecomendacion
+
+ConfiguracionFactoresScore *-- PonderacionesScore
+ConfiguracionFactoresScore *-- ReferenciasScore
+ConfiguracionFactoresScore *-- PuntajesClasificacionSbs
+
+@enduml
